@@ -1,7 +1,7 @@
-"""Tests for /api/v1/chat and /api/v1/chat/stream endpoints with model routing and mocked providers."""
+"""Tests for /api/v1/chat and /api/v1/chat/stream endpoints with model routing, tools, and mocked providers."""
 
 import json
-from typing import AsyncIterator, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 from fastapi import status
 from fastapi.testclient import TestClient
 import pytest
@@ -13,9 +13,14 @@ from app.models.provider import (
     ChatMessage,
     ModelProvider,
     ProviderAPIError,
+    ProviderResponse,
 )
 from app.models.registry import ModelCapability, ModelDefinition, ModelRegistry
 from app.models.router import ModelRouter
+from app.tools.builtin.calculator import CalculatorTool
+from app.tools.executor import ToolExecutor
+from app.tools.registry import ToolRegistry
+from app.tools.schemas import ToolCall
 
 
 class MockSuccessProvider(ModelProvider):
@@ -28,15 +33,17 @@ class MockSuccessProvider(ModelProvider):
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
-    ) -> str:
+    ) -> ProviderResponse:
         self.last_model_used = model
-        return "Hello! How can I help?"
+        return ProviderResponse(content="Hello! How can I help?", model=model)
 
     async def stream_response(
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         self.last_model_used = model
@@ -51,14 +58,16 @@ class MockAuthFailProvider(ModelProvider):
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
-    ) -> str:
+    ) -> ProviderResponse:
         raise AuthenticationError("OpenRouter authentication failed: invalid or unauthorized API key")
 
     async def stream_response(
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         raise AuthenticationError("OpenRouter authentication failed: invalid or unauthorized API key")
@@ -72,21 +81,53 @@ class MockUpstreamFailProvider(ModelProvider):
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
-    ) -> str:
+    ) -> ProviderResponse:
         raise ProviderAPIError("OpenRouter upstream overloaded", status_code=502)
 
     async def stream_response(
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         raise ProviderAPIError("OpenRouter upstream overloaded", status_code=502)
         yield ""  # pragma: no cover
 
 
-def create_test_agent(provider: ModelProvider) -> KairoAgent:
+class ScriptedToolCallingProvider(ModelProvider):
+    """Mock provider simulating assistant tool request followed by final response."""
+
+    def __init__(self, responses: List[ProviderResponse]):
+        self.responses = list(responses)
+        self.step = 0
+
+    async def generate_response(
+        self,
+        messages: List[ChatMessage],
+        model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        **kwargs,
+    ) -> ProviderResponse:
+        if self.step < len(self.responses):
+            r = self.responses[self.step]
+            self.step += 1
+            return r
+        return ProviderResponse(content="Final answer", model=model)
+
+    async def stream_response(
+        self,
+        messages: List[ChatMessage],
+        model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        **kwargs,
+    ) -> AsyncIterator[str]:
+        yield "Final answer"
+
+
+def create_test_agent(provider: ModelProvider, with_tools: bool = False) -> KairoAgent:
     """Helper to build a KairoAgent with a test router and registry."""
     registry = ModelRegistry()
     registry.register_model(
@@ -104,7 +145,21 @@ def create_test_agent(provider: ModelProvider) -> KairoAgent:
         )
     )
     router = ModelRouter(registry=registry, default_model_id="openrouter/free")
-    return KairoAgent(provider=provider, router=router, model="openrouter/free")
+
+    tool_reg = None
+    tool_exec = None
+    if with_tools:
+        tool_reg = ToolRegistry()
+        tool_reg.register(CalculatorTool())
+        tool_exec = ToolExecutor(registry=tool_reg)
+
+    return KairoAgent(
+        provider=provider,
+        router=router,
+        tool_registry=tool_reg,
+        tool_executor=tool_exec,
+        model="openrouter/free",
+    )
 
 
 def test_chat_endpoint_success_default_general(client: TestClient) -> None:
@@ -120,6 +175,7 @@ def test_chat_endpoint_success_default_general(client: TestClient) -> None:
         assert data["message"] == "Hello! How can I help?"
         assert data["model"] == "openrouter/free"
         assert provider.last_model_used == "openrouter/free"
+        assert data["tools_used"] is None
     finally:
         app.dependency_overrides.clear()
 
@@ -140,6 +196,33 @@ def test_chat_endpoint_with_explicit_capability(client: TestClient) -> None:
         assert data["message"] == "Hello! How can I help?"
         assert data["model"] == "qwen/qwen-2.5-coder-32b-instruct"
         assert provider.last_model_used == "qwen/qwen-2.5-coder-32b-instruct"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_chat_endpoint_with_tool_execution(client: TestClient) -> None:
+    """Ensure POST /api/v1/chat returns executed tool metadata in response."""
+    provider = ScriptedToolCallingProvider(
+        responses=[
+            ProviderResponse(
+                tool_calls=[ToolCall(id="c1", name="calculator", arguments={"expression": "50 * 2"})]
+            ),
+            ProviderResponse(content="50 * 2 is 100."),
+        ]
+    )
+    mock_agent = create_test_agent(provider, with_tools=True)
+    app.dependency_overrides[get_default_agent] = lambda: mock_agent
+
+    try:
+        response = client.post("/api/v1/chat", json={"message": "Calculate 50 * 2"})
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["message"] == "50 * 2 is 100."
+        assert data["tools_used"] is not None
+        assert len(data["tools_used"]) == 1
+        assert data["tools_used"][0]["tool"] == "calculator"
+        assert data["tools_used"][0]["status"] == "success"
+        assert data["tools_used"][0]["verification_status"] == "verified"
     finally:
         app.dependency_overrides.clear()
 
@@ -215,7 +298,7 @@ def test_chat_stream_endpoint_unknown_capability(client: TestClient) -> None:
 
     try:
         response = client.post(
-            "/api/v1/chat/stream",
+            "/api/v1/chat",
             json={"message": "Hello", "capability": "teleportation"},
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST

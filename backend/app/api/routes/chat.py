@@ -1,7 +1,7 @@
-"""Chat routes for Kairo AI assistant with model routing."""
+"""Chat routes for Kairo AI assistant with model routing and tool execution support."""
 
 import json
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -30,8 +30,16 @@ class ChatRequest(BaseModel):
     )
 
 
+class ToolActivitySchema(BaseModel):
+    """Safe metadata describing tool execution without exposing internal reasoning."""
+
+    tool: str = Field(..., description="Name of the executed tool")
+    status: str = Field(..., description="Execution status ('success' or 'failed')")
+    verification_status: str = Field(..., description="Verification result ('verified', 'failed', or 'denied')")
+
+
 class ChatResponse(BaseModel):
-    """Schema for chat response message and routing metadata."""
+    """Schema for chat response message and routing/tool metadata."""
 
     message: str = Field(
         ...,
@@ -42,6 +50,10 @@ class ChatResponse(BaseModel):
         ...,
         description="ID of the model that served this request",
         examples=["openrouter/free"],
+    )
+    tools_used: Optional[List[ToolActivitySchema]] = Field(
+        default=None,
+        description="List of tools invoked during response generation",
     )
 
 
@@ -69,12 +81,25 @@ async def chat(
     request: ChatRequest,
     agent: KairoAgent = Depends(get_default_agent),
 ) -> ChatResponse:
-    """Synchronous chat completion endpoint."""
+    """Synchronous chat completion endpoint supporting internal tool execution."""
     capability = resolve_requested_capability(request.capability)
 
     try:
         response = await agent.process_message(request.message, capability=capability)
-        return ChatResponse(message=response.message, model=response.model)
+        tools_meta = [
+            ToolActivitySchema(
+                tool=t.tool,
+                status=t.status,
+                verification_status=t.verification_status,
+            )
+            for t in response.tools_used
+        ] if response.tools_used else None
+
+        return ChatResponse(
+            message=response.message,
+            model=response.model,
+            tools_used=tools_meta,
+        )
     except InvalidCapabilityError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

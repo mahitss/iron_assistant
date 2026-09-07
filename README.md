@@ -2,9 +2,9 @@
 
 Kairo is an autonomous personal AI assistant designed to execute complex tasks, manage workflows, and interface seamlessly across voice, text, tools, and autonomous agent loops.
 
-> **Status: Phase 3 — Intelligent Model Router & Capability Layer**  
-> This repository is currently in **Phase 3**. Kairo now features a dedicated, provider-agnostic **Model Routing Layer** that dynamically selects the optimal configured AI model based on task capability requirements (e.g., coding, reasoning, fast, vision, general) while maintaining safe fallback behaviors.  
-> **Important**: Tools, persistent memory, voice STT/TTS, authentication, multi-agent orchestration, and frontend UI are **NOT implemented yet** and will be introduced incrementally in future phases.
+> **Status: Phase 4 — Extensible Tool Framework & Safe Starter Tools**  
+> This repository is currently in **Phase 4**. Kairo now features a generic, secure, provider-agnostic **Tool Framework** with argument validation (Pydantic), permission checking, lifecycle execution, output verification, and an internal multi-turn tool loop.  
+> **Important**: Memory persistence, voice STT/TTS, authentication, multi-agent orchestration, web automation, filesystem writes, and frontend UI are **NOT implemented yet** and will be introduced incrementally in future phases.
 
 ---
 
@@ -15,23 +15,32 @@ kairo/
 ├── backend/                  # Python FastAPI agent service & core runtime
 │   ├── app/
 │   │   ├── agents/           # Autonomous agent routines & decision logic
-│   │   │   └── core.py       # KairoAgent core persona, heuristic classifier & routing
+│   │   │   └── core.py       # KairoAgent core persona, tool iteration loop (MAX_ITERATIONS=5)
 │   │   ├── api/              # API endpoints, routers, and request handlers
 │   │   │   ├── routes/
 │   │   │   │   └── chat.py   # POST /api/v1/chat & POST /api/v1/chat/stream
 │   │   │   └── health.py     # GET /health
 │   │   ├── core/             # Application configuration, settings, security
 │   │   │   └── config.py     # Pydantic BaseSettings & environment variables
-│   │   ├── memory/           # (Deferred to Phase 4)
+│   │   ├── memory/           # (Deferred to Phase 5)
 │   │   ├── models/           # Model provider, registry, and router layer
 │   │   │   ├── health.py     # Healthcheck schemas
-│   │   │   ├── openrouter.py # OpenRouter OpenAI-compatible client
-│   │   │   ├── provider.py   # ModelProvider protocol & ChatMessage schema
+│   │   │   ├── openrouter.py # OpenRouter OpenAI-compatible client with tool calling
+│   │   │   ├── provider.py   # ModelProvider protocol, ChatMessage, ProviderResponse
 │   │   │   ├── registry.py   # ModelCapability, ModelDefinition, ModelRegistry
 │   │   │   └── router.py     # ModelRouter (capability matching, priority, fallback)
-│   │   ├── tools/            # (Deferred to Phase 4+)
+│   │   ├── tools/            # Tool framework & built-in safe starters
+│   │   │   ├── base.py       # BaseTool contract & ToolDefinition
+│   │   │   ├── executor.py   # ToolExecutor (validation, permission check, verification)
+│   │   │   ├── permissions.py# PermissionLevel (READ, WRITE, EXTERNAL, DESTRUCTIVE)
+│   │   │   ├── registry.py   # ToolRegistry & schema generator
+│   │   │   ├── schemas.py    # ToolCall & ToolResult schemas
+│   │   │   └── builtin/      # Safe starter tools
+│   │   │       ├── calculator.py  # AST-based safe arithmetic (no eval/exec)
+│   │   │       ├── datetime.py    # Timezone-aware date and time inspector
+│   │   │       └── system_info.py # Read-only OS and runtime metadata
 │   │   └── main.py           # FastAPI application factory & router registration
-│   ├── tests/                # Pytest unit and integration test suite (37 tests)
+│   ├── tests/                # Pytest unit and integration test suite (62 tests)
 │   ├── pyproject.toml        # Python project metadata & tool configurations
 │   └── requirements.txt      # Minimal backend dependencies
 ├── frontend/                 # Reserved for Next.js + TypeScript web UI
@@ -44,64 +53,78 @@ kairo/
 └── README.md                 # Project documentation
 ```
 
-### Request Pipeline (Phase 3 Current State)
+### Tool Execution Lifecycle
 
 ```text
-User Request (Message + Optional Capability)
+User Request ("What is 15 * 4?")
        ↓
-POST /api/v1/chat  OR  POST /api/v1/chat/stream
+KairoAgent (Inspects Available Tool Schemas)
        ↓
-Resolve Capability (e.g. "coding", "reasoning", "general")
+Model Provider (OpenRouter with tools payload)
        ↓
-ModelRouter (Inspects ModelRegistry)
-  ├── 1. Matches highest-priority enabled model for capability
-  └── 2. Falls back safely to default target (KAIRO_MODEL) if no match
+LLM emits structured tool call: calculator(expression="15 * 4")
        ↓
-KairoAgent (Injects System Persona + Constructs ChatMessages)
+ToolExecutor
+  ├── 1. Registry Lookup: finds CalculatorTool
+  ├── 2. Permissions Check: verifies READ is AUTO_ALLOWED
+  ├── 3. Argument Validation: parses expression via Pydantic
+  ├── 4. Safe Execution: AST-based evaluator evaluates without eval()
+  ├── 5. Output Verification: confirms finite numeric output
+  └── 6. Produces structured ToolResult(success=True, result=60)
        ↓
-ModelProvider Protocol (Provider-Agnostic Interface)
+Tool message appended to conversation history
        ↓
-OpenRouterProvider (httpx client, streaming SSE parser)
+LLM receives tool result
        ↓
-OpenRouter API (https://openrouter.ai/api/v1)
-       ↓
-Response with Model Metadata {"message": "...", "model": "..."}
+Final response: "15 * 4 is 60." (with safe tool activity metadata)
 ```
 
 ---
 
-## Model Router & Capabilities
+## Tool Framework Architecture
 
-### What the Model Router Does
+### 1. Tool Contract (`BaseTool` & `ToolDefinition`)
+Every tool inherits from `BaseTool` and declares:
+- `name`: Unique identifier (e.g. `calculator`)
+- `description`: Model-facing prompt explanation
+- `permission_level`: Risk level classification
+- `args_model`: Pydantic schema for strict input parsing
+- `execute(**kwargs)`: Async execution logic
+- `verify(result)`: Post-execution output validation hook
 
-The **Model Router** decouples the agent core and API routes from specific downstream models. Rather than hardcoding model IDs in application code, requests declare or infer an abstract **capability**. The router searches its registry of enabled models, sorts compatible candidates by priority, and selects the best model.
+### 2. Permission Levels (`PermissionLevel`)
+- `READ`: Safe, read-only local operations (automatically permitted)
+- `WRITE`: Mutates local files or states (requires approval)
+- `EXTERNAL`: Connects to third-party network services or APIs (requires approval)
+- `DESTRUCTIVE`: Deletes files or terminates resources (denied by default)
 
-### Supported Capabilities
+### 3. Built-in Safe Starter Tools
+1. **`calculator`** (`PermissionLevel.READ`):
+   - Safely parses mathematical expressions using an **AST whitelist** (`ast.BinOp`, `ast.Constant`, `ast.UnaryOp`).
+   - Supports: `+`, `-`, `*`, `/`, `%`, `**`, parentheses, and negative numbers.
+   - Strictly blocks: `eval()`, `exec()`, `ast.Call`, `ast.Attribute`, `ast.Name`, imports, and variable lookups.
+   - Rejects division by zero and guards against exponential denial of service.
+2. **`datetime`** (`PermissionLevel.READ`):
+   - Returns timezone-aware date and time information.
+   - Supports valid IANA timezones (e.g. `UTC`, `Asia/Kolkata`, `America/New_York`).
+   - Returns structured `date`, `time`, `timezone`, `iso`, and `day_of_week`.
+3. **`system_info`** (`PermissionLevel.READ`):
+   - Returns high-level operating system, architecture, and Python version details.
+   - Strictly forbids and masks any access to environment variables, credentials, usernames, or filesystem paths.
 
-| Capability | Description | Example Target |
-|---|---|---|
-| `general` | Everyday chat, general inquiries, general synthesis | `meta-llama/llama-3.3-70b-instruct` |
-| `reasoning` | Multi-step logic, math problems, theorem validation | `deepseek/deepseek-r1` |
-| `coding` | Software engineering, debugging, code generation | `qwen/qwen-2.5-coder-32b-instruct` |
-| `vision` | Visual input understanding, OCR, document inspection | `google/gemini-2.0-flash-001` |
-| `fast` | Ultra-low-latency responses, lightweight summarization | `openrouter/free` |
-| `tool_calling` | Function invocation and structured tool arguments | `google/gemini-2.0-flash-001` |
-| `structured_output` | Strict JSON schema generation | `qwen/qwen-2.5-coder-32b-instruct` |
+### 4. Bounded Iterations & Guardrails
+- Sequential tool calls are supported up to `MAX_TOOL_ITERATIONS = 5`.
+- If a model becomes trapped in a recursive tool loop, Kairo safely stops and returns a clear message.
+- Raw Python stack traces are never exposed to the model or user.
 
-### Default Fallback Behavior
-
-- If a requested capability has compatible enabled models, the model with the **highest priority** is chosen.
-- If no compatible model is registered or enabled for that capability, the router **falls back to the configured default model** (`KAIRO_MODEL`, default: `openrouter/free`).
-- If `KAIRO_ROUTING_ENABLED=false`, all requests immediately route to `KAIRO_MODEL`.
-- Disabled models are never returned.
-- If the fallback model itself is disabled or missing, a clean `NoUsableModelError` (HTTP 503) is raised.
-
-### Dynamic Catalog vs. Hardcoded Free Models
-
-We deliberately **do NOT hardcode a permanent list of "free models"**:
-1. Upstream providers frequently add, rename, rate-limit, or retire specific free model endpoints.
-2. `openrouter/free` is treated as a **dynamic router target** on OpenRouter that resolves to current available free models upstream, rather than pretending it is a static single model.
-3. The `ModelRegistry` allows adding, disabling, or re-prioritizing models dynamically at startup or via configuration without touching business logic.
+### 5. Future Tools Intentionally Not Implemented Yet
+To preserve absolute safety in Phase 4, the following are **intentionally not implemented**:
+- Arbitrary shell / bash execution
+- Dynamic Python code execution
+- Browser automation
+- Filesystem write/delete
+- Outbound emails or communications
+- Autonomous background loops
 
 ---
 
@@ -153,69 +176,58 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 curl -X GET http://localhost:8000/health
 ```
 
-### 2. General Chat (`POST /api/v1/chat`)
-Omitting `capability` automatically defaults to `general`:
-
+### 2. General Chat
 ```bash
 curl -X POST http://localhost:8000/api/v1/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "Hello Kairo"}'
 ```
 
-**Response (includes selected `model` metadata):**
+**Response:**
 ```json
 {
   "message": "Hello! How can I help?",
-  "model": "meta-llama/llama-3.3-70b-instruct"
+  "model": "meta-llama/llama-3.3-70b-instruct",
+  "tools_used": null
 }
 ```
 
-### 3. Capability-Routed Chat (`capability: "coding"`)
-Request a coding specialist model:
+### 3. Tool Execution Response (Internal Calculator Tool)
+When the model invokes a tool to resolve a user request:
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "Write a binary search in Python", "capability": "coding"}'
+  -d '{"message": "What is 15 * 4?"}'
 ```
 
-**Response:**
+**Response (Includes safe tool metadata):**
 ```json
 {
-  "message": "def binary_search(arr, target): ...",
-  "model": "qwen/qwen-2.5-coder-32b-instruct"
+  "message": "15 * 4 is 60.",
+  "model": "google/gemini-2.0-flash-001",
+  "tools_used": [
+    {
+      "tool": "calculator",
+      "status": "success",
+      "verification_status": "verified"
+    }
+  ]
 }
 ```
 
-### 4. Streaming with Model Metadata (`POST /api/v1/chat/stream`)
-The initial SSE event emits the selected `model`, followed by text `content` chunks, and terminates with `[DONE]`:
-
+### 4. Streaming Response (`POST /api/v1/chat/stream`)
 ```bash
 curl -N -X POST http://localhost:8000/api/v1/chat/stream \
   -H "Content-Type: application/json" \
-  -d '{"message": "Explain recursion", "capability": "coding"}'
-```
-
-**SSE Stream Output:**
-```text
-data: {"model": "qwen/qwen-2.5-coder-32b-instruct"}
-
-data: {"content": "Recursion"}
-
-data: {"content": " is"}
-
-data: {"content": " a"}
-
-data: {"content": " method"}
-
-data: [DONE]
+  -d '{"message": "What is the time in UTC?"}'
 ```
 
 ---
 
 ## Running Tests
 
-All 37 unit and integration tests execute with zero external network dependencies using mocked providers:
+The test suite contains **62 unit and integration tests** verifying tool execution, AST security, permissions, provider continuation, and endpoint behaviors with zero external network calls:
 
 ```bash
 cd backend
@@ -228,8 +240,8 @@ pytest -v
 
 - [x] **Phase 1: Bootstrap** — Minimal repository layout, clean architecture, config, health endpoint, tests.
 - [x] **Phase 2: AI Brain (OpenRouter Integration)** — Provider protocol, OpenRouter sync/stream completions, KairoAgent persona.
-- [x] **Phase 3: Model Router** — Capability taxonomy, ModelDefinition, ModelRegistry, ModelRouter priority matching & fallback, model response metadata.
-- [ ] **Phase 4: Tool Execution & Verification** — Function calling sandbox, tool reflection loop.
+- [x] **Phase 3: Model Router** — Capability taxonomy, ModelDefinition, ModelRegistry, ModelRouter priority matching & fallback.
+- [x] **Phase 4: Tool System & Safe Starters** — BaseTool contract, ToolRegistry, ToolExecutor, permissions (READ/WRITE/EXTERNAL/DESTRUCTIVE), calculator (safe AST), datetime, system_info, tool iteration loop.
 - [ ] **Phase 5: Memory System** — Short-term context window and persistent vector memory.
 - [ ] **Phase 6: Voice Pipeline** — STT & TTS streaming audio pipeline.
 - [ ] **Phase 7: Frontend Interface** — Next.js + TypeScript dashboard with audio waveform visualizer.

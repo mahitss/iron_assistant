@@ -1,7 +1,7 @@
-"""OpenRouter model provider implementation."""
+"""OpenRouter model provider implementation supporting structured completions and tool calling."""
 
 import json
-from typing import AsyncIterator, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional, Union
 import httpx
 
 from app.models.provider import (
@@ -10,7 +10,9 @@ from app.models.provider import (
     ModelProvider,
     ProviderAPIError,
     ProviderError,
+    ProviderResponse,
 )
+from app.tools.schemas import ToolCall
 
 
 class OpenRouterProvider(ModelProvider):
@@ -64,18 +66,22 @@ class OpenRouterProvider(ModelProvider):
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
-    ) -> str:
-        """Generate a complete chat completion from OpenRouter."""
+    ) -> ProviderResponse:
+        """Generate a complete chat completion or tool calls from OpenRouter."""
         headers = self._get_headers()
         selected_model = model or self.default_model
 
-        payload = {
+        payload: Dict[str, Any] = {
             "model": selected_model,
-            "messages": [{"role": m.role.value, "content": m.content} for m in messages],
+            "messages": [m.to_dict() for m in messages],
             "stream": False,
             **kwargs,
         }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
 
         endpoint = f"{self.base_url}/chat/completions"
         client = self._get_client()
@@ -83,7 +89,7 @@ class OpenRouterProvider(ModelProvider):
 
         try:
             response = await client.post(endpoint, json=payload, headers=headers)
-            return self._handle_completion_response(response)
+            return self._handle_completion_response(response, selected_model)
         except httpx.HTTPStatusError as exc:
             self._handle_http_error(exc.response)
         except httpx.RequestError as exc:
@@ -92,9 +98,9 @@ class OpenRouterProvider(ModelProvider):
             if should_close:
                 await client.aclose()
 
-    def _handle_completion_response(self, response: httpx.Response) -> str:
-        """Parse non-streaming OpenRouter completion response."""
-        if response.status_code == 401 or response.status_code == 403:
+    def _handle_completion_response(self, response: httpx.Response, selected_model: str) -> ProviderResponse:
+        """Parse non-streaming OpenRouter completion response including tool calls."""
+        if response.status_code in (401, 403):
             raise AuthenticationError("OpenRouter authentication failed: invalid or unauthorized API key")
         elif response.status_code >= 400:
             self._handle_http_error(response)
@@ -104,12 +110,44 @@ class OpenRouterProvider(ModelProvider):
             choices = data.get("choices", [])
             if not choices:
                 raise ProviderAPIError("OpenRouter returned an empty choices list")
-            
+
             message_obj = choices[0].get("message", {})
             content = message_obj.get("content")
-            if content is None:
-                raise ProviderAPIError("OpenRouter returned null message content")
-            return content
+            raw_tool_calls = message_obj.get("tool_calls")
+
+            parsed_tool_calls: Optional[List[ToolCall]] = None
+            if raw_tool_calls:
+                parsed_tool_calls = []
+                for tc in raw_tool_calls:
+                    fn = tc.get("function", {})
+                    fn_name = fn.get("name", "")
+                    raw_args = fn.get("arguments", "{}")
+                    if isinstance(raw_args, str):
+                        try:
+                            args_dict = json.loads(raw_args)
+                        except Exception:
+                            args_dict = {"raw": raw_args}
+                    elif isinstance(raw_args, dict):
+                        args_dict = raw_args
+                    else:
+                        args_dict = {}
+
+                    parsed_tool_calls.append(
+                        ToolCall(
+                            id=tc.get("id", f"call_{len(parsed_tool_calls)}"),
+                            name=fn_name,
+                            arguments=args_dict,
+                        )
+                    )
+
+            if content is None and not parsed_tool_calls:
+                raise ProviderAPIError("OpenRouter returned neither content nor tool calls")
+
+            return ProviderResponse(
+                content=content,
+                tool_calls=parsed_tool_calls,
+                model=data.get("model", selected_model),
+            )
         except (ValueError, KeyError) as exc:
             raise ProviderAPIError(f"Failed to parse OpenRouter response: {exc}")
 
@@ -139,18 +177,22 @@ class OpenRouterProvider(ModelProvider):
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         """Stream chat completion tokens from OpenRouter using SSE."""
         headers = self._get_headers()
         selected_model = model or self.default_model
 
-        payload = {
+        payload: Dict[str, Any] = {
             "model": selected_model,
-            "messages": [{"role": m.role.value, "content": m.content} for m in messages],
+            "messages": [m.to_dict() for m in messages],
             "stream": True,
             **kwargs,
         }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = "auto"
 
         endpoint = f"{self.base_url}/chat/completions"
         client = self._get_client()
@@ -158,7 +200,7 @@ class OpenRouterProvider(ModelProvider):
 
         try:
             async with client.stream("POST", endpoint, json=payload, headers=headers) as response:
-                if response.status_code == 401 or response.status_code == 403:
+                if response.status_code in (401, 403):
                     raise AuthenticationError("OpenRouter authentication failed: invalid or unauthorized API key")
                 elif response.status_code >= 400:
                     await response.aread()

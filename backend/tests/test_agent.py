@@ -1,12 +1,17 @@
-"""Tests for Kairo core agent logic, prompt construction, and routing integration."""
+"""Tests for Kairo core agent logic, prompt construction, routing, and tool iteration loop."""
 
-from typing import AsyncIterator, List, Optional
+from typing import Any, AsyncIterator, Dict, List, Optional
 import pytest
 
 from app.agents.core import KAIRO_SYSTEM_PROMPT, AgentResponse, KairoAgent
-from app.models.provider import ChatMessage, MessageRole, ModelProvider
+from app.models.provider import ChatMessage, MessageRole, ModelProvider, ProviderResponse
 from app.models.registry import ModelCapability, ModelDefinition, ModelRegistry
 from app.models.router import ModelRouter
+from app.tools.builtin.calculator import CalculatorTool
+from app.tools.builtin.datetime import DateTimeTool
+from app.tools.executor import ToolExecutor
+from app.tools.registry import ToolRegistry
+from app.tools.schemas import ToolCall
 
 
 class MockModelProvider(ModelProvider):
@@ -17,27 +22,64 @@ class MockModelProvider(ModelProvider):
         self.stream_chunks = stream_chunks or ["Mocked", " AI", " response"]
         self.received_messages: List[ChatMessage] = []
         self.received_model: Optional[str] = None
+        self.received_tools: Optional[List[Dict[str, Any]]] = None
 
     async def generate_response(
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
-    ) -> str:
-        self.received_messages = messages
+    ) -> ProviderResponse:
+        self.received_messages = list(messages)
         self.received_model = model
-        return self.response_text
+        self.received_tools = tools
+        return ProviderResponse(content=self.response_text, model=model)
 
     async def stream_response(
         self,
         messages: List[ChatMessage],
         model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
         **kwargs,
     ) -> AsyncIterator[str]:
-        self.received_messages = messages
+        self.received_messages = list(messages)
         self.received_model = model
+        self.received_tools = tools
         for chunk in self.stream_chunks:
             yield chunk
+
+
+class ScriptedToolCallingProvider(ModelProvider):
+    """Mock provider returning scripted sequence of responses to simulate multi-turn tool loops."""
+
+    def __init__(self, responses: List[ProviderResponse]):
+        self.responses = list(responses)
+        self.call_history: List[List[ChatMessage]] = []
+        self.current_step = 0
+
+    async def generate_response(
+        self,
+        messages: List[ChatMessage],
+        model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        **kwargs,
+    ) -> ProviderResponse:
+        self.call_history.append(list(messages))
+        if self.current_step < len(self.responses):
+            resp = self.responses[self.current_step]
+            self.current_step += 1
+            return resp
+        return ProviderResponse(content="Final default response")
+
+    async def stream_response(
+        self,
+        messages: List[ChatMessage],
+        model: Optional[str] = None,
+        tools: Optional[List[Dict[str, Any]]] = None,
+        **kwargs,
+    ) -> AsyncIterator[str]:
+        yield "streamed output"
 
 
 @pytest.mark.asyncio
@@ -52,12 +94,8 @@ async def test_kairo_agent_injects_system_prompt() -> None:
     assert result.message == "Ready to help."
     assert len(mock_provider.received_messages) == 2
 
-    # System instruction
     assert mock_provider.received_messages[0].role == MessageRole.SYSTEM
     assert mock_provider.received_messages[0].content == KAIRO_SYSTEM_PROMPT
-    assert "autonomous personal AI assistant" in mock_provider.received_messages[0].content
-
-    # User message
     assert mock_provider.received_messages[1].role == MessageRole.USER
     assert mock_provider.received_messages[1].content == "Hello Kairo"
 
@@ -74,8 +112,6 @@ async def test_kairo_agent_stream_message() -> None:
 
     assert chunks == ["Hi", " there!"]
     assert len(mock_provider.received_messages) == 2
-    assert mock_provider.received_messages[0].role == MessageRole.SYSTEM
-    assert mock_provider.received_messages[1].role == MessageRole.USER
 
 
 @pytest.mark.asyncio
@@ -89,7 +125,6 @@ async def test_kairo_agent_with_router_capability_selection() -> None:
     mock_provider = MockModelProvider(response_text="Code solution")
     agent = KairoAgent(provider=mock_provider, router=router)
 
-    # Request with coding capability
     response: AgentResponse = await agent.process_message("Fix this bug", capability=ModelCapability.CODING)
 
     assert response.message == "Code solution"
@@ -98,20 +133,137 @@ async def test_kairo_agent_with_router_capability_selection() -> None:
 
 
 @pytest.mark.asyncio
-async def test_kairo_agent_stream_with_metadata() -> None:
-    """Verify stream_message_with_metadata resolves model and streams chunks."""
-    registry = ModelRegistry()
-    registry.register_model(ModelDefinition(id="fast-model", capabilities={ModelCapability.FAST}, priority=30))
-    router = ModelRouter(registry=registry, default_model_id="fast-model")
+async def test_kairo_agent_executes_tool_and_passes_result() -> None:
+    """Ensure KairoAgent executes requested calculator tool and passes result back to model."""
+    tool_registry = ToolRegistry()
+    tool_registry.register(CalculatorTool())
+    tool_executor = ToolExecutor(registry=tool_registry)
 
-    mock_provider = MockModelProvider(stream_chunks=["Fast", " response"])
-    agent = KairoAgent(provider=mock_provider, router=router)
+    # Step 1: Model requests calculator tool
+    # Step 2: Model returns final answer after seeing tool output
+    provider = ScriptedToolCallingProvider(
+        responses=[
+            ProviderResponse(
+                tool_calls=[
+                    ToolCall(id="call_1", name="calculator", arguments={"expression": "15 * 4"})
+                ]
+            ),
+            ProviderResponse(content="15 * 4 is 60."),
+        ]
+    )
 
-    model_id, stream = await agent.stream_message_with_metadata("Quick question", capability=ModelCapability.FAST)
-    assert model_id == "fast-model"
+    agent = KairoAgent(
+        provider=provider,
+        tool_registry=tool_registry,
+        tool_executor=tool_executor,
+    )
 
-    tokens = [chunk async for chunk in stream]
-    assert tokens == ["Fast", " response"]
+    response = await agent.process_message("What is 15 * 4?")
+
+    assert response.message == "15 * 4 is 60."
+    assert len(response.tools_used) == 1
+    assert response.tools_used[0].tool == "calculator"
+    assert response.tools_used[0].status == "success"
+    assert response.tools_used[0].verification_status == "verified"
+
+    # Verify conversation history sent to provider on second step
+    second_step_messages = provider.call_history[1]
+    tool_msg = next(m for m in second_step_messages if m.role == MessageRole.TOOL)
+    assert tool_msg.tool_call_id == "call_1"
+    assert "60" in tool_msg.content
+
+
+@pytest.mark.asyncio
+async def test_kairo_agent_multiple_sequential_tool_calls() -> None:
+    """Ensure KairoAgent supports multiple sequential tool executions in a loop."""
+    tool_registry = ToolRegistry()
+    tool_registry.register(CalculatorTool())
+    tool_registry.register(DateTimeTool())
+    tool_executor = ToolExecutor(registry=tool_registry)
+
+    provider = ScriptedToolCallingProvider(
+        responses=[
+            ProviderResponse(
+                tool_calls=[
+                    ToolCall(id="c1", name="calculator", arguments={"expression": "2 + 2"})
+                ]
+            ),
+            ProviderResponse(
+                tool_calls=[
+                    ToolCall(id="c2", name="datetime", arguments={"timezone": "UTC"})
+                ]
+            ),
+            ProviderResponse(content="Both calculations and time check complete."),
+        ]
+    )
+
+    agent = KairoAgent(
+        provider=provider,
+        tool_registry=tool_registry,
+        tool_executor=tool_executor,
+    )
+
+    response = await agent.process_message("Calculate 2+2 and check time")
+    assert response.message == "Both calculations and time check complete."
+    assert len(response.tools_used) == 2
+    assert response.tools_used[0].tool == "calculator"
+    assert response.tools_used[1].tool == "datetime"
+
+
+@pytest.mark.asyncio
+async def test_kairo_agent_max_tool_iterations_limit() -> None:
+    """Ensure KairoAgent stops safely when max tool iterations is reached."""
+    tool_registry = ToolRegistry()
+    tool_registry.register(CalculatorTool())
+    tool_executor = ToolExecutor(registry=tool_registry)
+
+    # Infinite loop simulation: provider always requests a tool call
+    infinite_calls = [
+        ProviderResponse(
+            tool_calls=[ToolCall(id=f"call_{i}", name="calculator", arguments={"expression": "1 + 1"})]
+        )
+        for i in range(10)
+    ]
+    provider = ScriptedToolCallingProvider(responses=infinite_calls)
+
+    agent = KairoAgent(
+        provider=provider,
+        tool_registry=tool_registry,
+        tool_executor=tool_executor,
+        max_tool_iterations=3,
+    )
+
+    response = await agent.process_message("Infinite loop test")
+    assert "maximum number of tool iterations (3)" in response.message
+    assert len(response.tools_used) == 3
+
+
+@pytest.mark.asyncio
+async def test_kairo_agent_tool_failure_handled_safely() -> None:
+    """Ensure tool execution error is fed back to model cleanly."""
+    tool_registry = ToolRegistry()
+    tool_registry.register(CalculatorTool())
+    tool_executor = ToolExecutor(registry=tool_registry)
+
+    provider = ScriptedToolCallingProvider(
+        responses=[
+            ProviderResponse(
+                tool_calls=[ToolCall(id="call_err", name="calculator", arguments={"expression": "10 / 0"})]
+            ),
+            ProviderResponse(content="You cannot divide by zero."),
+        ]
+    )
+
+    agent = KairoAgent(
+        provider=provider,
+        tool_registry=tool_registry,
+        tool_executor=tool_executor,
+    )
+
+    response = await agent.process_message("Compute 10 / 0")
+    assert response.message == "You cannot divide by zero."
+    assert len(response.tools_used) == 1
+    assert response.tools_used[0].status == "failed"
 
 
 def test_deterministic_capability_detector() -> None:

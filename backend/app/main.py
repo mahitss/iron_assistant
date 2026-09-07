@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
+from app.api.routes.chat import router as chat_router
 from app.core.config import get_settings
 
 
@@ -30,8 +31,11 @@ def create_app() -> FastAPI:
             allow_headers=["*"],
         )
 
-    # Register routers
+    # Register root health endpoint
     app.include_router(health_router)
+
+    # Register API v1 routers
+    app.include_router(chat_router, prefix=settings.API_V1_STR)
 
     return app
 

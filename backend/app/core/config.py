@@ -1,8 +1,8 @@
 """Application configuration using Pydantic Settings."""
 
 from functools import lru_cache
-from typing import List, Union
-from pydantic import field_validator
+from typing import List, Optional, Union
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,6 +16,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # Core Application Settings
     PROJECT_NAME: str = "Kairo Personal AI Assistant"
     VERSION: str = "0.1.0"
     ENVIRONMENT: str = "development"
@@ -30,6 +31,20 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ]
+
+    # OpenRouter & Model Configuration
+    OPENROUTER_API_KEY: Optional[SecretStr] = None
+    KAIRO_MODEL: str = "openrouter/free"
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_SITE_URL: Optional[str] = None
+    OPENROUTER_APP_NAME: str = "Kairo"
+
+    @property
+    def openrouter_api_key_str(self) -> str:
+        """Safely retrieve the raw API key string without exposing it in repr."""
+        if self.OPENROUTER_API_KEY:
+            return self.OPENROUTER_API_KEY.get_secret_value().strip()
+        return ""
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod

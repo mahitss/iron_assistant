@@ -1,4 +1,23 @@
-"""Pydantic models and schemas for Kairo."""
-from .health import HealthResponse
+"""Pydantic models, schemas, and provider protocols for Kairo."""
 
-__all__ = ["HealthResponse"]
+from .health import HealthResponse
+from .openrouter import OpenRouterProvider
+from .provider import (
+    AuthenticationError,
+    ChatMessage,
+    MessageRole,
+    ModelProvider,
+    ProviderAPIError,
+    ProviderError,
+)
+
+__all__ = [
+    "HealthResponse",
+    "ChatMessage",
+    "MessageRole",
+    "ModelProvider",
+    "ProviderError",
+    "AuthenticationError",
+    "ProviderAPIError",
+    "OpenRouterProvider",
+]

@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # OpenRouter & Model Configuration
     OPENROUTER_API_KEY: Optional[SecretStr] = None
     KAIRO_MODEL: str = "openrouter/free"
+    KAIRO_ROUTING_ENABLED: bool = True
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_SITE_URL: Optional[str] = None
     OPENROUTER_APP_NAME: str = "Kairo"

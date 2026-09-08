@@ -1,7 +1,7 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: kairo_postgres
+    container_name: kairo_postgres_dev
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-kairo}
@@ -10,22 +10,22 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kairo} -d ${POSTGRES_DB:-kairo}"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 5s
 
   redis:
     image: redis:7-alpine
-    container_name: kairo_redis
+    container_name: kairo_redis_dev
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
-      - redis_data:/data
+      - redis_dev_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -36,32 +36,28 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: kairo_backend
-    restart: unless-stopped
+      dockerfile: docker/Dockerfile.backend
+    container_name: kairo_backend_dev
     ports:
       - "8000:8000"
     environment:
-      - ENVIRONMENT=production
-      - DEBUG=false
+      - ENVIRONMENT=development
+      - DEBUG=true
       - HOST=0.0.0.0
       - PORT=8000
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-kairo}:${POSTGRES_PASSWORD:-kairo_secret}@postgres:5432/${POSTGRES_DB:-kairo}
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY}
+      - SECRET_KEY=${SECRET_KEY:-kairo_dev_secret_key_32_bytes_long_min}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    volumes:
+      - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 volumes:
-  postgres_data:
-  redis_data:
+  postgres_dev_data:
+  redis_dev_data:

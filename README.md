@@ -2,14 +2,13 @@
 
 Kairo is an autonomous personal AI assistant designed to execute complex tasks, manage workflows, and interface seamlessly across voice, text, tools, memory, and autonomous agent loops.
 
-> **Status: Phase 16 — Multi-Agent Orchestration System**  
-> This repository features a controlled, supervised multi-agent architecture:
-> 1. **Supervised Coordination**: "Kairo uses a supervised multi-agent architecture, not an unrestricted agent swarm." Only the Supervisor can decompose tasks and create plans; specialists cannot spawn recursive sub-agents.
-> 2. **Specialist Agents**: `SUPERVISOR`, `RESEARCHER`, `DEVELOPER`, `ANALYST`, and `BROWSER` with bounded roles and explicit tool allowlists.
-> 3. **Central Security & Emergency Stop**: "All agent tool calls pass through the same ToolExecutor and SecurityCenter used by normal Kairo operations." Specialists cannot change security policies or self-approve actions.
-> 4. **Evidence Taxonomy**: Strictly distinguishes `OBSERVED`, `INFERRED`, and `UNKNOWN` facts, preserving verified web citations without hallucinations.
-> 5. **Robust Limits & Isolation**: Enforces DAG cycle validation, token/tool call budgets, per-task timeouts, task cancellation API, and tenant isolation.
-
+> **Status: Phase 17 — Production Hardening, Reliability, Observability, Authentication & Deployment Readiness**  
+> 1. **Production Readiness Warning**: *"Kairo is not production-ready until authentication, secret management, HTTPS, backups, monitoring, and security review are configured."*
+> 2. **Authentication & Session Lifecycle**: PBKDF2-SHA256 password hashing, cryptographically random bearer tokens, sliding idle timeout (30 min) and absolute session TTL (24 hr), with automatic revocation of pending approvals on logout.
+> 3. **Defensive API Middleware**: Per-request correlation tracking (`X-Request-ID`), sliding-window rate limiting (with explicit emergency stop & health exemptions), OWASP security headers (HSTS, CSP, X-Frame-Options), 10 MB payload limits, and sanitized error responses masking internal stack traces.
+> 4. **Enterprise Observability**: Structured JSON logging with automated secret and token redaction, Prometheus metrics export (`/metrics`), lightweight distributed tracing context, and decoupled Kubernetes-compatible health probes (`/health/live`, `/health/ready`).
+> 5. **Resilience & Safe Recovery**: Circuit breakers (`CLOSED`, `OPEN`, `HALF_OPEN`) and exponential backoff with jitter on LLM API failures, database connection pooling with pre-ping validation, and startup recovery that transitions orphaned background tasks/workflows to safe failed states.
+> 6. **Production Infrastructure**: Multi-stage non-root container definitions (`uid 1000`), production and development Docker Compose setups, GitHub Actions CI/CD workflow, and production checklists, threat models, and incident playbooks.
 
 ---
 
@@ -17,58 +16,76 @@ Kairo is an autonomous personal AI assistant designed to execute complex tasks, 
 
 ```text
 kairo/
+├── .github/
+│   └── workflows/
+│       └── ci.yml            # GitHub Actions CI pipeline (lint, test, SAST)
 ├── backend/                  # Python FastAPI agent service & core runtime
 │   ├── alembic.ini           # Alembic database migration configuration
 │   ├── app/
 │   │   ├── agents/           # Autonomous agent routines & decision logic
-│   │   │   └── core.py       # KairoAgent core persona, tool iteration loop, memory integration
+│   │   │   ├── core.py       # KairoAgent core persona, tool iteration loop, memory integration
+│   │   │   ├── multi_agent/  # Supervised Multi-Agent Orchestrator (DAG planner, specialists)
+│   │   │   └── registry.py   # Specialist agent definitions & allowlists
 │   │   ├── api/              # API endpoints, routers, and request handlers
-│   │   │   ├── routes/
-│   │   │   │   ├── chat.py   # POST /api/v1/chat & POST /api/v1/chat/stream
-│   │   │   │   └── memory.py # Internal dev memory endpoints (/api/v1/internal/memories)
-│   │   │   └── health.py     # GET /health
-│   │   ├── core/             # Application configuration, settings, security
-│   │   │   └── config.py     # Pydantic BaseSettings & environment variables
+│   │   │   ├── middleware/   # Defensive middleware suite
+│   │   │   │   ├── request_id.py       # X-Request-ID propagation
+│   │   │   │   ├── rate_limit.py       # Sliding-window rate limiter (emergency exempt)
+│   │   │   │   ├── security_headers.py # OWASP defensive headers (HSTS, CSP, X-Frame)
+│   │   │   │   ├── body_size.py        # 10 MB request payload limiter
+│   │   │   │   └── errors.py           # Sanitized exception masks
+│   │   │   └── routes/       # REST API route controllers
+│   │   │       ├── auth.py   # POST /auth/login, POST /auth/logout, GET /auth/me
+│   │   │       ├── chat.py   # POST /chat & POST /chat/stream
+│   │   │       ├── memory.py # GET/DELETE /memories
+│   │   │       ├── workflows.py # Workflow execution & schedule APIs
+│   │   │       ├── security.py  # Emergency stop & capabilities
+│   │   │       ├── proactive.py # Proactive insight center
+│   │   │       └── agents.py    # Multi-agent task orchestration & cancellation
+│   │   ├── auth/             # Authentication & session subsystem
+│   │   │   ├── schemas.py    # User, Token, Login, Session schemas
+│   │   │   ├── security.py   # PBKDF2-SHA256 hasher & constant-time verifier
+│   │   │   ├── sessions.py   # SessionStore (idle timeout + absolute TTL)
+│   │   │   ├── service.py    # AuthService orchestration
+│   │   │   └── dependencies.py # FastAPI current user / session dependencies
+│   │   ├── config/           # Centralized configuration & environment validation
+│   │   │   ├── environments.py # Development, Testing, Production modes
+│   │   │   ├── settings.py   # Pydantic BaseSettings with typed constraints
+│   │   │   └── validation.py # Fail-fast production secret and URL checks
 │   │   ├── db/               # Relational persistence & migrations
-│   │   │   ├── session.py    # Async SQLAlchemy 2.x engine and sessionmaker
-│   │   │   └── migrations/   # Alembic versioned migrations (0001_initial)
-│   │   ├── memory/           # Memory layer components
-│   │   │   ├── extractor.py  # MemoryExtractor: LLM candidate extraction via fast capability
-│   │   │   ├── policies.py   # MemoryPolicy: deterministic safety, relevance, and bounds checks
-│   │   │   ├── models.py     # SQLAlchemy models: Conversation, Message, Memory (pgvector)
-│   │   │   ├── schemas.py    # Pydantic models: MemoryCandidate, MemoryResponse, MemoryType
-│   │   │   ├── repository.py # ConversationRepository & MemoryRepository (pgvector search)
-│   │   │   ├── service.py    # MemoryService: candidate processing, dedup, ranking & context
-│   │   │   ├── embeddings.py # EmbeddingProvider abstraction (OpenAI, OpenRouter, Deterministic)
-│   │   │   ├── sanitizer.py  # MemorySanitizer: regex defense-in-depth secret detection
-│   │   │   └── session.py    # SessionManager: Redis cache with TTL & in-memory fallback
+│   │   │   ├── session.py    # Async SQLAlchemy engine with connection pool & pre-ping
+│   │   │   └── migrations/   # Alembic versioned migrations
+│   │   ├── memory/           # Memory layer components (short, conversation, long-term)
 │   │   ├── models/           # Model provider, registry, and router layer
-│   │   │   ├── health.py     # Healthcheck schemas
-│   │   │   ├── openrouter.py # OpenRouter OpenAI-compatible client with tool calling
-│   │   │   ├── provider.py   # ModelProvider protocol, ChatMessage, ProviderResponse
-│   │   │   ├── registry.py   # ModelCapability, ModelDefinition, ModelRegistry
+│   │   │   ├── openrouter.py # OpenRouter client with circuit breaker & jitter retries
+│   │   │   ├── resilience.py # CircuitBreaker & RetryPolicy implementations
 │   │   │   └── router.py     # ModelRouter (capability matching, priority, fallback)
-│   │   ├── tools/            # Tool framework, safe starters, web research, and browser control
-│   │   │   ├── base.py       # BaseTool contract & ToolDefinition
-│   │   │   ├── executor.py   # ToolExecutor (validation, permission check, verification)
-│   │   │   ├── permissions.py# PermissionLevel (READ, WRITE, EXTERNAL, DESTRUCTIVE)
-│   │   │   ├── registry.py   # ToolRegistry & schema generator
-│   │   │   ├── schemas.py    # ToolCall & ToolResult schemas
-│   │   │   ├── builtin/      # Safe starter tools (calculator, datetime, system_info)
-│   │   │   ├── web/          # Web Research System (search, fetch, safety, extraction, citations)
-│   │   │   └── browser/      # Browser Control System (Playwright Chromium, manager, session, safety, policies)
-│   │   └── main.py           # FastAPI application factory & lifespan shutdown
-│   ├── tests/                # Pytest unit and integration test suite (184 tests)
+│   │   ├── observability/    # Metrics, logging, tracing, health probes
+│   │   │   ├── logging.py    # StructuredJsonFormatter with secret redaction
+│   │   │   ├── metrics.py    # Prometheus metrics collector & exposition
+│   │   │   ├── tracing.py    # TraceSpan context manager
+│   │   │   └── health.py     # /health, /health/live, /health/ready, /metrics
+│   │   ├── security/         # Security Center, permissions, and secrets
+│   │   │   ├── center.py     # Authoritative SecurityCenter
+│   │   │   └── secrets.py    # SecretProvider abstraction
+│   │   ├── tools/            # Tool framework, safe starters, web, browser, git
+│   │   ├── lifecycle.py      # Startup orphan recovery & graceful shutdown
+│   │   └── main.py           # FastAPI application factory & lifespan wiring
+│   ├── tests/                # Pytest unit and integration test suite (378 tests)
 │   ├── pyproject.toml        # Python project metadata & tool configurations
-│   └── requirements.txt      # Backend dependencies (FastAPI, Playwright, SQLAlchemy, pgvector, Redis)
-
-├── frontend/                 # Reserved for Next.js + TypeScript web UI
+│   └── requirements.txt      # Backend dependencies
+├── docs/                     # Production & security documentation
+│   ├── production-checklist.md  # Production pre-flight deployment checklist
+│   ├── security-threat-model.md # 16 threat categories & mitigations
+│   └── incident-response.md     # 10-step incident response playbook
+├── frontend/                 # Web client UI & test suite (25 tests)
 ├── infra/                    # Cloud infrastructure & deployment scripts
 ├── docker/                   # Docker container definitions
-│   └── Dockerfile.backend    # Backend container definition (Python 3.12+ slim)
+│   └── Dockerfile.backend    # Multi-stage non-root backend container
+├── Dockerfile                # Root multi-stage container definition
+├── docker-compose.yml        # Production Docker Compose configuration
+├── docker-compose.dev.yml    # Development Docker Compose with live reloading
 ├── .env.example              # Environment variables template (no hardcoded secrets)
-├── .gitignore                # Git ignore rules for Python, Node, IDEs, envs
-├── docker-compose.yml        # Docker Compose configuration (Postgres+pgvector, Redis, Backend)
+├── .gitignore                # Git ignore rules
 └── README.md                 # Project documentation
 ```
 
@@ -936,9 +953,87 @@ KAIRO_MAX_TOTAL_AGENT_TOOL_CALLS=50        # Maximum tool calls per supervisor r
 
 ---
 
+## Phase 17: Production Hardening, Reliability, Observability & Deployment
+
+> [!CRITICAL]
+> **Production Readiness Mandate:**
+> *"Kairo is not production-ready until authentication, secret management, HTTPS, backups, monitoring, and security review are configured."*
+
+Phase 17 establishes an enterprise-grade foundation for running Kairo safely, reliably, and observably in production environments without weakening existing security controls or introducing unnecessary distributed complexity.
+
+### 1. Environment & Configuration Safety
+- **Environment Modes**: Supported via `EnvironmentType` (`development`, `testing`, `production`). In `development` and `testing`, local developer defaults remain active for zero-friction testing. In `production`, strict validation activates automatically.
+- **Fail-Fast Validation**: On boot in production mode, `validate_environment()` validates that:
+  - `AUTH_SECRET_KEY` is set to a secure, non-default string of at least 32 characters.
+  - `OPENROUTER_API_KEY` is present and valid.
+  - `DATABASE_URL` uses production PostgreSQL (SQLite and in-memory databases rejected).
+  - Insecure wildcards (`*`) in `CORS_ORIGINS` are rejected.
+- **Secret Redaction**: `SecretProvider` abstraction (`EnvSecretProvider`) decouples secrets from application logic, preventing accidental leakages.
+
+### 2. Authentication & Session Lifecycle
+- **Password Hashing**: PBKDF2-SHA256 with 600,000 iterations and cryptographically random salts via `Passlib/hashlib` standard.
+- **Session Lifecycle**: Bearer tokens are cryptographically generated (`secrets.token_urlsafe(32)`).
+  - **Idle Timeout**: Tokens expire after 30 minutes of inactivity (`SESSION_IDLE_TIMEOUT_SECONDS=1800`).
+  - **Absolute Lifetime**: Sessions hard-expire after 24 hours (`SESSION_ABSOLUTE_LIFETIME_SECONDS=86400`).
+- **Approval Invalidation on Logout**: When a user logs out via `POST /api/v1/auth/logout`, their session is revoked and all active pending human-in-the-loop approvals in `SecurityCenter` are automatically invalidated and denied.
+
+### 3. Defensive API Middleware Pipeline
+- **Correlation Tracking (`RequestIdMiddleware`)**: Generates or propagates `X-Request-ID` across every HTTP request, response, and structured log message.
+- **Sliding-Window Rate Limiter (`RateLimiter`)**: In-memory sliding-window limiter enforcing per-client request limits.
+  - **Safety Exemption**: Critical safety endpoints (`/api/v1/security/emergency-stop`) and health checks (`/health*`) are strictly exempt from rate limiting so kill-switch and orchestration probes cannot be starved.
+- **OWASP Defensive Headers (`SecurityHeadersMiddleware`)**: Injects `Strict-Transport-Security`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, and restrictive `Content-Security-Policy`.
+- **Payload Limiting (`ContentLengthLimitMiddleware`)**: Rejects payloads exceeding 10 MB with `413 Payload Too Large`.
+- **Sanitized Error Handling (`register_exception_handlers`)**: Masks unhandled internal exceptions in production, returning structured error objects with request IDs while preventing tracebacks, database queries, or server internals from leaking to callers.
+
+### 4. Observability, Health & Metrics
+- **Structured JSON Logging (`StructuredJsonFormatter`)**: Formats log records into structured JSON with automated secret scrubbing (OpenRouter keys, GitHub PATs, bearer tokens, passwords, authorization headers).
+- **Prometheus Metrics (`MetricsCollector`)**: Exposes standard Prometheus text metrics at `GET /metrics`:
+  - `kairo_http_requests_total`
+  - `kairo_http_request_duration_seconds`
+  - `kairo_tool_executions_total`
+  - `kairo_circuit_breaker_trips_total`
+  - `kairo_emergency_stop_events_total`
+  - `kairo_active_workflows`
+  - `kairo_active_agent_tasks`
+- **Kubernetes-Style Health Probes**:
+  - `GET /health/live`: Fast process liveness probe.
+  - `GET /health/ready`: Dependency readiness probe validating database connection pool, Redis cache, and model provider health.
+
+### 5. Resilience & Circuit Breaking
+- **Circuit Breaker (`CircuitBreaker`)**: Protects against cascading failures when upstream LLM providers suffer outages or degraded latency. Implements three states: `CLOSED`, `OPEN`, and `HALF_OPEN`. Trips after 5 consecutive failures with a 60-second recovery reset.
+- **Exponential Backoff with Jitter (`RetryPolicy`)**: Retries transient HTTP 5xx / 429 errors using randomized full jitter to prevent thundering herd spikes.
+- **Security Awareness**: Client-side authentication (`401`) and security exceptions (`403`) are recognized as non-transient and are never retried or counted toward tripping the circuit breaker.
+
+### 6. Database Connection Pooling
+- Async SQLAlchemy engine configured with production pool parameters:
+  - `pool_size = 20`
+  - `max_overflow = 10`
+  - `pool_timeout = 30`
+  - `pool_recycle = 1800` (recycles connections before server-side timeouts)
+  - `pool_pre_ping = True` (health checks connections prior to checkout)
+
+### 7. Task Lifecycle & Startup Orphan Recovery
+- **Startup Recovery (`recover_stale_tasks_on_startup`)**: If the application crashes or restarts while workflows or multi-agent tasks were running, the startup routine scans the database and gracefully marks all orphaned `RUNNING` or `PENDING` items as `FAILED` with explicit recovery notes, preventing infinite hangs.
+- **Security Reset**: Computer control is explicitly reset to disabled (`False`) on startup.
+- **Graceful Shutdown**: Intercepts `SIGTERM`/`SIGINT`, flushes metrics, cleans up background runners, and terminates database pools safely.
+
+### 8. Containerization & CI/CD Infrastructure
+- **Non-Root Multi-Stage Dockerfile**: Builds on `python:3.12-slim`, dropping privileges to user `kairo` (`uid: 1000`, `gid: 1000`).
+- **Compose Files**:
+  - `docker-compose.yml`: Production configuration with resource constraints and healthchecks.
+  - `docker-compose.dev.yml`: Development setup with hot-reloading volume mounts.
+- **GitHub Actions Pipeline (`.github/workflows/ci.yml`)**: Automated CI running Ruff linting, formatting checks, pytest backend suite, frontend Node tests, and Bandit security scans.
+
+### 9. Hardening Documentation
+- [Production Deployment Checklist](file:///docs/production-checklist.md) (`docs/production-checklist.md`): Pre-flight readiness guide.
+- [Security Threat Model](file:///docs/security-threat-model.md) (`docs/security-threat-model.md`): 16 threat categories analyzed with attack surfaces, mitigations, and residual risks.
+- [Security Incident Response Playbook](file:///docs/incident-response.md) (`docs/incident-response.md`): 10-step incident containment and recovery protocol.
+
+---
+
 ## Running Tests
 
-The test suite contains **343 backend unit and integration tests** and **25 frontend tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path security, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, tenant isolation, security policy matrices, emergency stops, capability gates, audit trails, proactive event detection, deterministic prioritization, fingerprint deduplication, cooldown tracking, user settings, quiet hours, notification delivery, web monitoring, multi-agent planner DAG validation, specialist tool allowlists, budget and tool limits, execution timeouts, cancellation propagation, evidence taxonomy classification, citation preservation, and prompt injection defense:
+The test suite contains **378 backend unit and integration tests** and **25 frontend tests** (403 tests total) verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path security, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, tenant isolation, security policy matrices, emergency stops, capability gates, audit trails, proactive event detection, deterministic prioritization, fingerprint deduplication, cooldown tracking, user settings, quiet hours, notification delivery, web monitoring, multi-agent planner DAG validation, specialist tool allowlists, budget and tool limits, execution timeouts, cancellation propagation, evidence taxonomy classification, citation preservation, environment validation, auth hashing and sessions, defensive API middleware, sliding-window rate limiting, circuit breaker failover, Prometheus metrics, health probes, and lifecycle recovery:
 
 ```bash
 cd backend
@@ -969,6 +1064,7 @@ npm test
 - [x] **Phase 14: Central Security, Permissions, Approval & Audit Center** — Authoritative Security Center, permission and risk taxonomy, emergency stop kill switch, capability gates, deterministic approval fingerprinting, secret redaction, append-only audit trail, and user isolation.
 - [x] **Phase 15: Proactive Intelligence Layer** — Proactive detector, candidate insight lifecycle, deterministic prioritization, SHA-256 deduplication, state transition cooldown, quiet hours, hourly rate limiting, in-app notification center, proactive feed, safe web monitoring, and strict loop prevention.
 - [x] **Phase 16: Multi-Agent Orchestration System** — Supervisor-driven task decomposition, specialist agents (Researcher, Developer, Analyst, Browser), DAG planning and topological execution, context isolation, evidence taxonomy (OBSERVED / INFERRED / UNKNOWN), web citation preservation, tool call budgeting, emergency stop integration, tenant isolation, and task cancellation.
+- [x] **Phase 17: Production Hardening, Reliability, Observability, Authentication & Deployment Readiness** — Environment validation & fail-fast checks, PBKDF2 authentication, session idle/absolute timeouts, logout approval revocation, request ID propagation, rate limiting exempting emergency stop & health, OWASP defensive headers, 10MB body size limit, sanitized error handler, structured JSON logging with secret redaction, Prometheus metrics (`/metrics`), tracing spans, Kubernetes-style health probes (`/health/live`, `/health/ready`), circuit breaker & jitter retries, database connection pooling with pre-ping, startup orphan task recovery, multi-stage non-root Docker builds, and production checklists, threat models, and incident playbooks.
 
 
 

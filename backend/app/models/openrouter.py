@@ -13,6 +13,12 @@ from app.models.provider import (
     ProviderAPIError,
     ProviderResponse,
 )
+from app.models.resilience import (
+    CircuitBreaker,
+    CircuitBreakerOpenError,
+    RetryPolicy,
+    get_default_circuit_breaker,
+)
 from app.tools.schemas import ToolCall
 
 
@@ -28,6 +34,8 @@ class OpenRouterProvider(ModelProvider):
         app_name: str | None = "Kairo",
         client: httpx.AsyncClient | None = None,
         timeout: float = 60.0,
+        circuit_breaker: CircuitBreaker | None = None,
+        retry_policy: RetryPolicy | None = None,
     ):
         self._api_key = (api_key or "").strip()
         self.base_url = base_url.rstrip("/")
@@ -36,6 +44,8 @@ class OpenRouterProvider(ModelProvider):
         self.app_name = app_name
         self._client = client
         self.timeout = timeout
+        self.circuit_breaker = circuit_breaker or get_default_circuit_breaker()
+        self.retry_policy = retry_policy or RetryPolicy()
 
     def _ensure_authenticated(self) -> None:
         """Verify an API key is configured before making requests."""
@@ -85,19 +95,34 @@ class OpenRouterProvider(ModelProvider):
             payload["tool_choice"] = "auto"
 
         endpoint = f"{self.base_url}/chat/completions"
-        client = self._get_client()
-        should_close = self._client is None
+        if not self.circuit_breaker.can_execute():
+            raise CircuitBreakerOpenError(
+                f"Circuit breaker '{self.circuit_breaker.name}' is OPEN. OpenRouter is temporarily unavailable."
+            )
+
+        async def _do_post() -> ProviderResponse:
+            client = self._get_client()
+            should_close = self._client is None
+            try:
+                response = await client.post(endpoint, json=payload, headers=headers)
+                return self._handle_completion_response(response, selected_model)
+            except httpx.HTTPStatusError as exc:
+                self._handle_http_error(exc.response)
+            except httpx.RequestError as exc:
+                raise ProviderAPIError(
+                    f"Network error communicating with OpenRouter: {exc.__class__.__name__}"
+                )
+            finally:
+                if should_close:
+                    await client.aclose()
 
         try:
-            response = await client.post(endpoint, json=payload, headers=headers)
-            return self._handle_completion_response(response, selected_model)
-        except httpx.HTTPStatusError as exc:
-            self._handle_http_error(exc.response)
-        except httpx.RequestError as exc:
-            raise ProviderAPIError(f"Network error communicating with OpenRouter: {exc.__class__.__name__}")
-        finally:
-            if should_close:
-                await client.aclose()
+            res = await self.retry_policy.execute(_do_post)
+            self.circuit_breaker.record_success()
+            return res
+        except Exception as exc:
+            self.circuit_breaker.record_failure(exc)
+            raise
 
     def _handle_completion_response(self, response: httpx.Response, selected_model: str) -> ProviderResponse:
         """Parse non-streaming OpenRouter completion response including tool calls."""
@@ -196,6 +221,11 @@ class OpenRouterProvider(ModelProvider):
             payload["tool_choice"] = "auto"
 
         endpoint = f"{self.base_url}/chat/completions"
+        if not self.circuit_breaker.can_execute():
+            raise CircuitBreakerOpenError(
+                f"Circuit breaker '{self.circuit_breaker.name}' is OPEN. OpenRouter is temporarily unavailable."
+            )
+
         client = self._get_client()
         should_close = self._client is None
 
@@ -208,6 +238,8 @@ class OpenRouterProvider(ModelProvider):
                 elif response.status_code >= 400:
                     await response.aread()
                     self._handle_http_error(response)
+
+                self.circuit_breaker.record_success()
 
                 async for line in response.aiter_lines():
                     trimmed = line.strip()

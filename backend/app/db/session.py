@@ -43,12 +43,19 @@ def get_engine() -> AsyncEngine | None:
         elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
             db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+        pool_size = getattr(settings, "KAIRO_DB_POOL_SIZE", 10)
+        max_overflow = getattr(settings, "KAIRO_DB_MAX_OVERFLOW", 20)
+        pool_timeout = getattr(settings, "KAIRO_DB_POOL_TIMEOUT", 30)
+        pool_recycle = getattr(settings, "KAIRO_DB_POOL_RECYCLE", 1800)
+
         _engine = create_async_engine(
             db_url,
             echo=settings.DEBUG and False,
             pool_pre_ping=True,
-            pool_size=10,
-            max_overflow=20,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_timeout=pool_timeout,
+            pool_recycle=pool_recycle,
         )
         return _engine
     except Exception as exc:

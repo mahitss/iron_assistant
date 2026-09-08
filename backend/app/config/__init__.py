@@ -1,4 +1,4 @@
-"""Backward-compatible proxy for application settings."""
+"""Configuration package for Kairo."""
 
 from app.config.environments import EnvironmentType
 from app.config.settings import Settings, get_settings

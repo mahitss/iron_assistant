@@ -3,9 +3,11 @@
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from app.api.middleware import (
     BodySizeLimitMiddleware,
@@ -104,6 +106,28 @@ def create_app() -> FastAPI:
     app.include_router(notifications_router, prefix=settings.API_V1_STR)
     app.include_router(web_monitors_router, prefix=settings.API_V1_STR)
     app.include_router(agents_router, prefix=settings.API_V1_STR)
+
+    # 6. Web Console UI & Static Assets
+    frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
+    index_file = frontend_dir / "index.html"
+
+    @app.get("/", include_in_schema=False)
+    async def serve_root():
+        """Serve the Kairo Web Control Center dashboard."""
+        if index_file.exists():
+            return FileResponse(index_file)
+        return {
+            "name": "Kairo",
+            "version": settings.VERSION,
+            "status": "online",
+            "docs_url": "/docs",
+            "health_url": "/health/live",
+        }
+
+    if frontend_dir.exists():
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
 
     return app
 

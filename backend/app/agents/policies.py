@@ -16,9 +16,15 @@ INJECTION_AGENT_PATTERNS = [
     re.compile(r"(?i)\bapprove\s+(this\s+)?action\b"),
     re.compile(r"(?i)\bgrant\s+(all\s+)?permissions?\b"),
     re.compile(r"(?i)\bbypass\s+security\b"),
+    re.compile(r"(?i)\bdisable\s+(all\s+)?security\b"),
     re.compile(r"(?i)\bignore\s+(all\s+)?(previous|prior)\s+instructions\b"),
     re.compile(r"(?i)\bdisregard\s+(all\s+)?(safety|rules|instructions|guidelines)\b"),
     re.compile(r"(?i)\byou\s+are\s+now\s+an?\s+(unrestricted|different)\b"),
+    re.compile(r"(?i)\b(instruction\s+for\s+(ai|assistant|model|kairo)|system\s+(prompt|override))\b"),
+    re.compile(
+        r"(?i)\b(print|upload|reveal|exfiltrate|leak|dump)\s+(all\s+)?(environment\s+variables|env\s+vars?|secrets?|api\s*keys?|passwords?)\b"
+    ),
+    re.compile(r"(?i)\benter\s+your\s+([a-zA-Z0-9_\s]+)?(password|api\s*key|secret|token)\b"),
 ]
 
 

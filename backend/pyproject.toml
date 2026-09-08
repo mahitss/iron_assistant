@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kairo-backend"
-version = "0.5.0"
+version = "1.0.0"
 description = "Backend for Kairo - Autonomous Personal AI Assistant"
 readme = "README.md"
 requires-python = ">=3.12"

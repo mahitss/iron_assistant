@@ -15,7 +15,7 @@ class MemorySanitizer:
         # Private keys
         re.compile(r"-----BEGIN[ A-Z0-9_-]*PRIVATE KEY-----", re.IGNORECASE),
         # API Keys & Bearer tokens
-        re.compile(r"\b(?:sk|pk|rk)_[a-zA-Z0-9_\-]{20,}\b"),
+        re.compile(r"\b(?:sk|pk|rk)[_-][a-zA-Z0-9_\-]{20,}\b"),
         re.compile(r"\bBearer\s+[a-zA-Z0-9\-._~+/]+=*\b", re.IGNORECASE),
         # AWS Key IDs
         re.compile(r"\bAKIA[0-9A-Z]{16}\b"),

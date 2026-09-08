@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # Core Application Settings
     PROJECT_NAME: str = "Kairo Personal AI Assistant"
-    VERSION: str = "0.5.0"
+    VERSION: str = "1.0.0"
     GIT_SHA: str = "dev"
     BUILD_TIMESTAMP: str = ""
     ENVIRONMENT: EnvironmentType = EnvironmentType.DEVELOPMENT

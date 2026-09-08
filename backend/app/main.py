@@ -1,4 +1,5 @@
-"""Main application entry point for Kairo AI Assistant."""
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,19 @@ from app.api.routes.chat import router as chat_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.memory import user_router as user_memory_router
 from app.core.config import get_settings
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Manage application startup and shutdown lifecycle."""
+    yield
+    # Gracefully shut down active browser sessions and Playwright process
+    try:
+        from app.tools.browser.manager import get_browser_manager
+        manager = get_browser_manager()
+        await manager.close_all()
+    except Exception:
+        pass
 
 
 def create_app() -> FastAPI:
@@ -21,7 +35,9 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+        lifespan=lifespan,
     )
+
 
     # Configure CORS
     if settings.ALLOWED_ORIGINS:

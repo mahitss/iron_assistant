@@ -4,7 +4,11 @@ import logging
 
 from pydantic import ValidationError
 
-from app.tools.permissions import PermissionDeniedError, PermissionManager
+from app.tools.permissions import (
+    PermissionDecision,
+    PermissionDeniedError,
+    PermissionManager,
+)
 from app.tools.registry import ToolRegistry
 from app.tools.schemas import ToolCall, ToolResult
 
@@ -43,12 +47,15 @@ class ToolExecutor:
             self.permission_manager.check_permission(tool.name, tool.permission_level)
         except PermissionDeniedError as exc:
             logger.warning("Permission denied for tool '%s': %s", tool.name, exc.reason)
+            decision = self.permission_manager.evaluate(tool.name, tool.permission_level)
+            requires_approval = decision == PermissionDecision.REQUIRES_APPROVAL
             return ToolResult(
                 success=False,
                 tool_name=tool.name,
                 tool_call_id=tool_call.id,
                 error=f"Permission denied: {exc.reason}",
                 verification_status="denied",
+                approval_required=requires_approval,
             )
 
         # 3. Validate arguments against Pydantic schema

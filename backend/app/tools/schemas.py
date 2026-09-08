@@ -25,9 +25,17 @@ class ToolResult(BaseModel):
     result: Any | None = Field(default=None, description="Output returned by the tool")
     error: str | None = Field(default=None, description="Clean error message if execution failed")
     verification_status: str = Field(default="verified", description="Outcome of output verification (verified/failed/skipped)")
+    approval_required: bool = Field(default=False, description="True if action was halted pending user approval")
 
     def to_model_output(self) -> str:
         """Format the result as a clean JSON string for LLM tool message consumption."""
+        if self.approval_required:
+            return json.dumps({
+                "status": "approval_required",
+                "tool": self.tool_name,
+                "approval_required": True,
+                "message": self.error or f"Action '{self.tool_name}' requires explicit user approval before execution.",
+            })
         if not self.success:
             return json.dumps({"status": "error", "tool": self.tool_name, "error": self.error})
         return json.dumps({"status": "success", "tool": self.tool_name, "result": self.result})

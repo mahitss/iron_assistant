@@ -46,7 +46,8 @@ class ToolRegistry:
 
 
 def create_default_tool_registry() -> ToolRegistry:
-    """Instantiate and register standard safe starter tools and web research tools."""
+    """Instantiate and register standard safe starter tools, web research tools, and browser tools."""
+    from app.core.config import get_settings
     from app.tools.web.fetch import WebFetchTool
     from app.tools.web.search import WebSearchTool
 
@@ -56,4 +57,21 @@ def create_default_tool_registry() -> ToolRegistry:
     registry.register(SystemInfoTool())
     registry.register(WebSearchTool())
     registry.register(WebFetchTool())
+
+    if get_settings().KAIRO_BROWSER_ENABLED:
+        from app.tools.browser.actions import (
+            BrowserClickTool,
+            BrowserFillTool,
+            BrowserInspectTool,
+            BrowserNavigateTool,
+            BrowserScreenshotTool,
+        )
+
+        registry.register(BrowserNavigateTool())
+        registry.register(BrowserInspectTool())
+        registry.register(BrowserScreenshotTool())
+        registry.register(BrowserClickTool())
+        registry.register(BrowserFillTool())
+
     return registry
+

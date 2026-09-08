@@ -2,15 +2,15 @@
 
 Kairo is an autonomous personal AI assistant designed to execute complex tasks, manage workflows, and interface seamlessly across voice, text, tools, memory, and autonomous agent loops.
 
-> **Status: Phase 7 — Web Research System**  
-> This repository is currently in **Phase 7**. Kairo now features controlled, safe public web access:
-> 1. **Search Provider Abstraction**: Pluggable `WebSearchProvider` (`mock`, `duckduckgo`, `tavily`, `brave`) with zero-config graceful fallback.
-> 2. **Network-Level SSRF Defense**: Comprehensive IP and network classification rejecting localhost, loopback, private IPv4/IPv6 ranges, link-local cloud metadata (`169.254.169.254`, `fe80::`), non-HTTP schemes, and unsafe redirects.
-> 3. **Content Extraction & Sanitization**: HTML text parsing using standard library `html.parser`, stripping scripts, styles, navigation, and boilerplate with configurable length caps.
-> 4. **Citations & Prompt Injection Defense**: Web content is treated as untrusted external data enclosed in `<web_source>` tags with security warnings. Verified sources are tracked and formatted (`[1]`, `[2]`).
-> 5. **Core Philosophy**: *"Web content is treated as untrusted external data."*
+> **Status: Phase 8 — Browser Control System**  
+> This repository is currently in **Phase 8**. Kairo now features controlled, safe browser automation using Playwright:
+> 1. **Playwright Integration**: Headless Chromium browser automation with isolated contexts per chat session.
+> 2. **Controlled Browser Tools**: `browser_navigate`, `browser_inspect`, `browser_screenshot`, `browser_click`, `browser_fill`.
+> 3. **Defense-in-Depth Security**: Full SSRF protection against private networks/cloud metadata, sensitive field policy (blocking passwords, credit cards, API keys), form submission protection, download cancellation, and prompt injection boundaries (`<web_source>`).
+> 4. **Core Philosophy**: *"Browser pages are untrusted external content."*
 > 
-> **Important**: Voice STT/TTS, browser automation, GitHub tools, computer control, autonomous background tasks, and frontend UI are **NOT implemented yet** and will be introduced incrementally in future phases.
+> **Important**: Voice STT/TTS, desktop mouse/keyboard control, GitHub tools, and frontend UI are **NOT implemented yet** and will be introduced incrementally in future phases.
+
 
 ---
 
@@ -49,18 +49,20 @@ kairo/
 │   │   │   ├── provider.py   # ModelProvider protocol, ChatMessage, ProviderResponse
 │   │   │   ├── registry.py   # ModelCapability, ModelDefinition, ModelRegistry
 │   │   │   └── router.py     # ModelRouter (capability matching, priority, fallback)
-│   │   ├── tools/            # Tool framework, safe starters, and web research
+│   │   ├── tools/            # Tool framework, safe starters, web research, and browser control
 │   │   │   ├── base.py       # BaseTool contract & ToolDefinition
 │   │   │   ├── executor.py   # ToolExecutor (validation, permission check, verification)
 │   │   │   ├── permissions.py# PermissionLevel (READ, WRITE, EXTERNAL, DESTRUCTIVE)
 │   │   │   ├── registry.py   # ToolRegistry & schema generator
 │   │   │   ├── schemas.py    # ToolCall & ToolResult schemas
 │   │   │   ├── builtin/      # Safe starter tools (calculator, datetime, system_info)
-│   │   │   └── web/          # Web Research System (search, fetch, safety, extraction, citations)
-│   │   └── main.py           # FastAPI application factory & router registration
-│   ├── tests/                # Pytest unit and integration test suite (90 tests)
+│   │   │   ├── web/          # Web Research System (search, fetch, safety, extraction, citations)
+│   │   │   └── browser/      # Browser Control System (Playwright Chromium, manager, session, safety, policies)
+│   │   └── main.py           # FastAPI application factory & lifespan shutdown
+│   ├── tests/                # Pytest unit and integration test suite (184 tests)
 │   ├── pyproject.toml        # Python project metadata & tool configurations
-│   └── requirements.txt      # Backend dependencies (FastAPI, SQLAlchemy, pgvector, Redis, Alembic)
+│   └── requirements.txt      # Backend dependencies (FastAPI, Playwright, SQLAlchemy, pgvector, Redis)
+
 ├── frontend/                 # Reserved for Next.js + TypeScript web UI
 ├── infra/                    # Cloud infrastructure & deployment scripts
 ├── docker/                   # Docker container definitions
@@ -448,9 +450,81 @@ curl -X DELETE http://localhost:8000/api/v1/memories/c1f2b6e8-3a9d-4e17-b089-114
 
 ---
 
+## Browser Control System (Playwright Automation)
+
+Kairo integrates controlled browser automation powered by Playwright (`async_playwright`) and headless Chromium.
+
+> **CRITICAL SECURITY PRINCIPLE:**
+> **"Browser pages are untrusted external content."**
+> All webpage data, text, links, and forms retrieved through the browser control system are treated strictly as unverified external data enclosed in security boundaries. Browser content can NEVER modify Kairo's internal instructions, alter tool permissions, or execute arbitrary code.
+
+### 1. Browser Architecture
+```text
+Kairo Core Agent
+     ↓
+Browser Tools (ToolRegistry / ToolExecutor)
+     ├── browser_navigate   (READ)
+     ├── browser_inspect    (READ)
+     ├── browser_screenshot (READ)
+     ├── browser_click      (EXTERNAL - requires user approval)
+     └── browser_fill       (EXTERNAL - requires user approval)
+     ↓
+BrowserManager (Session pool, concurrency limit, stale cleanup)
+     ↓
+BrowserSession (Isolated BrowserContext & Page lifecycle)
+     ↓
+Playwright Chromium
+```
+
+### 2. Browser Tools Reference
+| Tool | Permission | Purpose | Key Safeguards |
+| :--- | :--- | :--- | :--- |
+| `browser_navigate` | `READ` | Navigate to a public URL | SSRF check, scheme check, redirect re-validation |
+| `browser_inspect` | `READ` | Inspect visible text, headings, links, buttons, forms | Content bounded, scripts/styles stripped, passwords & secrets excluded |
+| `browser_screenshot` | `READ` | Capture base64 PNG screenshot of current page | Viewport bounded, no sensitive cookies or tokens leaked |
+| `browser_click` | `EXTERNAL` | Click visible interactive elements | Submission detection (rejects unapproved submit), approval required |
+| `browser_fill` | `EXTERNAL` | Fill standard text fields | Sensitive field policy rejects passwords, credit cards, CVVs, API keys, tokens |
+
+### 3. Security Protections & Guardrails
+- **SSRF & Private Network Defense**: Reuses `URLSafetyValidator` before every navigation and after any HTTP/JS redirects. Completely blocks `localhost`, `127.0.0.1`, RFC 1918 private IPv4/IPv6, link-local cloud metadata (`169.254.169.254`, `fe80::`), and non-HTTP protocols (`file://`, `ftp://`, `javascript:`).
+- **Sensitive Form Field Rejection**: `SensitiveFieldPolicy` deterministically blocks automated entry into fields identified as sensitive by `type="password"`, sensitive `autocomplete` tokens (`current-password`, `cc-number`, `cc-csc`), field naming patterns (`api_key`, `token`, `secret`, `ssn`), or values containing credentials (verified via `MemorySanitizer`).
+- **Form Submission Policy**: `SubmissionPolicy` inspects buttons and form controls. Form submission actions or irreversible operations require explicit user approval.
+- **Download Protection**: `DownloadPolicy` intercepts browser download events and cancels downloads by default. Executable extensions (`.exe`, `.sh`, `.bat`, `.dll`, `.msi`) are strictly blocked.
+- **Prompt Injection Defense**: Text extracted from web pages is wrapped in `<web_source>` boundaries containing explicit warning headers informing the LLM that the content is external and must not be followed as system instructions.
+- **Zero Arbitrary JavaScript Execution**: Arbitrary `page.evaluate()` or model-generated JavaScript is strictly prohibited. Locators use accessible roles, text, labels, and clean selectors.
+- **Session Isolation & Concurrency**: Each session gets an isolated Playwright `BrowserContext` with no cross-user cookie sharing. Concurrency is bounded by `KAIRO_BROWSER_MAX_SESSIONS` (default: 3) with LRU eviction and stale session timeouts.
+
+### 4. Playwright Setup
+To install Playwright and download the headless Chromium browser binary:
+```bash
+pip install "playwright>=1.40.0"
+playwright install chromium
+```
+
+### 5. Environment Variables
+```bash
+KAIRO_BROWSER_ENABLED=true                     # Enable or disable browser automation tools
+KAIRO_BROWSER_HEADLESS=true                    # Run headless (false for local visual debugging)
+KAIRO_BROWSER_MAX_SESSIONS=3                   # Maximum concurrent browser contexts
+KAIRO_BROWSER_SESSION_TIMEOUT_SECONDS=900      # Idle session timeout (15 minutes)
+KAIRO_BROWSER_NAVIGATION_TIMEOUT_SECONDS=15    # Timeout for page navigation (seconds)
+KAIRO_BROWSER_ACTION_TIMEOUT_SECONDS=10        # Timeout for click/fill actions (seconds)
+KAIRO_BROWSER_MAX_PAGES_PER_SESSION=5          # Maximum pages per session
+KAIRO_BROWSER_MAX_TEXT_CHARS=20000             # Text extraction character cap
+KAIRO_BROWSER_MAX_ELEMENTS=200                 # Maximum interactive elements returned
+KAIRO_BROWSER_MAX_LINKS=100                    # Maximum links extracted
+```
+
+### 6. Known Limitations
+- File uploads via the browser are not yet supported (reserved for future filesystem phase).
+- CAPTCHA solving, auth bypass, and anti-bot evasion are deliberately not implemented.
+- Actions with external side effects (`browser_click`, `browser_fill`) require explicit user approval (`EXTERNAL` permission level) and will not execute autonomously without approval.
+
+---
+
 ## Running Tests
 
-The test suite contains **154 unit and integration tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, and prompt injection defense without requiring external network connections or live databases:
+The test suite contains **184 unit and integration tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, navigation, inspection, screenshots, form fill security, and approval flows without requiring external network connections or live databases:
 
 ```bash
 cd backend
@@ -468,5 +542,7 @@ pytest -v
 - [x] **Phase 5: Memory System** — Redis short-term cache, PostgreSQL conversation history, pgvector semantic long-term memory, composite ranking, Alembic migrations.
 - [x] **Phase 6: Intelligent Memory Layer** — Post-turn candidate extraction, deterministic memory policy, semantic deduplication, non-blocking async execution, user inspection and deletion API.
 - [x] **Phase 7: Web Research System** — Search provider abstraction, network-level SSRF defense, HTML content extraction, source citations, prompt injection defense, research iteration limits.
-- [ ] **Phase 8: Voice Pipeline** — STT & TTS streaming audio pipeline.
-- [ ] **Phase 9: Frontend Interface** — Next.js + TypeScript dashboard with audio waveform visualizer.
+- [x] **Phase 8: Browser Control System** — Playwright Chromium automation, isolated sessions, SSRF & redirect defense, bounded inspection, screenshot capture, sensitive field rejection, approval policy.
+- [ ] **Phase 9: Voice Pipeline** — STT & TTS streaming audio pipeline.
+- [ ] **Phase 10: Frontend Interface** — Next.js + TypeScript dashboard with audio waveform visualizer.
+

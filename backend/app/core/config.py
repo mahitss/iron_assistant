@@ -69,6 +69,18 @@ class Settings(BaseSettings):
     KAIRO_MAX_RESEARCH_ITERATIONS: int = 3
     KAIRO_WEB_CACHE_TTL_SECONDS: int = 900  # 15 minutes
 
+    # Browser Control System (Task 8)
+    KAIRO_BROWSER_ENABLED: bool = True
+    KAIRO_BROWSER_HEADLESS: bool = True
+    KAIRO_BROWSER_MAX_SESSIONS: int = 3
+    KAIRO_BROWSER_SESSION_TIMEOUT_SECONDS: int = 900
+    KAIRO_BROWSER_NAVIGATION_TIMEOUT_SECONDS: int = 15
+    KAIRO_BROWSER_ACTION_TIMEOUT_SECONDS: int = 10
+    KAIRO_BROWSER_MAX_PAGES_PER_SESSION: int = 5
+    KAIRO_BROWSER_MAX_TEXT_CHARS: int = 20000
+    KAIRO_BROWSER_MAX_ELEMENTS: int = 200
+    KAIRO_BROWSER_MAX_LINKS: int = 100
+
     @property
     def openrouter_api_key_str(self) -> str:
         """Safely retrieve the raw API key string without exposing it in repr."""

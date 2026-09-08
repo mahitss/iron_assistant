@@ -6,9 +6,11 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.memory.embeddings import EmbeddingProvider, get_configured_embedding_provider
+from app.memory.policies import MemoryPolicy
 from app.memory.repository import MemoryRepository
 from app.memory.sanitizer import MemorySanitizer
 from app.memory.schemas import (
+    MemoryCandidate,
     MemoryResponse,
     MemorySearchResult,
     MemoryType,
@@ -177,6 +179,81 @@ class MemoryService:
         """Delete a memory entry."""
         return await self.repository.delete(memory_id)
 
+    async def process_candidate(
+        self,
+        candidate: MemoryCandidate,
+        dedup_threshold: float = 0.90,
+    ) -> MemoryResponse | None:
+        """Validate candidate against MemoryPolicy, check for semantically similar memories, and insert or update."""
+        # 1. Deterministic validation with MemoryPolicy
+        decision = MemoryPolicy.evaluate(candidate)
+        if not decision.accepted:
+            logger.info("Memory candidate rejected by policy: %s", decision.rejection_reason)
+            return None
+
+        clean_content = decision.sanitized_content
+        importance = decision.importance
+        m_type_str = candidate.memory_type.value
+
+        # 2. Generate embedding for deduplication & storage
+        embedding: list[float] | None = None
+        if self.embedding_provider is not None:
+            try:
+                embedding = await self.embedding_provider.embed(clean_content)
+            except Exception as exc:
+                logger.warning("Failed to generate embedding for candidate: %s", exc)
+
+        # 3. Deduplication: Search for semantically similar existing memories of the same type
+        if embedding is not None:
+            similar_matches = await self.repository.search_similar(
+                query_embedding=embedding,
+                top_k=1,
+                memory_type=m_type_str,
+            )
+
+            if similar_matches:
+                top_existing, similarity = similar_matches[0]
+                if similarity >= dedup_threshold:
+                    # Update existing record rather than creating a duplicate
+                    logger.info(
+                        "Deduplication match found (similarity %.3f >= %.2f). Updating memory %s.",
+                        similarity,
+                        dedup_threshold,
+                        top_existing.id,
+                    )
+                    updated = await self.repository.update(
+                        memory=top_existing,
+                        content=clean_content,
+                        embedding=embedding,
+                        importance=max(top_existing.importance, importance),
+                        memory_type=m_type_str,
+                    )
+                    return MemoryResponse.model_validate(updated)
+
+        # 4. Insert new memory if no duplicate found
+        new_mem = await self.repository.create(
+            content=clean_content,
+            memory_type=m_type_str,
+            embedding=embedding,
+            importance=importance,
+            source="intelligent_extraction",
+        )
+        logger.info("Stored new persistent memory %s (type=%s)", new_mem.id, m_type_str)
+        return MemoryResponse.model_validate(new_mem)
+
+    async def process_candidates(
+        self,
+        candidates: list[MemoryCandidate],
+        dedup_threshold: float = 0.90,
+    ) -> list[MemoryResponse]:
+        """Process and store a batch of proposed candidate memories."""
+        stored: list[MemoryResponse] = []
+        for cand in candidates:
+            res = await self.process_candidate(cand, dedup_threshold=dedup_threshold)
+            if res is not None:
+                stored.append(res)
+        return stored
+
     @staticmethod
     def format_memories_for_context(memories: list[MemoryResponse]) -> str:
         """Format retrieved memories into a clean prompt section for LLM context."""
@@ -186,3 +263,4 @@ class MemoryService:
         for mem in memories:
             lines.append(f"- {mem.content}")
         return "\n".join(lines)
+

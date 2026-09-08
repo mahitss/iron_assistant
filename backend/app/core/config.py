@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     KAIRO_MAX_CONTEXT_MESSAGES: int = 20
     KAIRO_REDIS_TTL_SECONDS: int = 3600
 
+    # Intelligent Memory Extraction (Task 6)
+    KAIRO_MEMORY_EXTRACTION_ENABLED: bool = True
+    KAIRO_MEMORY_DEDUP_THRESHOLD: float = 0.90
+    KAIRO_MEMORY_EXTRACTION_CAPABILITY: str = "fast"
+
     @property
     def openrouter_api_key_str(self) -> str:
         """Safely retrieve the raw API key string without exposing it in repr."""

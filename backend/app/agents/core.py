@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core.config import get_settings
 from app.db.session import get_sessionmaker
 from app.memory.embeddings import EmbeddingProvider, get_configured_embedding_provider
+from app.memory.extractor import MemoryExtractor
 from app.memory.models import Conversation, Message, utc_now
 from app.memory.repository import ConversationRepository
 from app.memory.schemas import MemoryResponse, MemorySearchResult, MemoryType
@@ -93,6 +94,9 @@ class KairoAgent:
         embedding_provider: EmbeddingProvider | None = None,
         max_context_messages: int = 20,
         memory_top_k: int = 5,
+        memory_extractor: Any | None = None,
+        memory_extraction_enabled: bool = True,
+        dedup_threshold: float = 0.90,
     ):
         self.provider = provider
         self.router = router
@@ -108,6 +112,9 @@ class KairoAgent:
         self.embedding_provider = embedding_provider
         self.max_context_messages = max_context_messages
         self.memory_top_k = memory_top_k
+        self.memory_extractor = memory_extractor
+        self.memory_extraction_enabled = memory_extraction_enabled
+        self.dedup_threshold = dedup_threshold
 
     @asynccontextmanager
     async def _get_services(
@@ -264,6 +271,34 @@ class KairoAgent:
                 )
         return []
 
+    async def extract_and_persist_memories(
+        self,
+        user_message: str,
+        assistant_response: str,
+    ) -> list[MemoryResponse]:
+        """Safely extract durable candidate memories and persist non-duplicates."""
+        if not self.memory_extraction_enabled or not self.memory_extractor:
+            return []
+
+        try:
+            candidates = await self.memory_extractor.extract_candidates(
+                user_message=user_message,
+                assistant_response=assistant_response,
+            )
+            if not candidates:
+                return []
+
+            async with self._get_services() as (_, mem_service):
+                if mem_service is not None:
+                    return await mem_service.process_candidates(
+                        candidates=candidates,
+                        dedup_threshold=self.dedup_threshold,
+                    )
+            return []
+        except Exception as exc:
+            logger.warning("Intelligent memory extraction/persistence failed safely: %s", exc)
+            return []
+
     async def process_message(
         self,
         message: str,
@@ -416,6 +451,15 @@ class KairoAgent:
                     )
                 except Exception as exc:
                     logger.warning("Failed to update session state: %s", exc)
+            # 7. Post-response intelligent memory extraction (safe & non-blocking)
+            if self.memory_extraction_enabled and self.memory_extractor:
+                try:
+                    await self.extract_and_persist_memories(
+                        user_message=message,
+                        assistant_response=final_text,
+                    )
+                except Exception as exc:
+                    logger.warning("Post-response memory extraction failed safely: %s", exc)
 
             return AgentResponse(
                 message=final_text,
@@ -517,6 +561,16 @@ class KairoAgent:
                     except Exception as exc:
                         logger.warning("Failed to update session state: %s", exc)
 
+                # Post-stream intelligent memory extraction (safe & non-blocking)
+                if self.memory_extraction_enabled and self.memory_extractor:
+                    try:
+                        await self.extract_and_persist_memories(
+                            user_message=message,
+                            assistant_response=full_response,
+                        )
+                    except Exception as exc:
+                        logger.warning("Post-stream memory extraction failed safely: %s", exc)
+
             except Exception as exc:
                 logger.warning("Streaming interrupted or failed: %s", exc)
                 raise
@@ -570,6 +624,14 @@ def get_default_agent() -> KairoAgent:
     session_factory = get_sessionmaker()
     embedding_provider = get_configured_embedding_provider()
 
+    # Initialize intelligent memory extractor
+    memory_extractor = MemoryExtractor(
+        provider=provider,
+        router=router,
+        capability=settings.KAIRO_MEMORY_EXTRACTION_CAPABILITY,
+        default_model=settings.KAIRO_MODEL,
+    )
+
     return KairoAgent(
         provider=provider,
         router=router,
@@ -581,5 +643,8 @@ def get_default_agent() -> KairoAgent:
         embedding_provider=embedding_provider,
         max_context_messages=settings.KAIRO_MAX_CONTEXT_MESSAGES,
         memory_top_k=settings.KAIRO_MEMORY_TOP_K,
+        memory_extractor=memory_extractor,
+        memory_extraction_enabled=settings.KAIRO_MEMORY_EXTRACTION_ENABLED,
+        dedup_threshold=settings.KAIRO_MEMORY_DEDUP_THRESHOLD,
     )
 

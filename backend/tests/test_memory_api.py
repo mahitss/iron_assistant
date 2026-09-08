@@ -95,3 +95,29 @@ def test_internal_memory_rejects_credentials(client: TestClient, sqlite_db_app):
     response = client.post("/api/v1/internal/memories", json=bad_payload)
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "sensitive credentials" in response.json()["detail"].lower()
+
+
+def test_user_memories_list_and_delete(client: TestClient, sqlite_db_app):
+    """Test user-control endpoints GET /api/v1/memories and DELETE /api/v1/memories/{id}."""
+    # 1. Create a memory via internal endpoint
+    res = client.post(
+        "/api/v1/internal/memories",
+        json={"content": "The user speaks French and English.", "memory_type": "fact", "importance": 0.7},
+    )
+    assert res.status_code == status.HTTP_201_CREATED
+    mem_id = res.json()["id"]
+
+    # 2. List memories via user endpoint GET /api/v1/memories
+    res_list = client.get("/api/v1/memories")
+    assert res_list.status_code == status.HTTP_200_OK
+    items = res_list.json()
+    assert any(m["id"] == mem_id for m in items)
+
+    # 3. Delete memory via user endpoint DELETE /api/v1/memories/{id}
+    res_del = client.delete(f"/api/v1/memories/{mem_id}")
+    assert res_del.status_code == status.HTTP_204_NO_CONTENT
+
+    # 4. Attempt deleting nonexistent memory returns 404
+    res_del_404 = client.delete("/api/v1/memories/nonexistent-id-12345")
+    assert res_del_404.status_code == status.HTTP_404_NOT_FOUND
+

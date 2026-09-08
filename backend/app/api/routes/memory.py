@@ -162,3 +162,45 @@ async def delete_memory(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Memory '{memory_id}' not found.",
         )
+
+
+# ==============================================================================
+# User-facing Memory Inspection and Deletion Endpoints (Section 14)
+# ==============================================================================
+
+user_router = APIRouter(prefix="/memories", tags=["User Memory Management (Dev)"])
+
+
+@user_router.get(
+    "",
+    response_model=list[MemoryResponse],
+    summary="List stored memories (User Control / Dev)",
+    description="Retrieve stored long-term memories for inspection and management. (Dev endpoint)",
+)
+async def list_user_memories(
+    memory_type: MemoryType | None = Query(default=None, description="Filter by memory type"),
+    limit: int = Query(default=50, ge=1, le=100, description="Max records to retrieve"),
+    service: MemoryService = Depends(get_memory_service),
+) -> list[MemoryResponse]:
+    """List persistent memories for user review."""
+    return await service.list_memories(memory_type=memory_type, limit=limit)
+
+
+@user_router.delete(
+    "/{memory_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a memory (User Control / Dev)",
+    description="Permanently delete a stored memory record. (Dev endpoint)",
+)
+async def delete_user_memory(
+    memory_id: str,
+    service: MemoryService = Depends(get_memory_service),
+) -> None:
+    """Delete a specific memory by ID."""
+    deleted = await service.delete_memory(memory_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Memory '{memory_id}' not found.",
+        )
+

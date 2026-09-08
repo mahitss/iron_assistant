@@ -7,12 +7,16 @@ from .embeddings import (
     OpenAICompatibleEmbeddingProvider,
     get_configured_embedding_provider,
 )
+from .extractor import MemoryExtractor
 from .models import Conversation, Memory, Message
+from .policies import MemoryPolicy, PolicyDecision
 from .repository import ConversationRepository, MemoryRepository
 from .sanitizer import MemorySanitizer, UnsafeMemoryError
 from .schemas import (
     ConversationContext,
+    MemoryCandidate,
     MemoryCreate,
+    MemoryExtractionResult,
     MemoryResponse,
     MemorySearchResult,
     MemoryType,
@@ -29,7 +33,11 @@ __all__ = [
     "EmbeddingError",
     "EmbeddingProvider",
     "Memory",
+    "MemoryCandidate",
     "MemoryCreate",
+    "MemoryExtractionResult",
+    "MemoryExtractor",
+    "MemoryPolicy",
     "MemoryRepository",
     "MemoryResponse",
     "MemorySanitizer",
@@ -39,8 +47,10 @@ __all__ = [
     "MemoryUpdate",
     "Message",
     "OpenAICompatibleEmbeddingProvider",
+    "PolicyDecision",
     "SessionManager",
     "UnsafeMemoryError",
     "get_configured_embedding_provider",
     "get_default_session_manager",
 ]
+

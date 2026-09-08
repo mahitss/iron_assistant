@@ -70,3 +70,40 @@ class ConversationContext(BaseModel):
     session_id: str
     recent_messages: list[dict[str, Any]] = Field(default_factory=list)
     relevant_memories: list[str] = Field(default_factory=list)
+
+
+class MemoryCandidate(BaseModel):
+    """Candidate memory proposed by the memory extraction layer before policy validation."""
+
+    content: str = Field(
+        ...,
+        min_length=3,
+        max_length=500,
+        description="Extracted durable statement in clear declarative form",
+        examples=["The user prefers dark mode in all development environments."],
+    )
+    memory_type: MemoryType = Field(
+        default=MemoryType.FACT,
+        description="Categorization of the candidate memory",
+    )
+    importance: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=1.0,
+        description="Proposed priority weight (0.0 to 1.0)",
+    )
+    reason: str | None = Field(
+        default=None,
+        max_length=200,
+        description="Brief justification for why this memory is durable",
+    )
+
+
+class MemoryExtractionResult(BaseModel):
+    """Container schema for candidate memories proposed by the model."""
+
+    candidates: list[MemoryCandidate] = Field(
+        default_factory=list,
+        description="Collection of extracted memory candidates",
+    )
+

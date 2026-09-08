@@ -2,14 +2,13 @@
 
 Kairo is an autonomous personal AI assistant designed to execute complex tasks, manage workflows, and interface seamlessly across voice, text, tools, memory, and autonomous agent loops.
 
-> **Status: Phase 5 — Memory Architecture & Persistent Vector Retrieval**  
-> This repository is currently in **Phase 5**. Kairo now features a layered memory architecture:
-> 1. **Short-Term Memory**: Ephemeral session state and active context cache powered by Redis (with in-memory fallback).
-> 2. **Conversation History**: Full multi-turn session persistence in PostgreSQL with bounded chronological context windows.
-> 3. **Persistent Long-Term Memory**: Semantic retrieval powered by PostgreSQL + **pgvector**, with deterministic composite ranking and basic secret sanitization.
-> 
-> > [!IMPORTANT]
-> > **Kairo does not automatically remember every conversation. Long-term memories are intentionally separated from conversation history.** Long-term memories are explicitly curated and stored through the application layer to prevent noisy context pollution.
+> **Status: Phase 6 — Intelligent Memory Layer**  
+> This repository is currently in **Phase 6**. Kairo now features an intelligent, automated long-term memory layer:
+> 1. **Automated Memory Extraction**: After a conversation turn, a dedicated fast model extracts durable candidate memories (preferences, facts, projects, instructions) without blocking the user response.
+> 2. **Deterministic Memory Policy**: Candidate memories are strictly validated and sanitized. Secrets, tokens, transient arithmetic, and casual banter are strictly rejected.
+> 3. **Semantic Deduplication**: Before persisting, candidates are compared against existing memories. If similarity is above the configurable threshold (default `0.90`), the existing record is updated rather than duplicated.
+> 4. **User Control Endpoints**: Safe `GET /api/v1/memories` and `DELETE /api/v1/memories/{memory_id}` endpoints allow users to inspect and delete persisted memories.
+> 5. **Core Philosophy**: *"The model proposes memories; the application validates and persists them."*
 > 
 > **Important**: Voice STT/TTS, browser automation, GitHub tools, computer control, autonomous background tasks, and frontend UI are **NOT implemented yet** and will be introduced incrementally in future phases.
 
@@ -35,10 +34,12 @@ kairo/
 │   │   │   ├── session.py    # Async SQLAlchemy 2.x engine and sessionmaker
 │   │   │   └── migrations/   # Alembic versioned migrations (0001_initial)
 │   │   ├── memory/           # Memory layer components
+│   │   │   ├── extractor.py  # MemoryExtractor: LLM candidate extraction via fast capability
+│   │   │   ├── policies.py   # MemoryPolicy: deterministic safety, relevance, and bounds checks
 │   │   │   ├── models.py     # SQLAlchemy models: Conversation, Message, Memory (pgvector)
-│   │   │   ├── schemas.py    # Pydantic models: MemoryCreate, MemoryResponse, MemoryType
+│   │   │   ├── schemas.py    # Pydantic models: MemoryCandidate, MemoryResponse, MemoryType
 │   │   │   ├── repository.py # ConversationRepository & MemoryRepository (pgvector search)
-│   │   │   ├── service.py    # MemoryService: composite ranking & context formatting
+│   │   │   ├── service.py    # MemoryService: candidate processing, dedup, ranking & context
 │   │   │   ├── embeddings.py # EmbeddingProvider abstraction (OpenAI, OpenRouter, Deterministic)
 │   │   │   ├── sanitizer.py  # MemorySanitizer: regex defense-in-depth secret detection
 │   │   │   └── session.py    # SessionManager: Redis cache with TTL & in-memory fallback
@@ -136,6 +137,55 @@ If detected, explicit creation raises an `UnsafeMemoryError` and rejects the per
 > [!NOTE]
 > `MemorySanitizer` provides basic defense-in-depth. It does not claim to detect every possible secret or custom format.
 
+### 5. Intelligent Memory Extraction Layer
+
+> [!IMPORTANT]
+> **"The model proposes memories; the application validates and persists them."**
+> The LLM is never given direct access to the database or SQL. `MemoryService` remains the sole persistence authority.
+
+```text
+User Message
+      ↓
+Kairo Core (retrieves top-K existing memories)
+      ↓
+Generate Assistant Response & Execute Tools
+      ↓
+Return Response to User (Zero Turn Latency Block)
+      ↓
+Memory Extractor (Dedicated Fast Capability Model)
+      ↓
+Candidate Memories (Pydantic Schema: content, memory_type, importance, reason)
+      ↓
+Memory Policy / Validation (Deterministic safety, length, secret & relevance filters)
+      ↓
+Semantic Deduplication (pgvector search: similarity >= KAIRO_MEMORY_DEDUP_THRESHOLD)
+      ↓
+Embed Candidate Vector (Deterministic / OpenAI / OpenRouter)
+      ↓
+Persist to PostgreSQL + pgvector (Insert new or update existing)
+```
+
+#### Why Not Every Message Becomes a Memory
+To prevent memory bloat and context pollution, Kairo filters out ephemeral chatter:
+- **Remembered**: Durable user preferences (*"I prefer dark mode"*), project facts (*"I'm building Kairo"*), explicit instructions (*"Always write tests in pytest"*), persistent context.
+- **Ignored (No Memory Created)**: Transient math (*"What's 25 * 4?"*), casual greetings (*"Hello"*, *"How are you?"*), debugging output, temporary questions, short filler.
+- **Rejected (Safety Violation)**: Credentials, API keys, passwords, bearer tokens, and private keys.
+
+#### Semantic Deduplication & Updates
+Before persisting a validated candidate:
+1. `MemoryService` queries existing memories using vector cosine similarity.
+2. If an existing memory has similarity $\ge$ `KAIRO_MEMORY_DEDUP_THRESHOLD` (default `0.90`):
+   - The existing record is **updated** in place with the fresh content and refreshed timestamp.
+   - Contradictory or stale memories are cleanly replaced without building an overcomplicated knowledge graph.
+3. If similarity $< 0.90$, a new memory record is inserted.
+
+#### Asynchronous & Non-Blocking Resilience
+- Memory extraction runs **after** the assistant's final response has been formulated and sent.
+- If the extraction model fails, times out, or returns malformed JSON:
+  - Normal chat **always succeeds** without interruption.
+  - A safe warning is logged without exposing user content or credentials.
+  - No fake or corrupted memories are written.
+
 ---
 
 ## Environment Configuration
@@ -165,6 +215,11 @@ KAIRO_EMBEDDING_MODEL=
 KAIRO_MEMORY_TOP_K=5
 KAIRO_MAX_CONTEXT_MESSAGES=20
 KAIRO_REDIS_TTL_SECONDS=3600
+
+# Intelligent Memory Extraction (Task 6)
+KAIRO_MEMORY_EXTRACTION_ENABLED=true
+KAIRO_MEMORY_DEDUP_THRESHOLD=0.90
+KAIRO_MEMORY_EXTRACTION_CAPABILITY=fast
 ```
 
 ---
@@ -276,11 +331,44 @@ curl -N -X POST http://localhost:8000/api/v1/chat/stream \
   -d '{"message": "What is the time in UTC?", "session_id": "sess_89f021adbc43"}'
 ```
 
+### 6. User Memory Inspection & Deletion (`GET /api/v1/memories` & `DELETE /api/v1/memories/{id}`)
+
+**List Persisted Memories:**
+```bash
+curl -X GET "http://localhost:8000/api/v1/memories?limit=10"
+```
+**Response:**
+```json
+[
+  {
+    "id": "c1f2b6e8-3a9d-4e17-b089-1144558899aa",
+    "content": "User prefers dark mode.",
+    "memory_type": "preference",
+    "importance": 0.85,
+    "last_accessed_at": "2026-09-08T16:00:00Z",
+    "created_at": "2026-09-08T15:30:00Z",
+    "updated_at": "2026-09-08T15:30:00Z"
+  }
+]
+```
+
+**Delete a Memory:**
+```bash
+curl -X DELETE http://localhost:8000/api/v1/memories/c1f2b6e8-3a9d-4e17-b089-1144558899aa
+```
+**Response:**
+```json
+{
+  "deleted": true,
+  "memory_id": "c1f2b6e8-3a9d-4e17-b089-1144558899aa"
+}
+```
+
 ---
 
 ## Running Tests
 
-The test suite contains **90 unit and integration tests** verifying repositories, memory sanitization, semantic retrieval, session management, router selection, and tool execution without requiring external network connections or live databases:
+The test suite contains **113 unit and integration tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, and tool execution without requiring external network connections or live databases:
 
 ```bash
 cd backend
@@ -296,5 +384,6 @@ pytest -v
 - [x] **Phase 3: Model Router** — Capability taxonomy, ModelDefinition, ModelRegistry, ModelRouter priority matching & fallback.
 - [x] **Phase 4: Tool System & Safe Starters** — BaseTool contract, ToolRegistry, ToolExecutor, permissions, calculator (AST safe), datetime, system_info.
 - [x] **Phase 5: Memory System** — Redis short-term cache, PostgreSQL conversation history, pgvector semantic long-term memory, composite ranking, Alembic migrations.
-- [ ] **Phase 6: Voice Pipeline** — STT & TTS streaming audio pipeline.
-- [ ] **Phase 7: Frontend Interface** — Next.js + TypeScript dashboard with audio waveform visualizer.
+- [x] **Phase 6: Intelligent Memory Layer** — Post-turn candidate extraction, deterministic memory policy, semantic deduplication, non-blocking async execution, user inspection and deletion API.
+- [ ] **Phase 7: Voice Pipeline** — STT & TTS streaming audio pipeline.
+- [ ] **Phase 8: Frontend Interface** — Next.js + TypeScript dashboard with audio waveform visualizer.

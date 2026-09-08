@@ -15,7 +15,9 @@ async def list_github_repositories(
 ) -> list[GitHubRepoInfo]:
     """List repositories accessible to the authenticated user or public repos."""
     clamped_limit = max(1, min(limit, 50))
-    data = await provider.get_json("/user/repos", params={"visibility": visibility, "per_page": clamped_limit})
+    data = await provider.get_json(
+        "/user/repos", params={"visibility": visibility, "per_page": clamped_limit}
+    )
 
     repos: list[GitHubRepoInfo] = []
     if isinstance(data, list):

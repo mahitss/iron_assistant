@@ -23,15 +23,37 @@ PROHIBITED_FILE_PATTERNS = [
 
 # Windows reserved device filenames
 WINDOWS_DEVICE_NAMES = {
-    "CON", "PRN", "AUX", "NUL",
-    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
 }
 
 # Regex patterns for detecting and redacting secrets from diffs and files
 SECRET_PATTERNS = [
     # Private Key blocks
-    (re.compile(r"-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+PRIVATE KEY-----"), "[REDACTED_PRIVATE_KEY]"),
+    (
+        re.compile(r"-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+PRIVATE KEY-----"),
+        "[REDACTED_PRIVATE_KEY]",
+    ),
     # GitHub personal access tokens
     (re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"), "[REDACTED_GITHUB_TOKEN]"),
     # OpenAI / OpenRouter style API keys
@@ -43,7 +65,12 @@ SECRET_PATTERNS = [
     # Password in URL credentials
     (re.compile(r"(https?://[^:\s]+:)([^@\s]+)(@)"), r"\1[REDACTED_PWD]\3"),
     # Secret assignment patterns like password = "...", api_key = "..."
-    (re.compile(r'(?i)(api[_-]?key|secret|password|passwd|auth[_-]?token)\s*[:=]\s*["\']([^"\']{8,})["\']'), r'\1="[REDACTED_SECRET]"'),
+    (
+        re.compile(
+            r'(?i)(api[_-]?key|secret|password|passwd|auth[_-]?token)\s*[:=]\s*["\']([^"\']{8,})["\']'
+        ),
+        r'\1="[REDACTED_SECRET]"',
+    ),
 ]
 
 
@@ -81,10 +108,7 @@ def validate_repo_path(repo_path: str | Path, approved_roots: list[str]) -> Path
 
     # Check against approved roots
     canonical_roots = [Path(root).resolve(strict=False) for root in approved_roots if root.strip()]
-    is_approved = any(
-        resolved_repo == root or root in resolved_repo.parents
-        for root in canonical_roots
-    )
+    is_approved = any(resolved_repo == root or root in resolved_repo.parents for root in canonical_roots)
 
     if not is_approved:
         raise PathSecurityError(
@@ -115,7 +139,9 @@ def validate_file_path(repo_path: Path, relative_file_path: str) -> Path:
     try:
         target_path.relative_to(repo_path)
     except ValueError as exc:
-        raise PathSecurityError(f"Path traversal detected: '{relative_file_path}' escapes repository boundary.") from exc
+        raise PathSecurityError(
+            f"Path traversal detected: '{relative_file_path}' escapes repository boundary."
+        ) from exc
 
     # Check device names
     base_name = target_path.stem.upper()

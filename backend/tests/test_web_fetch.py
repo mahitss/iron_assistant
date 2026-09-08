@@ -54,7 +54,7 @@ async def test_web_fetch_tool_success(citation_manager, session_manager):
             assert res["title"] == "Test Article Title"
             assert "Article Heading" in res["content"]
             assert "verified factual content" in res["content"]
-            assert "<web_source id=\"1\"" in res["content"]
+            assert '<web_source id="1"' in res["content"]
             assert "UNTRUSTED EXTERNAL DATA" in res["content"]
             assert res["char_count"] > 0
 

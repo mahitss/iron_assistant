@@ -263,4 +263,3 @@ class MemoryService:
         for mem in memories:
             lines.append(f"- {mem.content}")
         return "\n".join(lines)
-

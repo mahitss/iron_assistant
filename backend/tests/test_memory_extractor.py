@@ -72,16 +72,18 @@ def mock_router() -> ModelRouter:
 @pytest.mark.asyncio
 async def test_extractor_valid_structured_candidate(mock_router: ModelRouter):
     """Verify that a valid JSON candidate structure is parsed cleanly."""
-    model_json = json.dumps({
-        "candidates": [
-            {
-                "content": "The user prefers TypeScript over Python.",
-                "memory_type": "preference",
-                "importance": 0.85,
-                "reason": "Explicit user language preference",
-            }
-        ]
-    })
+    model_json = json.dumps(
+        {
+            "candidates": [
+                {
+                    "content": "The user prefers TypeScript over Python.",
+                    "memory_type": "preference",
+                    "importance": 0.85,
+                    "reason": "Explicit user language preference",
+                }
+            ]
+        }
+    )
     provider = MockExtractionProvider([model_json])
     extractor = MemoryExtractor(provider=provider, router=mock_router, capability="fast")
 
@@ -146,12 +148,14 @@ async def test_extractor_markdown_fenced_json():
 @pytest.mark.asyncio
 async def test_extractor_invalid_memory_type_rejected():
     """Verify that unknown/invalid memory types are discarded."""
-    bad_type_json = json.dumps({
-        "candidates": [
-            {"content": "Valid content", "memory_type": "invalid_unknown_type", "importance": 0.5},
-            {"content": "Durable fact", "memory_type": "fact", "importance": 0.6},
-        ]
-    })
+    bad_type_json = json.dumps(
+        {
+            "candidates": [
+                {"content": "Valid content", "memory_type": "invalid_unknown_type", "importance": 0.5},
+                {"content": "Durable fact", "memory_type": "fact", "importance": 0.6},
+            ]
+        }
+    )
     provider = MockExtractionProvider([bad_type_json])
     extractor = MemoryExtractor(provider=provider)
 
@@ -164,12 +168,14 @@ async def test_extractor_invalid_memory_type_rejected():
 @pytest.mark.asyncio
 async def test_extractor_importance_clamped():
     """Verify that out-of-range importance values (e.g. 5.0 or -1.0) are clamped to [0.0, 1.0]."""
-    out_of_bounds = json.dumps({
-        "candidates": [
-            {"content": "User likes blue.", "memory_type": "preference", "importance": 12.5},
-            {"content": "User dislikes noise.", "memory_type": "preference", "importance": -5.0},
-        ]
-    })
+    out_of_bounds = json.dumps(
+        {
+            "candidates": [
+                {"content": "User likes blue.", "memory_type": "preference", "importance": 12.5},
+                {"content": "User dislikes noise.", "memory_type": "preference", "importance": -5.0},
+            ]
+        }
+    )
     provider = MockExtractionProvider([out_of_bounds])
     extractor = MemoryExtractor(provider=provider)
 

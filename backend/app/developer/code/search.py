@@ -32,9 +32,33 @@ IGNORED_DIRECTORIES = {
 
 # Binary file extensions that should not be scanned as text
 BINARY_EXTENSIONS = {
-    ".exe", ".bin", ".dll", ".so", ".dylib", ".iso", ".zip", ".tar", ".gz",
-    ".7z", ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".mp3",
-    ".mp4", ".wav", ".ogg", ".woff", ".woff2", ".ttf", ".eot", ".pyc", ".pyo",
+    ".exe",
+    ".bin",
+    ".dll",
+    ".so",
+    ".dylib",
+    ".iso",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".7z",
+    ".pdf",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".ico",
+    ".mp3",
+    ".mp4",
+    ".wav",
+    ".ogg",
+    ".woff",
+    ".woff2",
+    ".ttf",
+    ".eot",
+    ".pyc",
+    ".pyo",
 }
 
 

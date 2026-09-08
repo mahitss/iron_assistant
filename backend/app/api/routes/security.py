@@ -206,6 +206,19 @@ async def trigger_emergency_stop(
         decision="STOPPED",
         metadata={"reason": reason},
     )
+    try:
+        from app.proactive.service import ProactiveService
+        from app.proactive.state import SourceType
+
+        await ProactiveService.process_event(
+            db_session=session,
+            user_id=user_id,
+            source_type=SourceType.SECURITY,
+            category="security.emergency_stop",
+            payload={"reason": reason, "scope": f"User {user_id}"},
+        )
+    except Exception as exc:
+        logger.debug("Proactive emergency stop notification skipped: %s", exc)
     return EmergencyStopResponse(
         is_stopped=True,
         status="STOPPED",

@@ -28,7 +28,11 @@ async def run_git_exec(args: list[str], cwd: Path, timeout: float = 10.0) -> tup
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        return proc.returncode or 0, stdout.decode("utf-8", errors="replace"), stderr.decode("utf-8", errors="replace")
+        return (
+            proc.returncode or 0,
+            stdout.decode("utf-8", errors="replace"),
+            stderr.decode("utf-8", errors="replace"),
+        )
     except asyncio.TimeoutError:
         try:
             proc.kill()

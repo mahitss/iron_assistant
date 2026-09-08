@@ -47,7 +47,9 @@ class ModelDefinition(BaseModel):
 
     @field_validator("capabilities", mode="before")
     @classmethod
-    def parse_capabilities(cls, v: set[str | ModelCapability] | list[str | ModelCapability]) -> set[ModelCapability]:
+    def parse_capabilities(
+        cls, v: set[str | ModelCapability] | list[str | ModelCapability]
+    ) -> set[ModelCapability]:
         """Normalize capability strings into ModelCapability enums."""
         result = set()
         for item in v:
@@ -100,8 +102,7 @@ class ModelRegistry:
         """Return models providing the given capability, sorted by priority (descending)."""
         cap = ModelCapability.from_str(capability)
         candidates = [
-            m for m in self._models.values()
-            if cap in m.capabilities and (not enabled_only or m.enabled)
+            m for m in self._models.values() if cap in m.capabilities and (not enabled_only or m.enabled)
         ]
         return sorted(candidates, key=lambda m: m.priority, reverse=True)
 

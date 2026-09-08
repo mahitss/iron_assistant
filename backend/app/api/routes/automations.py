@@ -48,6 +48,7 @@ def get_automation_service(db: AsyncSession | None = Depends(get_db_session)) ->
 
 # --- Workflow CRUD ---
 
+
 @router.post("", response_model=WorkflowResponse, status_code=status.HTTP_201_CREATED)
 async def create_workflow(
     payload: WorkflowCreate,
@@ -126,6 +127,7 @@ async def delete_workflow(
 
 # --- Manual Run & Execution ---
 
+
 @router.post("/{workflow_id}/run", response_model=WorkflowRunResponse, status_code=status.HTTP_202_ACCEPTED)
 async def run_workflow_manually(
     workflow_id: str,
@@ -196,6 +198,7 @@ async def cancel_workflow_run(
 
 # --- Approvals ---
 
+
 @router.get("/approvals/pending", response_model=list[ApprovalRequestResponse])
 async def list_pending_approvals(
     user_id: str = Depends(get_current_user_id),
@@ -247,6 +250,7 @@ async def deny_action(
 
 
 # --- Notifications ---
+
 
 @router.get("/notifications", response_model=list[NotificationResponse])
 async def list_notifications(

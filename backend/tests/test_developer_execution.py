@@ -25,7 +25,7 @@ def execution_settings(repo_dir: Path, tmp_path: Path):
     return Settings(
         KAIRO_DEVELOPER_ENABLED=True,
         KAIRO_REPOSITORY_ROOTS=str(tmp_path),
-        KAIRO_ALLOWED_TEST_COMMANDS=f'{sys.executable} -c "print(\'tests passed\')",pytest,npm test',
+        KAIRO_ALLOWED_TEST_COMMANDS=f"{sys.executable} -c \"print('tests passed')\",pytest,npm test",
     )
 
 
@@ -66,7 +66,7 @@ def test_empty_allowlist_rejects_all():
 async def test_runner_approved_command(repo_dir: Path, execution_settings: Settings):
     """Verify execution of an approved test command succeeds without shell=True."""
     runner = TestRunner(settings=execution_settings)
-    approved_cmd = f'{sys.executable} -c "print(\'tests passed\')"'
+    approved_cmd = f"{sys.executable} -c \"print('tests passed')\""
 
     result = await runner.run_test(
         repo_path=str(repo_dir),

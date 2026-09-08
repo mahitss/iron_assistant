@@ -124,6 +124,7 @@ async def test_tool_executor_enforces_permissions_against_adversarial_calls(secu
 
     # test_runner requires approval -> ToolResult has approval_required=True
     from app.tools.schemas import ToolCall
+
     call = ToolCall(
         id="call_test_1",
         name="test_runner",

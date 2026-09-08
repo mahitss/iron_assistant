@@ -106,4 +106,3 @@ class MemoryExtractionResult(BaseModel):
         default_factory=list,
         description="Collection of extracted memory candidates",
     )
-

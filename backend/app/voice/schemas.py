@@ -23,14 +23,19 @@ class Transcript(BaseModel):
     """Structured transcription result from Speech-to-Text provider."""
 
     text: str = Field(..., description="Transcribed spoken text")
-    confidence: float | None = Field(default=None, description="Confidence score between 0.0 and 1.0 if provided")
+    confidence: float | None = Field(
+        default=None, description="Confidence score between 0.0 and 1.0 if provided"
+    )
     language: str | None = Field(default=None, description="Detected or configured language code (e.g. 'en')")
-    timestamps: list[dict[str, Any]] | None = Field(default=None, description="Word/segment timestamps if supported")
+    timestamps: list[dict[str, Any]] | None = Field(
+        default=None, description="Word/segment timestamps if supported"
+    )
 
 
 # ---------------------------------------------------------------------------
 # Client -> Server WebSocket Events
 # ---------------------------------------------------------------------------
+
 
 class StartSessionEvent(BaseModel):
     """Client initiates voice session."""
@@ -68,6 +73,7 @@ class EndSessionEvent(BaseModel):
 # ---------------------------------------------------------------------------
 # Server -> Client WebSocket Events
 # ---------------------------------------------------------------------------
+
 
 class SessionStartedEvent(BaseModel):
     """Server acknowledges session startup."""

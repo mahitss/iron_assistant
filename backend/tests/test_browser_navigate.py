@@ -20,7 +20,6 @@ def test_safety_validator_schemes():
         BrowserSafetyValidator.validate_url("javascript:alert(1)")
 
 
-
 def test_safety_validator_localhost_and_private_ips():
     """Verify localhost, private IPs, and cloud metadata addresses are blocked."""
     prohibited_urls = [
@@ -114,6 +113,8 @@ async def test_navigate_redirect_to_private_ip_blocked():
         res = await tool.execute(url="https://example.com/unsafe-redirect", session_id="nav_redirect")
 
         assert res["success"] is False
-        assert "Navigation redirected to prohibited address" in res.get("error", "") or "Failed to navigate" in res.get("error", "")
+        assert "Navigation redirected to prohibited address" in res.get(
+            "error", ""
+        ) or "Failed to navigate" in res.get("error", "")
     finally:
         await manager.close_all()

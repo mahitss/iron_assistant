@@ -29,7 +29,9 @@ class ChatMessage(BaseModel):
     content: str | None = Field(default=None, description="Message content")
     name: str | None = Field(default=None, description="Tool name for tool messages")
     tool_call_id: str | None = Field(default=None, description="Associated tool call identifier")
-    tool_calls: list[dict[str, Any]] | None = Field(default=None, description="Raw tool call requests from assistant")
+    tool_calls: list[dict[str, Any]] | None = Field(
+        default=None, description="Raw tool call requests from assistant"
+    )
 
     model_config = {"frozen": True}
 

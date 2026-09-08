@@ -51,9 +51,7 @@ class OpenAICompatibleSTTProvider(SpeechToTextProvider):
             async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
                 resp = await client.post(url, headers=headers, files=files, data=data)
                 if resp.status_code != 200:
-                    raise STTProviderError(
-                        f"STT service returned HTTP {resp.status_code}: {resp.text[:200]}"
-                    )
+                    raise STTProviderError(f"STT service returned HTTP {resp.status_code}: {resp.text[:200]}")
                 result = resp.json()
                 text = result.get("text", "").strip()
                 return Transcript(text=text, language=language)
@@ -118,9 +116,7 @@ class OpenAICompatibleTTSProvider(TextToSpeechProvider):
             async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
                 resp = await client.post(url, headers=headers, json=payload)
                 if resp.status_code != 200:
-                    raise TTSProviderError(
-                        f"TTS service returned HTTP {resp.status_code}: {resp.text[:200]}"
-                    )
+                    raise TTSProviderError(f"TTS service returned HTTP {resp.status_code}: {resp.text[:200]}")
                 return resp.content
         except TTSProviderError:
             raise

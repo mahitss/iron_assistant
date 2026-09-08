@@ -85,6 +85,7 @@ class WebFetchTool(BaseTool):
         if sess_mgr is None:
             try:
                 from app.memory.session import get_default_session_manager
+
                 sess_mgr = get_default_session_manager()
             except ImportError:
                 sess_mgr = None

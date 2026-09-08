@@ -101,15 +101,19 @@ async def test_inspect_bounded_output():
     manager = BrowserManager(settings=settings)
     try:
         session = await manager.get_or_create_session("inspect_bounds")
-        long_html = """
+        long_html = (
+            """
         <html><body>
-            <p>""" + ("Word " * 200) + """</p>
+            <p>"""
+            + ("Word " * 200)
+            + """</p>
             <a href="https://example.com/1">L1</a>
             <a href="https://example.com/2">L2</a>
             <a href="https://example.com/3">L3</a>
             <button>B1</button><button>B2</button><button>B3</button>
         </body></html>
         """
+        )
         await session.page.set_content(long_html)
 
         tool = BrowserInspectTool(manager=manager)

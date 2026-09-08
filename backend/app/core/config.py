@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     # Database & Memory Configuration (Task 5)
     DATABASE_URL: str | None = None  # e.g., "postgresql+asyncpg://postgres:postgres@localhost:5432/kairo"
-    REDIS_URL: str | None = None     # e.g., "redis://localhost:6379/0"
+    REDIS_URL: str | None = None  # e.g., "redis://localhost:6379/0"
 
     # Embedding Provider Configuration
     KAIRO_EMBEDDING_PROVIDER: str | None = None  # e.g., "mock", "openrouter", "openai"
@@ -119,7 +119,6 @@ class Settings(BaseSettings):
             return self.KAIRO_TTS_API_KEY.get_secret_value().strip()
         return ""
 
-
     @property
     def web_search_api_key_str(self) -> str:
         """Safely retrieve the raw search API key string without exposing it in repr."""
@@ -150,6 +149,7 @@ class Settings(BaseSettings):
         if not self.KAIRO_REPOSITORY_ROOTS:
             return []
         import os
+
         roots = []
         for r in self.KAIRO_REPOSITORY_ROOTS.split(","):
             cleaned = r.strip()
@@ -177,6 +177,13 @@ class Settings(BaseSettings):
     KAIRO_SECURITY_ENABLED: bool = True
     KAIRO_AUDIT_ENABLED: bool = True
     KAIRO_COMPUTER_ENABLED: bool = False
+
+    # Proactive Intelligence Settings (Task 15)
+    KAIRO_PROACTIVE_ENABLED: bool = True
+    KAIRO_PROACTIVE_DEDUP_WINDOW_SECONDS: int = 3600
+    KAIRO_MAX_PROACTIVE_NOTIFICATIONS_PER_HOUR: int = 20
+    KAIRO_MAX_PROACTIVE_INSIGHTS_PER_HOUR: int = 50
+    KAIRO_MAX_PROACTIVE_CHAIN_DEPTH: int = 3
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod

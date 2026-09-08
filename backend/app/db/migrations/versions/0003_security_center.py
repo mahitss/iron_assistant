@@ -5,6 +5,7 @@ Revises: 0002_automation
 Create Date: 2026-09-08 18:00:00.000000
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -29,7 +30,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_security_sessions_user_id", "security_sessions", ["user_id"], unique=False)
-    op.create_index("ix_security_sessions_user_active", "security_sessions", ["user_id", "is_active"], unique=False)
+    op.create_index(
+        "ix_security_sessions_user_active", "security_sessions", ["user_id", "is_active"], unique=False
+    )
 
     # 2. security_approval_requests
     op.create_table(
@@ -51,12 +54,28 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_security_approvals_user_id", "security_approval_requests", ["user_id"], unique=False)
-    op.create_index("ix_security_approvals_tool_name", "security_approval_requests", ["tool_name"], unique=False)
+    op.create_index(
+        "ix_security_approvals_tool_name", "security_approval_requests", ["tool_name"], unique=False
+    )
     op.create_index("ix_security_approvals_status", "security_approval_requests", ["status"], unique=False)
-    op.create_index("ix_security_approvals_expires_at", "security_approval_requests", ["expires_at"], unique=False)
-    op.create_index("ix_security_approvals_action_fingerprint", "security_approval_requests", ["action_fingerprint"], unique=False)
-    op.create_index("ix_security_approvals_user_status", "security_approval_requests", ["user_id", "status"], unique=False)
-    op.create_index("ix_security_approvals_fingerprint_status", "security_approval_requests", ["action_fingerprint", "status"], unique=False)
+    op.create_index(
+        "ix_security_approvals_expires_at", "security_approval_requests", ["expires_at"], unique=False
+    )
+    op.create_index(
+        "ix_security_approvals_action_fingerprint",
+        "security_approval_requests",
+        ["action_fingerprint"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_security_approvals_user_status", "security_approval_requests", ["user_id", "status"], unique=False
+    )
+    op.create_index(
+        "ix_security_approvals_fingerprint_status",
+        "security_approval_requests",
+        ["action_fingerprint", "status"],
+        unique=False,
+    )
 
     # 3. security_audit_events
     op.create_table(
@@ -79,8 +98,12 @@ def upgrade() -> None:
     op.create_index("ix_security_audit_timestamp", "security_audit_events", ["timestamp"], unique=False)
     op.create_index("ix_security_audit_event_type", "security_audit_events", ["event_type"], unique=False)
     op.create_index("ix_security_audit_tool_name", "security_audit_events", ["tool_name"], unique=False)
-    op.create_index("ix_security_audit_user_timestamp", "security_audit_events", ["user_id", "timestamp"], unique=False)
-    op.create_index("ix_security_audit_user_event", "security_audit_events", ["user_id", "event_type"], unique=False)
+    op.create_index(
+        "ix_security_audit_user_timestamp", "security_audit_events", ["user_id", "timestamp"], unique=False
+    )
+    op.create_index(
+        "ix_security_audit_user_event", "security_audit_events", ["user_id", "event_type"], unique=False
+    )
 
     # 4. user_capabilities
     op.create_table(

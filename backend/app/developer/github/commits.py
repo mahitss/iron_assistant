@@ -33,7 +33,9 @@ async def list_github_commits(
                     sha=item.get("sha", "")[:12],
                     author=author_obj.get("name", "Unknown"),
                     date=author_obj.get("date", ""),
-                    subject=commit_obj.get("message", "").splitlines()[0] if commit_obj.get("message") else "",
+                    subject=commit_obj.get("message", "").splitlines()[0]
+                    if commit_obj.get("message")
+                    else "",
                 )
             )
     return commits

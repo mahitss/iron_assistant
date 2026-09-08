@@ -69,7 +69,6 @@ class BrowserInspectTool(BaseTool):
         self.max_links = cfg.KAIRO_BROWSER_MAX_LINKS
         self.max_elements = cfg.KAIRO_BROWSER_MAX_ELEMENTS
 
-
     async def execute(self, session_id: str | None = None) -> dict[str, Any]:
         sid = (session_id or DEFAULT_BROWSER_SESSION).strip()
         session = self.manager.get_session(sid)

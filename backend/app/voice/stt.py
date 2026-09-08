@@ -59,4 +59,3 @@ def get_stt_provider(provider_type: str | None = None) -> SpeechToTextProvider:
             model=cfg.KAIRO_STT_MODEL,
         )
     raise STTUnavailableError(f"Unsupported or unconfigured STT provider: '{ptype}'.")
-

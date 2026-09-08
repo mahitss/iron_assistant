@@ -85,6 +85,7 @@ def test_websocket_audio_chunk_and_response_flow():
             msg = ws.receive()
             if "text" in msg and msg["text"]:
                 import json
+
                 data = json.loads(msg["text"])
                 events_received.append(data["type"])
                 if data["type"] == "response_complete":
@@ -139,4 +140,3 @@ def test_websocket_voice_disabled():
         assert err["code"] == "VOICE_DISABLED"
         with pytest.raises(WebSocketDisconnect):
             ws.receive_json()
-

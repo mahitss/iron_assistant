@@ -29,15 +29,9 @@ class Conversation(Base):
 
     __tablename__ = "conversations"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
-    session_id: Mapped[str] = mapped_column(
-        String(128), index=True, nullable=False, unique=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
@@ -59,9 +53,7 @@ class Message(Base):
 
     __tablename__ = "messages"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     conversation_id: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("conversations.id", ondelete="CASCADE"),
@@ -73,18 +65,12 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False, index=True
     )
-    meta: Mapped[dict[str, Any] | None] = mapped_column(
-        JSON, nullable=True, default=dict
-    )
+    meta: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True, default=dict)
 
     # Relationships
-    conversation: Mapped["Conversation"] = relationship(
-        "Conversation", back_populates="messages"
-    )
+    conversation: Mapped["Conversation"] = relationship("Conversation", back_populates="messages")
 
-    __table_args__ = (
-        Index("ix_messages_conv_created", "conversation_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_messages_conv_created", "conversation_id", "created_at"),)
 
     def __repr__(self) -> str:
         return f"<Message(id='{self.id}', role='{self.role}')>"
@@ -95,9 +81,7 @@ class Memory(Base):
 
     __tablename__ = "memories"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     content: Mapped[str] = mapped_column(Text, nullable=False)
     memory_type: Mapped[str] = mapped_column(
         String(64), index=True, default="fact", nullable=False
@@ -105,9 +89,7 @@ class Memory(Base):
     embedding = mapped_column(Vector(1536), nullable=True)
     importance: Mapped[float] = mapped_column(Float, default=0.5, nullable=False)
     source: Mapped[str | None] = mapped_column(String(128), nullable=True, default="user_explicit")
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utc_now, nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
@@ -115,9 +97,7 @@ class Memory(Base):
         DateTime(timezone=True), default=utc_now, nullable=False
     )
 
-    __table_args__ = (
-        Index("ix_memories_type_created", "memory_type", "created_at"),
-    )
+    __table_args__ = (Index("ix_memories_type_created", "memory_type", "created_at"),)
 
     def __repr__(self) -> str:
         return f"<Memory(id='{self.id}', type='{self.memory_type}', importance={self.importance})>"

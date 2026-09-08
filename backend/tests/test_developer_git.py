@@ -22,7 +22,9 @@ def temp_git_repo(tmp_path: Path):
     # Configure git identity for commits
     subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
     subprocess.run(["git", "config", "user.name", "TestUser"], cwd=repo, check=True, capture_output=True)
-    subprocess.run(["git", "config", "user.email", "test@kairo.internal"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@kairo.internal"], cwd=repo, check=True, capture_output=True
+    )
 
     # Initial commit
     file1 = repo / "hello.py"
@@ -116,7 +118,9 @@ async def test_git_log_bounded(temp_git_repo: Path, developer_settings: Settings
     # Add second commit
     (temp_git_repo / "second.py").write_text("# second\n", encoding="utf-8")
     subprocess.run(["git", "add", "second.py"], cwd=temp_git_repo, check=True, capture_output=True)
-    subprocess.run(["git", "commit", "-m", "Second commit"], cwd=temp_git_repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "Second commit"], cwd=temp_git_repo, check=True, capture_output=True
+    )
 
     commits = await inspect_git_log(str(temp_git_repo), limit=5, settings=developer_settings)
     assert len(commits) == 2
@@ -132,7 +136,9 @@ async def test_git_diff_working_tree_and_truncation(temp_git_repo: Path, develop
     large_content = "line\n" * 200
     (temp_git_repo / "hello.py").write_text(large_content, encoding="utf-8")
 
-    diff_res = await inspect_git_diff(str(temp_git_repo), diff_type="working_tree", settings=developer_settings)
+    diff_res = await inspect_git_diff(
+        str(temp_git_repo), diff_type="working_tree", settings=developer_settings
+    )
     assert diff_res.diff_type == "working_tree"
     assert len(diff_res.diff_content) > 0
     # Because limit is 500 chars, it should be marked as truncated

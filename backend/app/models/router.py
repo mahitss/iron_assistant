@@ -40,7 +40,9 @@ class ModelRouter:
 
         # If capability-based routing is globally disabled, immediately route to default
         if not self.routing_enabled:
-            return self._get_fallback_model(f"Routing disabled; falling back to default '{self.default_model_id}'")
+            return self._get_fallback_model(
+                f"Routing disabled; falling back to default '{self.default_model_id}'"
+            )
 
         # 1. Try to find highest priority enabled model for the requested capability
         best_match = self.registry.get_highest_priority_model(cap, enabled_only=True)

@@ -125,8 +125,12 @@ async def test_kairo_agent_stream_message() -> None:
 async def test_kairo_agent_with_router_capability_selection() -> None:
     """Verify KairoAgent queries router for requested capability and passes model ID."""
     registry = ModelRegistry()
-    registry.register_model(ModelDefinition(id="general-model", capabilities={ModelCapability.GENERAL}, priority=10))
-    registry.register_model(ModelDefinition(id="coder-model", capabilities={ModelCapability.CODING}, priority=50))
+    registry.register_model(
+        ModelDefinition(id="general-model", capabilities={ModelCapability.GENERAL}, priority=10)
+    )
+    registry.register_model(
+        ModelDefinition(id="coder-model", capabilities={ModelCapability.CODING}, priority=50)
+    )
 
     router = ModelRouter(registry=registry, default_model_id="general-model")
     mock_provider = MockModelProvider(response_text="Code solution")
@@ -151,9 +155,7 @@ async def test_kairo_agent_executes_tool_and_passes_result() -> None:
     provider = ScriptedToolCallingProvider(
         responses=[
             ProviderResponse(
-                tool_calls=[
-                    ToolCall(id="call_1", name="calculator", arguments={"expression": "15 * 4"})
-                ]
+                tool_calls=[ToolCall(id="call_1", name="calculator", arguments={"expression": "15 * 4"})]
             ),
             ProviderResponse(content="15 * 4 is 60."),
         ]
@@ -191,15 +193,9 @@ async def test_kairo_agent_multiple_sequential_tool_calls() -> None:
     provider = ScriptedToolCallingProvider(
         responses=[
             ProviderResponse(
-                tool_calls=[
-                    ToolCall(id="c1", name="calculator", arguments={"expression": "2 + 2"})
-                ]
+                tool_calls=[ToolCall(id="c1", name="calculator", arguments={"expression": "2 + 2"})]
             ),
-            ProviderResponse(
-                tool_calls=[
-                    ToolCall(id="c2", name="datetime", arguments={"timezone": "UTC"})
-                ]
-            ),
+            ProviderResponse(tool_calls=[ToolCall(id="c2", name="datetime", arguments={"timezone": "UTC"})]),
             ProviderResponse(content="Both calculations and time check complete."),
         ]
     )

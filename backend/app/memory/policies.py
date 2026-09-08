@@ -36,7 +36,9 @@ class MemoryPolicy:
 
     # Transient conversational filler patterns
     CASUAL_PATTERNS: ClassVar[List[Pattern]] = [
-        re.compile(r"^(?:hello|hi|hey|good\s+(?:morning|afternoon|evening)|howdy|sup)[\s!.]*$", re.IGNORECASE),
+        re.compile(
+            r"^(?:hello|hi|hey|good\s+(?:morning|afternoon|evening)|howdy|sup)[\s!.]*$", re.IGNORECASE
+        ),
         re.compile(r"^(?:thanks|thank\s+you|thx|bye|goodbye|see\s+ya|ok|okay)[\s!.]*$", re.IGNORECASE),
     ]
 

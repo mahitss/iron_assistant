@@ -97,7 +97,9 @@ class URLSafetyValidator:
             try:
                 ip_obj = ipaddress.ip_address(ip_str)
             except ValueError as exc:
-                raise UnsafeURLError(f"Resolved invalid IP address '{ip_str}' for host '{hostname}'", url=url) from exc
+                raise UnsafeURLError(
+                    f"Resolved invalid IP address '{ip_str}' for host '{hostname}'", url=url
+                ) from exc
 
             cls._verify_ip_safety(ip_obj, url=url, hostname=hostname)
 

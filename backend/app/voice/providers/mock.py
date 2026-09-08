@@ -7,9 +7,7 @@ from app.voice.stt import SpeechToTextProvider, STTProviderError
 from app.voice.tts import TextToSpeechProvider, TTSProviderError
 
 # Minimal valid WAV header for a brief 16kHz mono audio chunk
-MOCK_WAV_HEADER = (
-    b"RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00\x80>\x00\x00\x00}\x00\x00\x02\x00\x10\x00data\x00\x00\x00\x00"
-)
+MOCK_WAV_HEADER = b"RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00\x80>\x00\x00\x00}\x00\x00\x02\x00\x10\x00data\x00\x00\x00\x00"
 
 
 class MockSTTProvider(SpeechToTextProvider):

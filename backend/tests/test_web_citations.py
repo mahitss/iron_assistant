@@ -60,13 +60,18 @@ def test_format_sources_context():
 
     formatted = cm.format_sources_context()
     assert "VERIFIED RESEARCH SOURCES:" in formatted
-    assert "SOURCE [1]: Python 3.12 Documentation - https://docs.python.org/3/ (Published: 2023-10-02)" in formatted
+    assert (
+        "SOURCE [1]: Python 3.12 Documentation - https://docs.python.org/3/ (Published: 2023-10-02)"
+        in formatted
+    )
     assert "SOURCE [2]: FastAPI on PyPI - https://pypi.org/project/fastapi/" in formatted
 
 
 def test_extract_cited_indices():
     """Parse bracketed citation references from model response."""
-    text = "According to [1], Python 3.12 introduced isolated subinterpreters, while [Source 2] covers FastAPI."
+    text = (
+        "According to [1], Python 3.12 introduced isolated subinterpreters, while [Source 2] covers FastAPI."
+    )
     indices = CitationManager.extract_cited_indices(text)
     assert indices == [1, 2]
 

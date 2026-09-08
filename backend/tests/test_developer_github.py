@@ -46,6 +46,7 @@ async def test_github_disabled_error():
 @pytest.mark.asyncio
 async def test_github_list_and_get_repositories(github_settings: Settings):
     """Verify repository listing and detail fetching with safe metadata."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/user/repos":
             return httpx.Response(
@@ -97,6 +98,7 @@ async def test_github_list_and_get_repositories(github_settings: Settings):
 @pytest.mark.asyncio
 async def test_github_issues_and_prs(github_settings: Settings):
     """Verify issues and PR listing and diff inspection with secret redaction."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path == "/repos/owner/repo/issues":
             return httpx.Response(
@@ -134,7 +136,9 @@ async def test_github_issues_and_prs(github_settings: Settings):
             )
         if request.url.path == "/repos/owner/repo/pulls/10":
             if request.headers.get("Accept") == "application/vnd.github.v3.diff":
-                return httpx.Response(200, text="--- a/file.py\n+++ b/file.py\n+token = 'ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'")
+                return httpx.Response(
+                    200, text="--- a/file.py\n+++ b/file.py\n+token = 'ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345'"
+                )
             return httpx.Response(200, json={"number": 10, "title": "Fix bug", "state": "open"})
         return httpx.Response(404)
 
@@ -159,6 +163,7 @@ async def test_github_issues_and_prs(github_settings: Settings):
 @pytest.mark.asyncio
 async def test_github_checks(github_settings: Settings):
     """Verify GitHub CI checks retrieval."""
+
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             200,
@@ -186,8 +191,11 @@ async def test_github_checks(github_settings: Settings):
 @pytest.mark.asyncio
 async def test_github_error_mappings_and_token_isolation(github_settings: Settings):
     """Verify 401, 403, 404 mapping and ensure token is never leaked in errors."""
+
     def handler_401(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(401, json={"message": f"Bad credentials with {request.headers.get('Authorization')}"})
+        return httpx.Response(
+            401, json={"message": f"Bad credentials with {request.headers.get('Authorization')}"}
+        )
 
     client_401 = _create_mock_github_client(handler_401)
     provider_401 = GitHubProvider(settings=github_settings, http_client=client_401)
@@ -198,7 +206,9 @@ async def test_github_error_mappings_and_token_isolation(github_settings: Settin
     assert "ghp_SecretMockTokenForTests12345" not in str(exc_info.value)
 
     def handler_403(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(403, headers={"x-ratelimit-remaining": "0"}, json={"message": "Rate limit exceeded"})
+        return httpx.Response(
+            403, headers={"x-ratelimit-remaining": "0"}, json={"message": "Rate limit exceeded"}
+        )
 
     client_403 = _create_mock_github_client(handler_403)
     provider_403 = GitHubProvider(settings=github_settings, http_client=client_403)

@@ -9,8 +9,11 @@ from app.api.routes.automations import router as automations_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.memory import user_router as user_memory_router
+from app.api.routes.notifications import router as notifications_router
+from app.api.routes.proactive import router as proactive_router
 from app.api.routes.security import router as security_router
 from app.api.routes.voice import router as voice_router
+from app.api.routes.web_monitors import router as web_monitors_router
 from app.core.config import get_settings
 
 
@@ -21,6 +24,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Gracefully shut down active browser sessions and Playwright process
     try:
         from app.tools.browser.manager import get_browser_manager
+
         manager = get_browser_manager()
         await manager.close_all()
     except Exception:
@@ -41,7 +45,6 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-
     # Configure CORS
     if settings.ALLOWED_ORIGINS:
         app.add_middleware(
@@ -61,9 +64,11 @@ def create_app() -> FastAPI:
     app.include_router(voice_router, prefix=settings.API_V1_STR)
     app.include_router(automations_router, prefix=settings.API_V1_STR)
     app.include_router(security_router, prefix=settings.API_V1_STR)
+    app.include_router(proactive_router, prefix=settings.API_V1_STR)
+    app.include_router(notifications_router, prefix=settings.API_V1_STR)
+    app.include_router(web_monitors_router, prefix=settings.API_V1_STR)
 
     return app
-
 
 
 app = create_app()

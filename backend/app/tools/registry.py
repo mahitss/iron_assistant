@@ -111,4 +111,3 @@ def create_default_tool_registry() -> ToolRegistry:
         registry.register(TestRunnerTool())
 
     return registry
-

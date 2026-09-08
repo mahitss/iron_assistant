@@ -1,6 +1,5 @@
 """Integration tests for Kairo agent executing browser tools and preserving existing capabilities."""
 
-
 import pytest
 
 from app.agents.core import KairoAgent
@@ -76,7 +75,6 @@ async def test_agent_browser_navigate_and_inspect_flow():
 
         executor = ToolExecutor(registry=registry)
 
-
         # Step 1: Model calls browser_navigate
         call_1 = ProviderResponse(
             content=None,
@@ -138,7 +136,6 @@ async def test_agent_browser_click_requires_approval():
     registry = create_default_tool_registry()
     executor = ToolExecutor(registry=registry)
 
-
     call_click = ProviderResponse(
         content=None,
         model="test-model",
@@ -171,4 +168,3 @@ async def test_agent_browser_click_requires_approval():
     assert len(resp.tools_used) == 1
     assert resp.tools_used[0].status == "failed"
     assert resp.tools_used[0].verification_status == "denied"
-

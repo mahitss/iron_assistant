@@ -299,8 +299,9 @@ class WorkflowExecutor:
         workflow_id: str | None,
         event_type: str,
         payload: dict[str, Any],
+        user_id: str | None = None,
     ) -> None:
-        """Persist a workflow audit event."""
+        """Persist a workflow audit event and notify proactive intelligence."""
         event = WorkflowEvent(
             run_id=run_id,
             workflow_id=workflow_id,
@@ -309,3 +310,23 @@ class WorkflowExecutor:
             created_at=datetime.now(UTC),
         )
         self.session.add(event)
+
+        if not user_id and workflow_id:
+            wf_res = await self.session.execute(select(Workflow.user_id).where(Workflow.id == workflow_id))
+            user_id = wf_res.scalar_one_or_none()
+
+        if user_id:
+            try:
+                from app.proactive.service import ProactiveService
+                from app.proactive.state import SourceType
+
+                await ProactiveService.process_event(
+                    db_session=self.session,
+                    user_id=user_id,
+                    source_type=SourceType.WORKFLOW,
+                    category=event_type,
+                    payload={**payload, "workflow_id": workflow_id, "run_id": run_id},
+                    source_id=workflow_id,
+                )
+            except Exception as exc:
+                logger.debug("Proactive workflow event forwarding skipped: %s", exc)

@@ -87,21 +87,25 @@ def embedding_provider():
 
 
 @pytest.mark.asyncio
-async def test_chat_triggers_extraction_and_persists_memory(async_db_session: AsyncSession, embedding_provider):
+async def test_chat_triggers_extraction_and_persists_memory(
+    async_db_session: AsyncSession, embedding_provider
+):
     """Verify durable preference is automatically extracted and persisted after turn."""
     provider = ScriptableMockProvider()
     provider.chat_responses = ["I have noted that you prefer dark mode."]
     provider.extraction_responses = [
-        json.dumps({
-            "candidates": [
-                {
-                    "content": "The user prefers dark mode.",
-                    "memory_type": "preference",
-                    "importance": 0.8,
-                    "reason": "User stated preference",
-                }
-            ]
-        })
+        json.dumps(
+            {
+                "candidates": [
+                    {
+                        "content": "The user prefers dark mode.",
+                        "memory_type": "preference",
+                        "importance": 0.8,
+                        "reason": "User stated preference",
+                    }
+                ]
+            }
+        )
     ]
 
     conv_repo = ConversationRepository(async_db_session)
@@ -159,7 +163,9 @@ async def test_chat_succeeds_even_when_extraction_fails(async_db_session: AsyncS
 
 
 @pytest.mark.asyncio
-async def test_extraction_disabled_setting_skips_extractor(async_db_session: AsyncSession, embedding_provider):
+async def test_extraction_disabled_setting_skips_extractor(
+    async_db_session: AsyncSession, embedding_provider
+):
     """Verify setting memory_extraction_enabled=False skips calling the extractor."""
     provider = ScriptableMockProvider()
     extractor = MemoryExtractor(provider=provider)

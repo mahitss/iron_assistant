@@ -106,7 +106,8 @@ class VoiceService:
 
     def _cleanup_stale_sessions_unlocked(self) -> None:
         stale_ids = [
-            sid for sid, sess in self._sessions.items()
+            sid
+            for sid, sess in self._sessions.items()
             if sess.is_expired() or sess.state == VoiceState.CLOSED
         ]
         for sid in stale_ids:
@@ -127,7 +128,9 @@ class VoiceService:
             return
 
         if session.is_expired():
-            await emit_event(ErrorEvent(message="Voice session expired.", code="SESSION_TIMEOUT").model_dump())
+            await emit_event(
+                ErrorEvent(message="Voice session expired.", code="SESSION_TIMEOUT").model_dump()
+            )
             session.close()
             return
 
@@ -194,7 +197,9 @@ class VoiceService:
         except (STTUnavailableError, STTProviderError) as exc:
             logger.warning("STT transcription error for session '%s': %s", session.session_id, exc)
             session.transition_to(VoiceState.ERROR)
-            await emit_event(ErrorEvent(message=f"Transcription failed: {exc}", code="STT_ERROR").model_dump())
+            await emit_event(
+                ErrorEvent(message=f"Transcription failed: {exc}", code="STT_ERROR").model_dump()
+            )
             session.transition_to(VoiceState.LISTENING)
             return
 
@@ -235,9 +240,13 @@ class VoiceService:
             session.transition_to(VoiceState.LISTENING)
             return
         except Exception as exc:
-            logger.error("Agent reasoning failure in voice session '%s': %s", session.session_id, exc, exc_info=True)
+            logger.error(
+                "Agent reasoning failure in voice session '%s': %s", session.session_id, exc, exc_info=True
+            )
             session.transition_to(VoiceState.ERROR)
-            await emit_event(ErrorEvent(message=f"Agent reasoning failed: {exc}", code="CORE_ERROR").model_dump())
+            await emit_event(
+                ErrorEvent(message=f"Agent reasoning failed: {exc}", code="CORE_ERROR").model_dump()
+            )
             session.transition_to(VoiceState.LISTENING)
             return
         finally:
@@ -277,7 +286,9 @@ class VoiceService:
         except (TTSUnavailableError, TTSProviderError) as exc:
             logger.warning("TTS synthesis error for session '%s': %s", session.session_id, exc)
             # Text was already sent to client; log error and recover cleanly
-            await emit_event(ErrorEvent(message=f"Audio synthesis failed: {exc}", code="TTS_ERROR").model_dump())
+            await emit_event(
+                ErrorEvent(message=f"Audio synthesis failed: {exc}", code="TTS_ERROR").model_dump()
+            )
         finally:
             session.active_task = None
 

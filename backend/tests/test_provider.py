@@ -74,6 +74,7 @@ async def test_generate_response_mocked() -> None:
 @pytest.mark.asyncio
 async def test_generate_response_with_tool_calls_mocked() -> None:
     """Ensure OpenRouter provider correctly parses tool_calls in completion responses."""
+
     def mock_handler(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content.decode("utf-8"))
         assert "tools" in body
@@ -119,6 +120,7 @@ async def test_generate_response_with_tool_calls_mocked() -> None:
 @pytest.mark.asyncio
 async def test_tool_result_continuation_mocked() -> None:
     """Ensure passing tool results back to OpenRouter correctly serializes tool messages."""
+
     def mock_handler(request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content.decode("utf-8"))
         assert len(body["messages"]) == 3
@@ -145,7 +147,12 @@ async def test_tool_result_continuation_mocked() -> None:
         messages = [
             ChatMessage(role=MessageRole.USER, content="Compute 40 + 2"),
             ChatMessage(role=MessageRole.ASSISTANT, content=None, tool_calls=[{"id": "call_calc_1"}]),
-            ChatMessage(role=MessageRole.TOOL, content='{"status": "success", "result": 42}', tool_call_id="call_calc_1", name="calculator"),
+            ChatMessage(
+                role=MessageRole.TOOL,
+                content='{"status": "success", "result": 42}',
+                tool_call_id="call_calc_1",
+                name="calculator",
+            ),
         ]
         response = await provider.generate_response(messages)
         assert response.content == "40 + 2 is 42."
@@ -157,7 +164,7 @@ async def test_stream_response_mocked() -> None:
     sse_body = (
         'data: {"choices": [{"delta": {"content": "Hello"}}]}\n\n'
         'data: {"choices": [{"delta": {"content": " world"}}]}\n\n'
-        'data: [DONE]\n\n'
+        "data: [DONE]\n\n"
     )
 
     def mock_handler(request: httpx.Request) -> httpx.Response:
@@ -183,6 +190,7 @@ async def test_stream_response_mocked() -> None:
 @pytest.mark.asyncio
 async def test_upstream_auth_error_handling() -> None:
     """Ensure HTTP 401 from OpenRouter maps to AuthenticationError."""
+
     def mock_handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(401, json={"error": {"message": "Invalid API key"}})
 
@@ -196,6 +204,7 @@ async def test_upstream_auth_error_handling() -> None:
 @pytest.mark.asyncio
 async def test_upstream_server_error_handling() -> None:
     """Ensure HTTP 500 from OpenRouter maps to ProviderAPIError."""
+
     def mock_handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(500, json={"error": {"message": "Internal upstream error"}})
 

@@ -17,10 +17,7 @@ def test_valid_public_https_url():
         mock_dns.return_value = [
             (2, 1, 6, "", ("93.184.216.34", 443)),  # example.com public IP
         ]
-        assert (
-            URLSafetyValidator.validate_url("https://example.com/docs")
-            == "https://example.com/docs"
-        )
+        assert URLSafetyValidator.validate_url("https://example.com/docs") == "https://example.com/docs"
         assert (
             URLSafetyValidator.validate_url("http://example.com:8080/path?q=1")
             == "http://example.com:8080/path?q=1"
@@ -42,9 +39,10 @@ def test_invalid_schemes_rejected():
     for bad_url in prohibited_urls:
         with pytest.raises(UnsafeURLError) as exc_info:
             URLSafetyValidator.validate_url(bad_url)
-        assert "Only HTTP and HTTPS are permitted" in str(exc_info.value) or "scheme" in str(
-            exc_info.value
-        ).lower()
+        assert (
+            "Only HTTP and HTTPS are permitted" in str(exc_info.value)
+            or "scheme" in str(exc_info.value).lower()
+        )
 
 
 def test_localhost_and_loopback_blocked():
@@ -58,9 +56,7 @@ def test_localhost_and_loopback_blocked():
     for target in loopback_targets:
         with pytest.raises(SSRFViolationError) as exc_info:
             URLSafetyValidator.validate_url(target)
-        assert "loopback" in str(exc_info.value).lower() or "prohibited" in str(
-            exc_info.value
-        ).lower()
+        assert "loopback" in str(exc_info.value).lower() or "prohibited" in str(exc_info.value).lower()
 
 
 def test_private_ipv4_blocked():
@@ -90,9 +86,7 @@ def test_cloud_metadata_blocked():
     for target in metadata_targets:
         with pytest.raises(SSRFViolationError) as exc_info:
             URLSafetyValidator.validate_url(target)
-        assert "metadata" in str(exc_info.value).lower() or "link-local" in str(
-            exc_info.value
-        ).lower()
+        assert "metadata" in str(exc_info.value).lower() or "link-local" in str(exc_info.value).lower()
 
 
 def test_link_local_ipv6_blocked():

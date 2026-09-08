@@ -760,9 +760,98 @@ KAIRO_COMPUTER_ENABLED=false                    # Computer control capability de
 
 ---
 
+## Proactive Intelligence Layer
+
+Kairo includes a non-intrusive, safety-bounded **Proactive Intelligence Layer** that notices meaningful internal and external events (such as CI failures, workflow errors, waiting approvals, security emergency stops, and web content changes) and surfaces them to the user without requiring a new chat message.
+
+> [!IMPORTANT]
+> **Strict Security Boundary**: "Kairo's proactive layer can observe approved events and notify the user, but it cannot grant itself permissions or bypass approval."
+> 
+> The proactive layer may:
+> - **OBSERVE** approved events from workflows, CI checks, approvals, security center, and monitored web pages.
+> - **ANALYZE** candidate utility deterministically with prompt-injection-safe bounding.
+> - **RANK** insights based on priority, freshness, unread status, and user preferences.
+> - **NOTIFY** the user via in-app notifications and proactive feed.
+> 
+> It **must NOT**:
+> - Autonomously perform risky or destructive actions unless an already-approved workflow explicitly authorizes it.
+> - Autonomously grant permissions or approve actions.
+> - Autonomously modify security policies or disable emergency stop.
+> - Autonomously activate microphone, camera, or screen capture.
+> - Bypass human-in-the-loop approvals.
+> - Run unbounded monitoring loops or execute arbitrary conditions (`eval` / `exec`).
+
+```text
+External / Internal Event
+           ↓
+   Proactive Detector
+           ↓
+    Candidate Insight
+           ↓
+   Safety Policy Filter (Loop Protection, chain_depth <= 3)
+           ↓
+     Deduplication (SHA-256 fingerprint, 3600s window)
+           ↓
+     Cooldown Tracker (State transitions: UP -> DOWN)
+           ↓
+  Deterministic Prioritizer (CRITICAL, HIGH, MEDIUM, LOW)
+           ↓
+   User Preferences & Quiet Hours Filter
+           ↓
+    Notification Service (Rate limited: max 20/hr, HIGH preserved)
+           ↓
+    In-App Notification & Proactive Feed
+```
+
+### 1. Proactive Insights Lifecycle
+
+| Status | Description |
+| :--- | :--- |
+| `new` | Created, but delivery held (e.g. during quiet hours for LOW/MEDIUM events). |
+| `delivered` | Active notification delivered to user. Included in unread counts. |
+| `read` | User has acknowledged or read the insight. |
+| `dismissed` | User has explicitly dismissed the insight from their feed. |
+| `expired` | Automatically marked expired after retention deadline (`expires_at`). |
+
+### 2. Event Sources & Actionability
+
+- **Workflow**: `workflow.failed` (`HIGH` / `ACTION_REQUIRED`), `workflow.completed` (`LOW` / `INFORMATIONAL`).
+- **GitHub**: `github.ci.failed` on main (`HIGH` / `ACTION_REQUIRED`), feature branch CI (`MEDIUM`), `github.uncommitted_changes` (`MEDIUM`).
+- **Approval**: `approval.required` (`HIGH` / `APPROVAL_REQUIRED`), `approval.expired` (`HIGH` / `ACTION_REQUIRED`). Links to Security Center review.
+- **Web Monitor**: `web_monitor.changed` (`MEDIUM` / `INFORMATIONAL`). Bounded change detection.
+- **Security**: `security.emergency_stop` (`CRITICAL` / `ACTION_REQUIRED`). Global or user-level kill switch activation.
+
+### 3. Deduplication and Cooldown
+
+- **Fingerprint Deduplication**: Deterministic SHA-256 fingerprint of `(user_id, source_type, source_id, category)` prevents duplicate alerts within `KAIRO_PROACTIVE_DEDUP_WINDOW_SECONDS` (default: 3600 seconds).
+- **Condition Transition Cooldown**: Tracks state changes (e.g. `UP` → `DOWN`). The first transition triggers a notification; repeated checks while remaining in the same failing state are suppressed until a transition occurs.
+
+### 4. Quiet Hours & Rate Limiting
+
+- **Quiet Hours**: Users configure start and end times (e.g. 22:00 to 08:00) with their local timezone. During quiet hours, `LOW` and `MEDIUM` priority insights are held as `new`; `HIGH` and `CRITICAL` security/approval notifications are delivered immediately.
+- **Hourly Rate Limiting**: Capped at `KAIRO_MAX_PROACTIVE_NOTIFICATIONS_PER_HOUR=20`. If exceeded, `LOW` and `MEDIUM` notifications are throttled; `HIGH` and `CRITICAL` notifications are **never suppressed**.
+
+### 5. Web Change Monitoring
+
+- Allows monitoring specific public URLs with configurable check intervals.
+- Protected by strict **SSRF Validation** (`URLSafetyValidator`) rejecting private networks, loopback, cloud metadata endpoints, and non-HTTP protocols.
+- Compares normalized text content hashes (SHA-256); avoids storing bloated historical snapshots or leaking secrets into long-term memory.
+
+### 6. Configuration Variables
+
+```bash
+KAIRO_PROACTIVE_ENABLED=true                      # Master switch for proactive layer
+KAIRO_PROACTIVE_DEDUP_WINDOW_SECONDS=3600         # Sliding deduplication window
+KAIRO_MAX_PROACTIVE_NOTIFICATIONS_PER_HOUR=20     # Max in-app notifications per hour
+KAIRO_MAX_PROACTIVE_INSIGHTS_PER_HOUR=50          # Max proactive insights per hour
+KAIRO_MAX_PROACTIVE_CHAIN_DEPTH=3                 # Max causal chain depth to halt loops
+```
+
+---
+
 ## Running Tests
 
-The test suite contains **283 backend unit and integration tests** and **15 frontend tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path traversal protection, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, tenant isolation, security policy matrices, emergency stops, capability gates, and audit trails:
+The test suite contains **314 backend unit and integration tests** and **21 frontend tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path security, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, tenant isolation, security policy matrices, emergency stops, capability gates, audit trails, proactive event detection, deterministic prioritization, fingerprint deduplication, cooldown tracking, user settings, quiet hours, notification delivery, web monitoring, and loop prevention:
 
 ```bash
 cd backend
@@ -791,4 +880,6 @@ npm test
 - [x] **Phase 12: Developer & GitHub Intelligence System** — Local Git inspection, code search, path security, secret redaction, read-only GitHub integration, controlled test execution with strict allowlist.
 - [x] **Phase 13: Automation & Workflow Engine** — Durable workflow definitions, deterministic condition engine, distributed scheduler, idempotency keys, human-in-the-loop approval requests, stale run recovery, cancellation, and tenant isolation.
 - [x] **Phase 14: Central Security, Permissions, Approval & Audit Center** — Authoritative Security Center, permission and risk taxonomy, emergency stop kill switch, capability gates, deterministic approval fingerprinting, secret redaction, append-only audit trail, and user isolation.
+- [x] **Phase 15: Proactive Intelligence Layer** — Proactive detector, candidate insight lifecycle, deterministic prioritization, SHA-256 deduplication, state transition cooldown, quiet hours, hourly rate limiting, in-app notification center, proactive feed, safe web monitoring, and strict loop prevention.
+
 

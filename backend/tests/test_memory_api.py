@@ -15,9 +15,11 @@ def sqlite_db_app():
     engine = create_async_engine("sqlite+aiosqlite:///:memory:", echo=False)
 
     import asyncio
+
     async def init_tables():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
     asyncio.run(init_tables())
 
     session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
@@ -120,4 +122,3 @@ def test_user_memories_list_and_delete(client: TestClient, sqlite_db_app):
     # 4. Attempt deleting nonexistent memory returns 404
     res_del_404 = client.delete("/api/v1/memories/nonexistent-id-12345")
     assert res_del_404.status_code == status.HTTP_404_NOT_FOUND
-

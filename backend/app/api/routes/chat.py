@@ -41,7 +41,9 @@ class ToolActivitySchema(BaseModel):
 
     tool: str = Field(..., description="Name of the executed tool")
     status: str = Field(..., description="Execution status ('success' or 'failed')")
-    verification_status: str = Field(..., description="Verification result ('verified', 'failed', or 'denied')")
+    verification_status: str = Field(
+        ..., description="Verification result ('verified', 'failed', or 'denied')"
+    )
 
 
 class ChatResponse(BaseModel):
@@ -101,14 +103,18 @@ async def chat(
             session_id=request.session_id,
             capability=capability,
         )
-        tools_meta = [
-            ToolActivitySchema(
-                tool=t.tool,
-                status=t.status,
-                verification_status=t.verification_status,
-            )
-            for t in response.tools_used
-        ] if response.tools_used else None
+        tools_meta = (
+            [
+                ToolActivitySchema(
+                    tool=t.tool,
+                    status=t.status,
+                    verification_status=t.verification_status,
+                )
+                for t in response.tools_used
+            ]
+            if response.tools_used
+            else None
+        )
 
         return ChatResponse(
             message=response.message,

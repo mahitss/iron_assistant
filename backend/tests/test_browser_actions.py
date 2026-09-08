@@ -158,7 +158,9 @@ async def test_fill_sensitive_password_rejected():
         await session.page.set_content(HTML_INTERACTIVE)
 
         tool = BrowserFillTool(manager=manager)
-        res = await tool.execute(field="password", value="Secret123!", session_id="fill_test_1", approved=True)
+        res = await tool.execute(
+            field="password", value="Secret123!", session_id="fill_test_1", approved=True
+        )
 
         assert res["success"] is False
         assert "Security policy blocked" in res["error"]
@@ -195,7 +197,9 @@ async def test_fill_normal_field():
         await session.page.set_content(HTML_INTERACTIVE)
 
         tool = BrowserFillTool(manager=manager)
-        res = await tool.execute(field="search", value="quantum computing", session_id="fill_test_3", approved=True)
+        res = await tool.execute(
+            field="search", value="quantum computing", session_id="fill_test_3", approved=True
+        )
 
         assert res["success"] is True
         val = await session.page.locator("#search-box").input_value()
@@ -221,5 +225,4 @@ async def test_browser_screenshot():
         assert len(res["image_base64"]) > 100
         assert res["image_format"] == "png"
     finally:
-
         await manager.close_all()

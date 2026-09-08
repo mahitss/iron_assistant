@@ -58,4 +58,3 @@ def get_tts_provider(provider_type: str | None = None) -> TextToSpeechProvider:
             voice=cfg.KAIRO_TTS_VOICE,
         )
     raise TTSUnavailableError(f"Unsupported or unconfigured TTS provider: '{ptype}'.")
-

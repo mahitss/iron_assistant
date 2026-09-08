@@ -80,7 +80,10 @@ async def get_github_pull_request_diff(
     diff_content = raw_diff
 
     if total_chars > max_chars:
-        diff_content = raw_diff[:max_chars] + f"\n\n[PR DIFF TRUNCATED: Exceeded character limit of {max_chars} chars (Total: {total_chars} chars)]"
+        diff_content = (
+            raw_diff[:max_chars]
+            + f"\n\n[PR DIFF TRUNCATED: Exceeded character limit of {max_chars} chars (Total: {total_chars} chars)]"
+        )
         is_truncated = True
 
     sanitized_diff = redact_secrets(diff_content)

@@ -22,9 +22,15 @@ class MemorySanitizer:
         # GitHub tokens
         re.compile(r"\bgh[pousr]_[a-zA-Z0-9]{36,}\b"),
         # Password / secret assignments or disclosures
-        re.compile(r"(?:password|passwd|pwd|secret_key|api_key)\s*(?:[:=]|\bis\b)\s*['\"]?[^\s'\"]{6,}['\"]?", re.IGNORECASE),
+        re.compile(
+            r"(?:password|passwd|pwd|secret_key|api_key)\s*(?:[:=]|\bis\b)\s*['\"]?[^\s'\"]{6,}['\"]?",
+            re.IGNORECASE,
+        ),
         # Auth tokens and cookies
-        re.compile(r"(?:sessionid|auth_token|access_token|refresh_token)\s*(?:[:=]|\bis\b)\s*['\"]?[^\s'\"]{6,}['\"]?", re.IGNORECASE),
+        re.compile(
+            r"(?:sessionid|auth_token|access_token|refresh_token)\s*(?:[:=]|\bis\b)\s*['\"]?[^\s'\"]{6,}['\"]?",
+            re.IGNORECASE,
+        ),
     ]
 
     @classmethod

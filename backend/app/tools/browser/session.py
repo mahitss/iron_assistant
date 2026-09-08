@@ -182,7 +182,9 @@ class BrowserSession:
             form_locators = await self.page.locator("form").all()
             for f in form_locators[:10]:
                 inputs: list[dict[str, str]] = []
-                input_elems = await f.locator("input:not([type='password']):not([type='hidden']), select, textarea").all()
+                input_elems = await f.locator(
+                    "input:not([type='password']):not([type='hidden']), select, textarea"
+                ).all()
                 for inp in input_elems[:20]:
                     name = await inp.get_attribute("name") or await inp.get_attribute("id") or ""
                     placeholder = await inp.get_attribute("placeholder") or ""
@@ -257,7 +259,9 @@ class BrowserSession:
         aria_label = (await target.get_attribute("aria-label") or "").strip()
         attrs = {"type": elem_type, "aria-label": aria_label}
 
-        is_sub, sub_reason = SubmissionPolicy.is_submission_action(tag="", text=elem_text, element_attrs=attrs)
+        is_sub, sub_reason = SubmissionPolicy.is_submission_action(
+            tag="", text=elem_text, element_attrs=attrs
+        )
 
         if is_sub and not approved:
             logger.info("Submission action detected on '%s'. Approval required.", elem_text)
@@ -290,7 +294,6 @@ class BrowserSession:
                     "url": current_url,
                     "error": f"Click redirected to prohibited address: {exc}",
                 }
-
 
         return {
             "success": True,

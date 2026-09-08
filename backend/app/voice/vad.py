@@ -117,6 +117,7 @@ class SileroVAD(BaseVAD):
         """Attempt to load Silero model or fall back to EnergyVAD gracefully."""
         try:
             import onnxruntime  # noqa: F401
+
             # In a production setup with onnxruntime and silero model weights:
             # self._model = load_onnx_silero(...)
             logger.info("Silero VAD backend initialized.")

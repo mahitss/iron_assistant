@@ -101,10 +101,12 @@ async def test_agent_generates_session_id_when_omitted(async_db_session: AsyncSe
 @pytest.mark.asyncio
 async def test_conversation_history_reaches_model(async_db_session: AsyncSession):
     """Verify that subsequent messages in the same session include previous turns."""
-    provider = RecordingMockProvider([
-        "Nice to meet you Alice.",
-        "Your name is Alice.",
-    ])
+    provider = RecordingMockProvider(
+        [
+            "Nice to meet you Alice.",
+            "Your name is Alice.",
+        ]
+    )
     conv_repo = ConversationRepository(async_db_session)
     agent = KairoAgent(
         provider=provider,
@@ -311,4 +313,3 @@ async def test_tools_work_with_memory_and_history(async_db_session: AsyncSession
     assert messages[0].role == "user"
     assert messages[-1].role == "assistant"
     assert messages[-1].content == "12 * 12 is 144."
-

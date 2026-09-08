@@ -72,6 +72,26 @@ class ApprovalManager:
             risk_level,
             fingerprint[:12],
         )
+        try:
+            from app.proactive.service import ProactiveService
+            from app.proactive.state import SourceType
+
+            await ProactiveService.process_event(
+                db_session=db_session,
+                user_id=user_id,
+                source_type=SourceType.APPROVAL,
+                category="approval.required",
+                payload={
+                    "approval_id": req.id,
+                    "tool_name": tool_name,
+                    "risk_level": risk_level,
+                    "action_description": desc_text,
+                },
+                source_id=req.id,
+            )
+        except Exception as exc:
+            logger.debug("Proactive approval notification skipped: %s", exc)
+
         return req
 
     @classmethod

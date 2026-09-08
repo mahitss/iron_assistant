@@ -202,7 +202,9 @@ class OpenRouterProvider(ModelProvider):
         try:
             async with client.stream("POST", endpoint, json=payload, headers=headers) as response:
                 if response.status_code in (401, 403):
-                    raise AuthenticationError("OpenRouter authentication failed: invalid or unauthorized API key")
+                    raise AuthenticationError(
+                        "OpenRouter authentication failed: invalid or unauthorized API key"
+                    )
                 elif response.status_code >= 400:
                     await response.aread()
                     self._handle_http_error(response)

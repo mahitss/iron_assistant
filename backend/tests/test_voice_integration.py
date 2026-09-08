@@ -1,6 +1,5 @@
 """Integration tests for Voice system with Kairo Core reasoning, tools, and memory."""
 
-
 import pytest
 
 from app.agents.core import KairoAgent

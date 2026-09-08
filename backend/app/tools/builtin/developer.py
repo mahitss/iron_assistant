@@ -30,6 +30,7 @@ def set_developer_service(service: DeveloperService | None) -> None:
 # 1. Git Status Tool
 # ==========================================
 
+
 class GitStatusArgs(BaseModel):
     repo_path: str = Field(..., description="Path to the approved local Git repository")
 
@@ -63,13 +64,16 @@ class GitStatusTool(BaseTool):
 # 2. Git Branches Tool
 # ==========================================
 
+
 class GitBranchesArgs(BaseModel):
     repo_path: str = Field(..., description="Path to the approved local Git repository")
 
 
 class GitBranchesTool(BaseTool):
     name = "git_branches"
-    description = "List the current branch, local branches, and remote branches of an approved Git repository."
+    description = (
+        "List the current branch, local branches, and remote branches of an approved Git repository."
+    )
     permission_level = PermissionLevel.READ
     args_model = GitBranchesArgs
 
@@ -96,6 +100,7 @@ class GitBranchesTool(BaseTool):
 # 3. Git Log Tool
 # ==========================================
 
+
 class GitLogArgs(BaseModel):
     repo_path: str = Field(..., description="Path to the approved local Git repository")
     limit: int = Field(default=10, description="Max number of commits to retrieve (bounded up to 50)")
@@ -103,7 +108,9 @@ class GitLogArgs(BaseModel):
 
 class GitLogTool(BaseTool):
     name = "git_log"
-    description = "Inspect bounded recent commit history (SHA, author, date, subject) for an approved Git repository."
+    description = (
+        "Inspect bounded recent commit history (SHA, author, date, subject) for an approved Git repository."
+    )
     permission_level = PermissionLevel.READ
     args_model = GitLogArgs
 
@@ -129,6 +136,7 @@ class GitLogTool(BaseTool):
 # ==========================================
 # 4. Git Diff Tool
 # ==========================================
+
 
 class GitDiffArgs(BaseModel):
     repo_path: str = Field(..., description="Path to the approved local Git repository")
@@ -175,10 +183,13 @@ class GitDiffTool(BaseTool):
 # 5. Code Search Tool
 # ==========================================
 
+
 class CodeSearchArgs(BaseModel):
     repo_path: str = Field(..., description="Path to the approved local Git repository")
     query: str = Field(..., description="Text query or token to search for")
-    path: str | None = Field(default=None, description="Optional subdirectory or file path to restrict search")
+    path: str | None = Field(
+        default=None, description="Optional subdirectory or file path to restrict search"
+    )
 
 
 class CodeSearchTool(BaseTool):
@@ -213,6 +224,7 @@ class CodeSearchTool(BaseTool):
 # ==========================================
 # 6. Code Read File Tool
 # ==========================================
+
 
 class CodeReadFileArgs(BaseModel):
     repo_path: str = Field(..., description="Path to the approved local Git repository")
@@ -253,6 +265,7 @@ class CodeReadFileTool(BaseTool):
 # 7. Code Analysis Tool
 # ==========================================
 
+
 class CodeAnalysisArgs(BaseModel):
     repo_path: str = Field(..., description="Path to the approved local Git repository")
 
@@ -285,6 +298,7 @@ class CodeAnalysisTool(BaseTool):
 # ==========================================
 # 8. GitHub Repositories Tools
 # ==========================================
+
 
 class GitHubListReposArgs(BaseModel):
     limit: int = Field(default=20, description="Maximum number of repositories to list")
@@ -348,6 +362,7 @@ class GitHubGetRepositoryTool(BaseTool):
 # ==========================================
 # 9. GitHub Issues Tools
 # ==========================================
+
 
 class GitHubListIssuesArgs(BaseModel):
     owner: str = Field(..., description="Repository owner")
@@ -420,6 +435,7 @@ class GitHubGetIssueTool(BaseTool):
 # ==========================================
 # 10. GitHub Pull Requests Tools
 # ==========================================
+
 
 class GitHubListPRsArgs(BaseModel):
     owner: str = Field(..., description="Repository owner")
@@ -524,6 +540,7 @@ class GitHubGetPullRequestDiffTool(BaseTool):
 # 11. GitHub CI / Checks Tool
 # ==========================================
 
+
 class GitHubGetChecksArgs(BaseModel):
     owner: str = Field(..., description="Repository owner")
     repo: str = Field(..., description="Repository name")
@@ -559,9 +576,12 @@ class GitHubGetChecksTool(BaseTool):
 # 12. Controlled Test Runner Tool
 # ==========================================
 
+
 class TestRunnerArgs(BaseModel):
     repo_path: str = Field(..., description="Path to the approved local Git repository")
-    command: str = Field(..., description="Exact test command to run (must be approved in KAIRO_ALLOWED_TEST_COMMANDS)")
+    command: str = Field(
+        ..., description="Exact test command to run (must be approved in KAIRO_ALLOWED_TEST_COMMANDS)"
+    )
 
 
 class TestRunnerTool(BaseTool):

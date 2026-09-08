@@ -62,7 +62,9 @@ def test_capability_filtering_and_priority_sorting() -> None:
     registry = ModelRegistry()
     m_low = ModelDefinition(id="m_low", capabilities={ModelCapability.CODING}, priority=5)
     m_high = ModelDefinition(id="m_high", capabilities={ModelCapability.CODING}, priority=50)
-    m_mid = ModelDefinition(id="m_mid", capabilities={ModelCapability.CODING, ModelCapability.GENERAL}, priority=25)
+    m_mid = ModelDefinition(
+        id="m_mid", capabilities={ModelCapability.CODING, ModelCapability.GENERAL}, priority=25
+    )
     m_other = ModelDefinition(id="m_other", capabilities={ModelCapability.VISION}, priority=100)
 
     for m in [m_low, m_high, m_mid, m_other]:
@@ -80,7 +82,9 @@ def test_disabled_model_exclusion() -> None:
     """Ensure disabled models are excluded when enabled_only is True."""
     registry = ModelRegistry()
     m_active = ModelDefinition(id="active", capabilities={ModelCapability.FAST}, priority=10, enabled=True)
-    m_disabled = ModelDefinition(id="disabled", capabilities={ModelCapability.FAST}, priority=99, enabled=False)
+    m_disabled = ModelDefinition(
+        id="disabled", capabilities={ModelCapability.FAST}, priority=99, enabled=False
+    )
 
     registry.register_model(m_active)
     registry.register_model(m_disabled)

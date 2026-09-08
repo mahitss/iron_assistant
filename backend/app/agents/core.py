@@ -67,7 +67,6 @@ KAIRO_SYSTEM_PROMPT = (
 )
 
 
-
 class ToolActivity(BaseModel):
     """Metadata detailing a tool call executed during message processing."""
 
@@ -168,16 +167,39 @@ class KairoAgent:
         lowered = message.lower()
 
         coding_triggers = [
-            "python", "javascript", "typescript", "html", "css", "code", "bug",
-            "error", "exception", "traceback", "syntax", "function", "class",
-            "def ", "import ", "async ", "sql", "query", "regex", "algorithm",
+            "python",
+            "javascript",
+            "typescript",
+            "html",
+            "css",
+            "code",
+            "bug",
+            "error",
+            "exception",
+            "traceback",
+            "syntax",
+            "function",
+            "class",
+            "def ",
+            "import ",
+            "async ",
+            "sql",
+            "query",
+            "regex",
+            "algorithm",
         ]
         if any(trigger in lowered for trigger in coding_triggers):
             return ModelCapability.CODING
 
         reasoning_triggers = [
-            "prove", "proof", "deduce", "step by step", "step-by-step",
-            "logic puzzle", "solve this riddle", "mathematical",
+            "prove",
+            "proof",
+            "deduce",
+            "step by step",
+            "step-by-step",
+            "logic puzzle",
+            "solve this riddle",
+            "mathematical",
         ]
         if any(trigger in lowered for trigger in reasoning_triggers):
             return ModelCapability.REASONING
@@ -219,9 +241,7 @@ class KairoAgent:
             if formatted_memories:
                 system_text = f"{system_text}\n\n{formatted_memories}"
 
-        messages: list[ChatMessage] = [
-            ChatMessage(role=MessageRole.SYSTEM, content=system_text)
-        ]
+        messages: list[ChatMessage] = [ChatMessage(role=MessageRole.SYSTEM, content=system_text)]
 
         if history:
             for item in history:
@@ -426,7 +446,6 @@ class KairoAgent:
                     if tc.name in {"web_search", "web_fetch"}:
                         research_iterations += 1
                         if research_iterations > self.max_research_iterations:
-
                             logger.info(
                                 "Research iteration limit reached (%d > %d) for tool %s",
                                 research_iterations,
@@ -715,4 +734,3 @@ def get_default_agent() -> KairoAgent:
         dedup_threshold=settings.KAIRO_MEMORY_DEDUP_THRESHOLD,
         max_research_iterations=settings.KAIRO_MAX_RESEARCH_ITERATIONS,
     )
-

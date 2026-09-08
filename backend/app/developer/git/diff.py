@@ -57,7 +57,10 @@ async def inspect_git_diff(
     diff_content = stdout
 
     if total_chars > max_chars:
-        diff_content = stdout[:max_chars] + f"\n\n[DIFF TRUNCATED: Exceeded character limit of {max_chars} chars (Total: {total_chars} chars)]"
+        diff_content = (
+            stdout[:max_chars]
+            + f"\n\n[DIFF TRUNCATED: Exceeded character limit of {max_chars} chars (Total: {total_chars} chars)]"
+        )
         is_truncated = True
 
     # Redact any obvious secrets in the diff

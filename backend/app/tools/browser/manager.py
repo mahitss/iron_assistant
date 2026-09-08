@@ -114,7 +114,8 @@ class BrowserManager:
 
     async def _cleanup_stale_unlocked(self) -> int:
         stale_ids = [
-            sid for sid, sess in self._sessions.items()
+            sid
+            for sid, sess in self._sessions.items()
             if sess.is_expired(self.session_timeout) or sess.status != "active"
         ]
         for sid in stale_ids:

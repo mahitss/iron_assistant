@@ -108,7 +108,9 @@ class OpenAICompatibleEmbeddingProvider:
         try:
             resp = await client.post(f"{self.base_url}/embeddings", json=payload, headers=headers)
             if resp.status_code != 200:
-                raise EmbeddingError(f"Embedding API returned error (status {resp.status_code}): {resp.text[:200]}")
+                raise EmbeddingError(
+                    f"Embedding API returned error (status {resp.status_code}): {resp.text[:200]}"
+                )
 
             data = resp.json()
             items = data.get("data", [])
@@ -135,7 +137,9 @@ def get_configured_embedding_provider() -> EmbeddingProvider | None:
 
     if provider_type in ("openai", "openrouter"):
         api_key = settings.openrouter_api_key_str
-        base_url = settings.OPENROUTER_BASE_URL if provider_type == "openrouter" else "https://api.openai.com/v1"
+        base_url = (
+            settings.OPENROUTER_BASE_URL if provider_type == "openrouter" else "https://api.openai.com/v1"
+        )
         return OpenAICompatibleEmbeddingProvider(
             api_key=api_key,
             base_url=base_url,

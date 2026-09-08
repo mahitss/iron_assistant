@@ -97,7 +97,6 @@ class SensitiveFieldPolicy:
         return False, None
 
 
-
 class SubmissionPolicy:
     """Policy detecting whether an interaction constitutes a form submission requiring user approval."""
 
@@ -108,7 +107,6 @@ class SubmissionPolicy:
         text: str = "",
         element_attrs: dict[str, Any] | None = None,
     ) -> tuple[bool, str | None]:
-
         """Determine whether clicking an element triggers a form submission or critical side-effect.
 
         Returns (is_submission, reason).

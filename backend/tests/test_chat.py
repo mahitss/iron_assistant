@@ -374,4 +374,3 @@ def test_chat_session_id_handling(client: TestClient) -> None:
         assert data2["session_id"] == custom_sid
     finally:
         app.dependency_overrides.clear()
-

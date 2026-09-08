@@ -38,7 +38,9 @@ async def get_github_checks(
     # 2. If no check runs found, check GitHub Actions workflow runs
     if not checks:
         try:
-            act_data = await provider.get_json(f"/repos/{owner}/{repo}/actions/runs", params={"branch": ref, "per_page": 5})
+            act_data = await provider.get_json(
+                f"/repos/{owner}/{repo}/actions/runs", params={"branch": ref, "per_page": 5}
+            )
             runs = act_data.get("workflow_runs", [])
             for run in runs:
                 checks.append(

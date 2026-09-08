@@ -5,7 +5,6 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.security.audit import AuditLogger
 from app.security.center import SecurityCenter, get_security_center
 from app.security.policies import SecurityDecision
 from app.tools.permissions import (
@@ -108,8 +107,7 @@ class ToolExecutor:
         except ValidationError as exc:
             # Format clean validation message without internal trace
             clean_errors = "; ".join(
-                f"{err.get('loc', ['arg'])[0]}: {err.get('msg', 'invalid')}"
-                for err in exc.errors()
+                f"{err.get('loc', ['arg'])[0]}: {err.get('msg', 'invalid')}" for err in exc.errors()
             )
             logger.info("Argument validation failed for tool '%s': %s", tool.name, clean_errors)
             return ToolResult(

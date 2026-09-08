@@ -44,7 +44,9 @@ def test_policy_rejects_one_off_arithmetic():
         cand = MemoryCandidate(content=expr, memory_type=MemoryType.FACT)
         decision = MemoryPolicy.evaluate(cand)
         assert decision.accepted is False
-        assert any(term in decision.rejection_reason.lower() for term in ["arithmetic", "calculation", "question"])
+        assert any(
+            term in decision.rejection_reason.lower() for term in ["arithmetic", "calculation", "question"]
+        )
 
 
 def test_policy_rejects_casual_filler():

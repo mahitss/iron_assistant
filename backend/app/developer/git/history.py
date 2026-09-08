@@ -20,12 +20,20 @@ async def inspect_git_branches(repo_path: str, settings: Settings | None = None)
     current_branch = cur_out.strip() if code_cur == 0 else "HEAD"
 
     # Get local branches
-    code_local, local_out, _ = await run_git_exec(["branch", "--list", "--format=%(refname:short)"], cwd=validated_path)
+    code_local, local_out, _ = await run_git_exec(
+        ["branch", "--list", "--format=%(refname:short)"], cwd=validated_path
+    )
     local_branches = [b.strip() for b in local_out.splitlines() if b.strip()] if code_local == 0 else []
 
     # Get remote branches
-    code_remote, remote_out, _ = await run_git_exec(["branch", "-r", "--format=%(refname:short)"], cwd=validated_path)
-    remote_branches = [b.strip() for b in remote_out.splitlines() if b.strip() and not b.endswith("/HEAD")] if code_remote == 0 else []
+    code_remote, remote_out, _ = await run_git_exec(
+        ["branch", "-r", "--format=%(refname:short)"], cwd=validated_path
+    )
+    remote_branches = (
+        [b.strip() for b in remote_out.splitlines() if b.strip() and not b.endswith("/HEAD")]
+        if code_remote == 0
+        else []
+    )
 
     return GitBranchInfo(
         current_branch=current_branch,

@@ -38,11 +38,13 @@ async def websocket_voice_endpoint(websocket: WebSocket) -> None:
 
     service = get_voice_service()
     if not service.settings.KAIRO_VOICE_ENABLED:
-        await websocket.send_json({
-            "type": "error",
-            "message": "Voice system is currently disabled by configuration.",
-            "code": "VOICE_DISABLED",
-        })
+        await websocket.send_json(
+            {
+                "type": "error",
+                "message": "Voice system is currently disabled by configuration.",
+                "code": "VOICE_DISABLED",
+            }
+        )
         await websocket.close(code=1008)
         return
     session = None
@@ -72,11 +74,13 @@ async def websocket_voice_endpoint(websocket: WebSocket) -> None:
                 audio_bytes = msg["bytes"]
                 if session is None:
                     session = await service.create_session()
-                    await emit_event({
-                        "type": "session_started",
-                        "session_id": session.session_id,
-                        "sample_rate": session.sample_rate,
-                    })
+                    await emit_event(
+                        {
+                            "type": "session_started",
+                            "session_id": session.session_id,
+                            "sample_rate": session.sample_rate,
+                        }
+                    )
 
                 await service.handle_audio_chunk(
                     session=session,
@@ -94,11 +98,13 @@ async def websocket_voice_endpoint(websocket: WebSocket) -> None:
                 try:
                     payload = json.loads(text_content)
                 except json.JSONDecodeError:
-                    await emit_event({
-                        "type": "error",
-                        "message": "Invalid JSON format in control frame.",
-                        "code": "MALFORMED_JSON",
-                    })
+                    await emit_event(
+                        {
+                            "type": "error",
+                            "message": "Invalid JSON format in control frame.",
+                            "code": "MALFORMED_JSON",
+                        }
+                    )
                     continue
 
                 event_type = payload.get("type")
@@ -106,11 +112,13 @@ async def websocket_voice_endpoint(websocket: WebSocket) -> None:
                 if event_type == "start_session":
                     requested_sid = payload.get("session_id")
                     session = await service.create_session(session_id=requested_sid)
-                    await emit_event({
-                        "type": "session_started",
-                        "session_id": session.session_id,
-                        "sample_rate": session.sample_rate,
-                    })
+                    await emit_event(
+                        {
+                            "type": "session_started",
+                            "session_id": session.session_id,
+                            "sample_rate": session.sample_rate,
+                        }
+                    )
 
                 elif event_type == "audio_chunk":
                     # Fallback text-based audio chunk
@@ -118,20 +126,24 @@ async def websocket_voice_endpoint(websocket: WebSocket) -> None:
                     try:
                         chunk = base64.b64decode(b64_data)
                     except Exception:
-                        await emit_event({
-                            "type": "error",
-                            "message": "Malformed base64 audio chunk.",
-                            "code": "INVALID_AUDIO",
-                        })
+                        await emit_event(
+                            {
+                                "type": "error",
+                                "message": "Malformed base64 audio chunk.",
+                                "code": "INVALID_AUDIO",
+                            }
+                        )
                         continue
 
                     if session is None:
                         session = await service.create_session()
-                        await emit_event({
-                            "type": "session_started",
-                            "session_id": session.session_id,
-                            "sample_rate": session.sample_rate,
-                        })
+                        await emit_event(
+                            {
+                                "type": "session_started",
+                                "session_id": session.session_id,
+                                "sample_rate": session.sample_rate,
+                            }
+                        )
 
                     await service.handle_audio_chunk(
                         session=session,
@@ -161,22 +173,26 @@ async def websocket_voice_endpoint(websocket: WebSocket) -> None:
                     break
 
                 else:
-                    await emit_event({
-                        "type": "error",
-                        "message": f"Unrecognized client event type: '{event_type}'",
-                        "code": "UNKNOWN_EVENT",
-                    })
+                    await emit_event(
+                        {
+                            "type": "error",
+                            "message": f"Unrecognized client event type: '{event_type}'",
+                            "code": "UNKNOWN_EVENT",
+                        }
+                    )
 
     except WebSocketDisconnect:
         logger.info("Client disconnected from voice session.")
     except Exception as exc:
         logger.error("Unexpected error in voice WebSocket connection: %s", exc, exc_info=True)
         try:
-            await emit_event({
-                "type": "error",
-                "message": f"Internal server error: {exc}",
-                "code": "SERVER_ERROR",
-            })
+            await emit_event(
+                {
+                    "type": "error",
+                    "message": f"Internal server error: {exc}",
+                    "code": "SERVER_ERROR",
+                }
+            )
         except Exception:
             pass
     finally:

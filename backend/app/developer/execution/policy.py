@@ -52,6 +52,7 @@ class TestCommandPolicy:
         # Split into argv safely across platforms
         try:
             import sys
+
             norm_cmd = clean_cmd.replace("\\", "/") if sys.platform == "win32" else clean_cmd
             argv = shlex.split(norm_cmd)
         except ValueError as exc:

@@ -21,7 +21,7 @@ EXTRACTION_SYSTEM_PROMPT = (
     "- Do NOT extract temporary questions, casual conversation, greetings, or one-off arithmetic.\n"
     "- NEVER extract passwords, API keys, credentials, or private tokens.\n"
     "- Express memories in declarative statements (e.g., 'The user prefers dark mode.').\n"
-    "- If nothing durable is present, return an empty list: {\"candidates\": []}.\n\n"
+    '- If nothing durable is present, return an empty list: {"candidates": []}.\n\n'
     "Allowed memory_type values: preference, fact, project, instruction, context.\n\n"
     "Respond ONLY with valid JSON in this exact format:\n"
     "{\n"
@@ -60,7 +60,9 @@ class MemoryExtractor:
                 model_def = self.router.select_model(cap)
                 return model_def.id
             except Exception as exc:
-                logger.debug("Failed to route extraction capability '%s': %s. Using default.", self.capability, exc)
+                logger.debug(
+                    "Failed to route extraction capability '%s': %s. Using default.", self.capability, exc
+                )
         return self.default_model
 
     @staticmethod

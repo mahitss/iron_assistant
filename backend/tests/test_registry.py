@@ -1,6 +1,7 @@
 """Tests for ModelCapability, ModelDefinition, and ModelRegistry."""
 
 import pytest
+
 from app.models.registry import (
     DuplicateModelError,
     ModelCapability,

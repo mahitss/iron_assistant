@@ -1,10 +1,11 @@
 """Tests for /api/v1/chat and /api/v1/chat/stream endpoints with model routing, tools, and mocked providers."""
 
 import json
-from typing import Any, AsyncIterator, Dict, List, Optional
+from collections.abc import AsyncIterator
+from typing import Any
+
 from fastapi import status
 from fastapi.testclient import TestClient
-import pytest
 
 from app.agents.core import KairoAgent, get_default_agent
 from app.main import app
@@ -27,13 +28,13 @@ class MockSuccessProvider(ModelProvider):
     """Mock provider returning controlled responses and recording called model."""
 
     def __init__(self) -> None:
-        self.last_model_used: Optional[str] = None
+        self.last_model_used: str | None = None
 
     async def generate_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> ProviderResponse:
         self.last_model_used = model
@@ -41,9 +42,9 @@ class MockSuccessProvider(ModelProvider):
 
     async def stream_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         self.last_model_used = model
@@ -56,18 +57,18 @@ class MockAuthFailProvider(ModelProvider):
 
     async def generate_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> ProviderResponse:
         raise AuthenticationError("OpenRouter authentication failed: invalid or unauthorized API key")
 
     async def stream_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         raise AuthenticationError("OpenRouter authentication failed: invalid or unauthorized API key")
@@ -79,18 +80,18 @@ class MockUpstreamFailProvider(ModelProvider):
 
     async def generate_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> ProviderResponse:
         raise ProviderAPIError("OpenRouter upstream overloaded", status_code=502)
 
     async def stream_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         raise ProviderAPIError("OpenRouter upstream overloaded", status_code=502)
@@ -100,15 +101,15 @@ class MockUpstreamFailProvider(ModelProvider):
 class ScriptedToolCallingProvider(ModelProvider):
     """Mock provider simulating assistant tool request followed by final response."""
 
-    def __init__(self, responses: List[ProviderResponse]):
+    def __init__(self, responses: list[ProviderResponse]):
         self.responses = list(responses)
         self.step = 0
 
     async def generate_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> ProviderResponse:
         if self.step < len(self.responses):
@@ -119,9 +120,9 @@ class ScriptedToolCallingProvider(ModelProvider):
 
     async def stream_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         yield "Final answer"
@@ -349,3 +350,28 @@ def test_chat_stream_auth_error_event(client: TestClient) -> None:
         assert "data: [DONE]" in response.text
     finally:
         app.dependency_overrides.clear()
+
+
+def test_chat_session_id_handling(client: TestClient) -> None:
+    """Ensure POST /api/v1/chat returns generated or provided session_id."""
+    provider = MockSuccessProvider()
+    mock_agent = create_test_agent(provider)
+    app.dependency_overrides[get_default_agent] = lambda: mock_agent
+
+    try:
+        # Case 1: No session_id supplied -> generates a new session_id
+        res1 = client.post("/api/v1/chat", json={"message": "Hello without session"})
+        assert res1.status_code == status.HTTP_200_OK
+        data1 = res1.json()
+        assert data1["session_id"] is not None
+        assert data1["session_id"].startswith("sess_")
+
+        # Case 2: Specific session_id supplied -> preserved in response
+        custom_sid = "sess_custom_abc123"
+        res2 = client.post("/api/v1/chat", json={"message": "Hello with session", "session_id": custom_sid})
+        assert res2.status_code == status.HTTP_200_OK
+        data2 = res2.json()
+        assert data2["session_id"] == custom_sid
+    finally:
+        app.dependency_overrides.clear()
+

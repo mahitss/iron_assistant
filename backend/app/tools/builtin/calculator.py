@@ -3,7 +3,8 @@
 import ast
 import math
 import operator
-from typing import Any, Union
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from app.tools.base import BaseTool
@@ -47,7 +48,7 @@ class SafeMathEvaluator:
     MAX_BASE = 1_000_000
 
     @classmethod
-    def evaluate(cls, expression: str) -> Union[int, float]:
+    def evaluate(cls, expression: str) -> int | float:
         """Parse and evaluate an arithmetic expression safely without eval() or exec()."""
         cleaned = expression.strip()
         if not cleaned:
@@ -61,7 +62,7 @@ class SafeMathEvaluator:
         return cls._eval_node(tree.body)
 
     @classmethod
-    def _eval_node(cls, node: ast.AST) -> Union[int, float]:
+    def _eval_node(cls, node: ast.AST) -> int | float:
         """Recursively evaluate only whitelisted AST nodes."""
         if isinstance(node, ast.Constant):
             if isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
@@ -126,7 +127,7 @@ class CalculatorTool(BaseTool):
     permission_level = PermissionLevel.READ
     args_model = CalculatorArgs
 
-    async def execute(self, expression: str, **kwargs: Any) -> Union[int, float]:
+    async def execute(self, expression: str, **kwargs: Any) -> int | float:
         """Execute the mathematical expression and return the evaluated number."""
         return SafeMathEvaluator.evaluate(expression)
 

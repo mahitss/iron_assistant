@@ -1,6 +1,7 @@
 """Tests for ModelRouter selection logic and fallback mechanisms."""
 
 import pytest
+
 from app.models.registry import ModelCapability, ModelDefinition, ModelRegistry
 from app.models.router import InvalidCapabilityError, ModelRouter, NoUsableModelError
 

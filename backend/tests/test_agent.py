@@ -1,10 +1,17 @@
 """Tests for Kairo core agent logic, prompt construction, routing, and tool iteration loop."""
 
-from typing import Any, AsyncIterator, Dict, List, Optional
+from collections.abc import AsyncIterator
+from typing import Any
+
 import pytest
 
 from app.agents.core import KAIRO_SYSTEM_PROMPT, AgentResponse, KairoAgent
-from app.models.provider import ChatMessage, MessageRole, ModelProvider, ProviderResponse
+from app.models.provider import (
+    ChatMessage,
+    MessageRole,
+    ModelProvider,
+    ProviderResponse,
+)
 from app.models.registry import ModelCapability, ModelDefinition, ModelRegistry
 from app.models.router import ModelRouter
 from app.tools.builtin.calculator import CalculatorTool
@@ -17,18 +24,18 @@ from app.tools.schemas import ToolCall
 class MockModelProvider(ModelProvider):
     """Mock provider recording received messages and returning predetermined outputs."""
 
-    def __init__(self, response_text: str = "Mocked AI response", stream_chunks: Optional[List[str]] = None):
+    def __init__(self, response_text: str = "Mocked AI response", stream_chunks: list[str] | None = None):
         self.response_text = response_text
         self.stream_chunks = stream_chunks or ["Mocked", " AI", " response"]
-        self.received_messages: List[ChatMessage] = []
-        self.received_model: Optional[str] = None
-        self.received_tools: Optional[List[Dict[str, Any]]] = None
+        self.received_messages: list[ChatMessage] = []
+        self.received_model: str | None = None
+        self.received_tools: list[dict[str, Any]] | None = None
 
     async def generate_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> ProviderResponse:
         self.received_messages = list(messages)
@@ -38,9 +45,9 @@ class MockModelProvider(ModelProvider):
 
     async def stream_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         self.received_messages = list(messages)
@@ -53,16 +60,16 @@ class MockModelProvider(ModelProvider):
 class ScriptedToolCallingProvider(ModelProvider):
     """Mock provider returning scripted sequence of responses to simulate multi-turn tool loops."""
 
-    def __init__(self, responses: List[ProviderResponse]):
+    def __init__(self, responses: list[ProviderResponse]):
         self.responses = list(responses)
-        self.call_history: List[List[ChatMessage]] = []
+        self.call_history: list[list[ChatMessage]] = []
         self.current_step = 0
 
     async def generate_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> ProviderResponse:
         self.call_history.append(list(messages))
@@ -74,9 +81,9 @@ class ScriptedToolCallingProvider(ModelProvider):
 
     async def stream_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         yield "streamed output"

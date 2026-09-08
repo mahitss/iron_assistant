@@ -1,7 +1,8 @@
 """Safe, read-only system information tool."""
 
 import platform
-from typing import Any, Dict
+from typing import Any
+
 from pydantic import BaseModel
 
 from app.tools.base import BaseTool
@@ -10,7 +11,6 @@ from app.tools.permissions import PermissionLevel
 
 class SystemInfoArgs(BaseModel):
     """Input arguments for the system info tool (no parameters required)."""
-    pass
 
 
 class SystemInfoTool(BaseTool):
@@ -28,7 +28,7 @@ class SystemInfoTool(BaseTool):
     # Prohibited keys to ensure sensitive leaks never occur
     FORBIDDEN_KEYWORDS = {"env", "token", "key", "secret", "user", "pass", "cred", "path"}
 
-    async def execute(self, **kwargs: Any) -> Dict[str, str]:
+    async def execute(self, **kwargs: Any) -> dict[str, str]:
         """Collect safe system metadata."""
         return {
             "os": platform.system(),

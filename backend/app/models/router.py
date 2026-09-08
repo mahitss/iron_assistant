@@ -1,22 +1,18 @@
 """Model router for selecting models based on capability, priority, and availability."""
 
-from typing import Optional, Union
 from app.models.registry import ModelCapability, ModelDefinition, ModelRegistry
 
 
 class RouterError(Exception):
     """Base exception for routing errors."""
-    pass
 
 
 class InvalidCapabilityError(RouterError):
     """Raised when an unknown or invalid capability is requested."""
-    pass
 
 
 class NoUsableModelError(RouterError):
     """Raised when no compatible and enabled model is available."""
-    pass
 
 
 class ModelRouter:
@@ -34,7 +30,7 @@ class ModelRouter:
 
     def select_model(
         self,
-        capability: Union[ModelCapability, str] = ModelCapability.GENERAL,
+        capability: ModelCapability | str = ModelCapability.GENERAL,
     ) -> ModelDefinition:
         """Select the highest-priority enabled model for a capability, or fall back to default."""
         try:

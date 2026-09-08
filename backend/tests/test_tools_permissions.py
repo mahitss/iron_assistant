@@ -1,6 +1,7 @@
 """Tests for tool permissions and authorization policies."""
 
 import pytest
+
 from app.tools.permissions import (
     PermissionDecision,
     PermissionDeniedError,

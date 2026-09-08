@@ -1,7 +1,8 @@
 """Base abstractions and contracts for Kairo tools."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Type
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from app.tools.permissions import PermissionLevel
@@ -16,7 +17,7 @@ class ToolDefinition(BaseModel):
         default=PermissionLevel.READ,
         description="Required permission level for execution",
     )
-    parameters_schema: Dict[str, Any] = Field(
+    parameters_schema: dict[str, Any] = Field(
         default_factory=dict,
         description="OpenAPI/JSON Schema for tool arguments",
     )
@@ -30,7 +31,7 @@ class BaseTool(ABC):
     name: str
     description: str
     permission_level: PermissionLevel = PermissionLevel.READ
-    args_model: Type[BaseModel]
+    args_model: type[BaseModel]
 
     @property
     def definition(self) -> ToolDefinition:
@@ -42,14 +43,14 @@ class BaseTool(ABC):
             parameters_schema=self.get_parameters_schema(),
         )
 
-    def get_parameters_schema(self) -> Dict[str, Any]:
+    def get_parameters_schema(self) -> dict[str, Any]:
         """Extract JSON Schema from the tool's Pydantic arguments model."""
         schema = self.args_model.model_json_schema()
         # Clean up unwanted metadata fields if present
         schema.pop("title", None)
         return schema
 
-    def to_openrouter_schema(self) -> Dict[str, Any]:
+    def to_openrouter_schema(self) -> dict[str, Any]:
         """Format the tool as an OpenAI/OpenRouter-compatible function tool definition."""
         return {
             "type": "function",

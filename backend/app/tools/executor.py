@@ -1,7 +1,7 @@
 """Tool execution engine with argument validation, permissions check, and verification."""
 
 import logging
-from typing import Optional
+
 from pydantic import ValidationError
 
 from app.tools.permissions import PermissionDeniedError, PermissionManager
@@ -17,7 +17,7 @@ class ToolExecutor:
     def __init__(
         self,
         registry: ToolRegistry,
-        permission_manager: Optional[PermissionManager] = None,
+        permission_manager: PermissionManager | None = None,
     ) -> None:
         self.registry = registry
         self.permission_manager = permission_manager or PermissionManager()

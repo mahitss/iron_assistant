@@ -1,10 +1,10 @@
 """Tests for built-in safe starter tools: calculator, datetime, and system_info."""
 
 import pytest
-from app.tools.builtin.calculator import CalculatorTool, SafeMathEvaluator
+
+from app.tools.builtin.calculator import CalculatorTool
 from app.tools.builtin.datetime import DateTimeTool
 from app.tools.builtin.system_info import SystemInfoTool
-
 
 # ==========================================
 # Calculator Tests

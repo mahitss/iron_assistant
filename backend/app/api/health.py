@@ -1,6 +1,7 @@
 """Health check endpoint definition."""
 
 from fastapi import APIRouter, status
+
 from app.core.config import get_settings
 from app.models.health import HealthResponse
 

@@ -1,6 +1,7 @@
 """Tests for ToolRegistry registration, lookups, and schema generation."""
 
 from typing import Any
+
 import pytest
 from pydantic import BaseModel
 

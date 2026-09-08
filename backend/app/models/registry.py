@@ -1,7 +1,8 @@
 """Model capabilities, definitions, and registry for Kairo."""
 
 from enum import Enum
-from typing import Dict, List, Optional, Set, Union
+from typing import Union
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -33,7 +34,7 @@ class ModelDefinition(BaseModel):
 
     id: str = Field(..., min_length=1, description="Unique model identifier or router target")
     provider: str = Field(default="openrouter", description="Upstream provider identifier")
-    capabilities: Set[ModelCapability] = Field(
+    capabilities: set[ModelCapability] = Field(
         default_factory=lambda: {ModelCapability.GENERAL},
         description="Set of capabilities this model provides",
     )
@@ -42,11 +43,11 @@ class ModelDefinition(BaseModel):
         description="Selection priority (higher values take precedence for matched capabilities)",
     )
     enabled: bool = Field(default=True, description="Whether the model is active and available for routing")
-    description: Optional[str] = Field(default=None, description="Optional description of the model")
+    description: str | None = Field(default=None, description="Optional description of the model")
 
     @field_validator("capabilities", mode="before")
     @classmethod
-    def parse_capabilities(cls, v: Union[Set[Union[str, ModelCapability]], List[Union[str, ModelCapability]]]) -> Set[ModelCapability]:
+    def parse_capabilities(cls, v: set[str | ModelCapability] | list[str | ModelCapability]) -> set[ModelCapability]:
         """Normalize capability strings into ModelCapability enums."""
         result = set()
         for item in v:
@@ -58,24 +59,21 @@ class ModelDefinition(BaseModel):
 
 class ModelRegistryError(Exception):
     """Base exception for model registry operations."""
-    pass
 
 
 class DuplicateModelError(ModelRegistryError):
     """Raised when registering a model ID that already exists."""
-    pass
 
 
 class ModelNotFoundError(ModelRegistryError):
     """Raised when looking up an unregistered model ID."""
-    pass
 
 
 class ModelRegistry:
     """Registry maintaining configured models, metadata, and capability indexing."""
 
     def __init__(self) -> None:
-        self._models: Dict[str, ModelDefinition] = {}
+        self._models: dict[str, ModelDefinition] = {}
 
     def register_model(self, model: ModelDefinition, allow_override: bool = False) -> None:
         """Register a model definition in the registry."""
@@ -83,11 +81,11 @@ class ModelRegistry:
             raise DuplicateModelError(f"Model with ID '{model.id}' is already registered.")
         self._models[model.id] = model
 
-    def get_model(self, model_id: str) -> Optional[ModelDefinition]:
+    def get_model(self, model_id: str) -> ModelDefinition | None:
         """Retrieve a model by its identifier."""
         return self._models.get(model_id)
 
-    def list_models(self, enabled_only: bool = True) -> List[ModelDefinition]:
+    def list_models(self, enabled_only: bool = True) -> list[ModelDefinition]:
         """List registered models, optionally filtering by enabled status."""
         models = list(self._models.values())
         if enabled_only:
@@ -96,9 +94,9 @@ class ModelRegistry:
 
     def get_models_for_capability(
         self,
-        capability: Union[ModelCapability, str],
+        capability: ModelCapability | str,
         enabled_only: bool = True,
-    ) -> List[ModelDefinition]:
+    ) -> list[ModelDefinition]:
         """Return models providing the given capability, sorted by priority (descending)."""
         cap = ModelCapability.from_str(capability)
         candidates = [
@@ -109,9 +107,9 @@ class ModelRegistry:
 
     def get_highest_priority_model(
         self,
-        capability: Union[ModelCapability, str],
+        capability: ModelCapability | str,
         enabled_only: bool = True,
-    ) -> Optional[ModelDefinition]:
+    ) -> ModelDefinition | None:
         """Return the highest-priority enabled model for a capability."""
         matches = self.get_models_for_capability(capability, enabled_only=enabled_only)
         return matches[0] if matches else None

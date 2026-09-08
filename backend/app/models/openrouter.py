@@ -1,7 +1,9 @@
 """OpenRouter model provider implementation supporting structured completions and tool calling."""
 
 import json
-from typing import Any, AsyncIterator, Dict, List, Optional, Union
+from collections.abc import AsyncIterator
+from typing import Any
+
 import httpx
 
 from app.models.provider import (
@@ -9,7 +11,6 @@ from app.models.provider import (
     ChatMessage,
     ModelProvider,
     ProviderAPIError,
-    ProviderError,
     ProviderResponse,
 )
 from app.tools.schemas import ToolCall
@@ -20,12 +21,12 @@ class OpenRouterProvider(ModelProvider):
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "https://openrouter.ai/api/v1",
         default_model: str = "openrouter/free",
-        site_url: Optional[str] = None,
-        app_name: Optional[str] = "Kairo",
-        client: Optional[httpx.AsyncClient] = None,
+        site_url: str | None = None,
+        app_name: str | None = "Kairo",
+        client: httpx.AsyncClient | None = None,
         timeout: float = 60.0,
     ):
         self._api_key = (api_key or "").strip()
@@ -64,16 +65,16 @@ class OpenRouterProvider(ModelProvider):
 
     async def generate_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> ProviderResponse:
         """Generate a complete chat completion or tool calls from OpenRouter."""
         headers = self._get_headers()
         selected_model = model or self.default_model
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": selected_model,
             "messages": [m.to_dict() for m in messages],
             "stream": False,
@@ -115,7 +116,7 @@ class OpenRouterProvider(ModelProvider):
             content = message_obj.get("content")
             raw_tool_calls = message_obj.get("tool_calls")
 
-            parsed_tool_calls: Optional[List[ToolCall]] = None
+            parsed_tool_calls: list[ToolCall] | None = None
             if raw_tool_calls:
                 parsed_tool_calls = []
                 for tc in raw_tool_calls:
@@ -175,16 +176,16 @@ class OpenRouterProvider(ModelProvider):
 
     async def stream_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         """Stream chat completion tokens from OpenRouter using SSE."""
         headers = self._get_headers()
         selected_model = model or self.default_model
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": selected_model,
             "messages": [m.to_dict() for m in messages],
             "stream": True,

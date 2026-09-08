@@ -1,7 +1,7 @@
 """Tests for OpenRouter provider implementation, streaming, and tool calls."""
 
 import json
-from typing import Any, Dict
+
 import httpx
 import pytest
 

@@ -1,12 +1,30 @@
-"""Core Kairo agent implementation with model capability routing and tool execution loop."""
+"""Core Kairo agent implementation with model capability routing, memory system, and tool execution loop."""
 
 import json
-from typing import Any, AsyncIterator, Dict, List, Optional, Tuple, Union
+import logging
+import uuid
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Any
+
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import get_settings
+from app.db.session import get_sessionmaker
+from app.memory.embeddings import EmbeddingProvider, get_configured_embedding_provider
+from app.memory.models import Conversation, Message, utc_now
+from app.memory.repository import ConversationRepository
+from app.memory.schemas import MemoryResponse, MemorySearchResult, MemoryType
+from app.memory.service import MemoryService
+from app.memory.session import SessionManager, get_default_session_manager
 from app.models.openrouter import OpenRouterProvider
-from app.models.provider import ChatMessage, MessageRole, ModelProvider, ProviderResponse
+from app.models.provider import (
+    ChatMessage,
+    MessageRole,
+    ModelProvider,
+    ProviderResponse,
+)
 from app.models.registry import (
     ModelCapability,
     ModelDefinition,
@@ -16,7 +34,9 @@ from app.models.registry import (
 from app.models.router import ModelRouter
 from app.tools.executor import ToolExecutor
 from app.tools.registry import ToolRegistry, create_default_tool_registry
-from app.tools.schemas import ToolCall, ToolResult
+from app.tools.schemas import ToolResult
+
+logger = logging.getLogger("kairo.agent")
 
 KAIRO_SYSTEM_PROMPT = (
     "You are Kairo, an autonomous personal AI assistant. "
@@ -34,11 +54,12 @@ class ToolActivity(BaseModel):
 
 
 class AgentResponse(BaseModel):
-    """Structured response from Kairo agent containing content and model/tool metadata."""
+    """Structured response from Kairo agent containing content, model, session, and tool metadata."""
 
     message: str = Field(..., description="Assistant response text")
     model: str = Field(..., description="ID of the model that generated the response")
-    tools_used: List[ToolActivity] = Field(
+    session_id: str | None = Field(default=None, description="Active session ID")
+    tools_used: list[ToolActivity] = Field(
         default_factory=list,
         description="List of tools invoked while producing this response",
     )
@@ -54,17 +75,24 @@ class AgentResponse(BaseModel):
 
 
 class KairoAgent:
-    """Core Kairo AI agent managing context, system prompt, routing, and tool iteration loop."""
+    """Core Kairo AI agent managing conversation context, long-term memory, routing, and tools."""
 
     def __init__(
         self,
         provider: ModelProvider,
-        router: Optional[ModelRouter] = None,
-        tool_registry: Optional[ToolRegistry] = None,
-        tool_executor: Optional[ToolExecutor] = None,
+        router: ModelRouter | None = None,
+        tool_registry: ToolRegistry | None = None,
+        tool_executor: ToolExecutor | None = None,
         system_prompt: str = KAIRO_SYSTEM_PROMPT,
-        model: Optional[str] = None,
+        model: str | None = None,
         max_tool_iterations: int = 5,
+        session_manager: SessionManager | None = None,
+        conversation_repo: ConversationRepository | None = None,
+        memory_service: MemoryService | None = None,
+        session_factory: async_sessionmaker[AsyncSession] | None = None,
+        embedding_provider: EmbeddingProvider | None = None,
+        max_context_messages: int = 20,
+        memory_top_k: int = 5,
     ):
         self.provider = provider
         self.router = router
@@ -73,6 +101,35 @@ class KairoAgent:
         self.system_prompt = system_prompt
         self.model = model
         self.max_tool_iterations = max_tool_iterations
+        self.session_manager = session_manager
+        self.conversation_repo = conversation_repo
+        self.memory_service = memory_service
+        self.session_factory = session_factory
+        self.embedding_provider = embedding_provider
+        self.max_context_messages = max_context_messages
+        self.memory_top_k = memory_top_k
+
+    @asynccontextmanager
+    async def _get_services(
+        self,
+    ) -> AsyncIterator[tuple[ConversationRepository | None, MemoryService | None]]:
+        """Resolve conversation repository and memory service per call."""
+        if self.conversation_repo is not None:
+            yield self.conversation_repo, self.memory_service
+        elif self.session_factory is not None:
+            async with self.session_factory() as session:
+                try:
+                    conv_repo = ConversationRepository(session)
+                    mem_service = self.memory_service or MemoryService(
+                        session, embedding_provider=self.embedding_provider
+                    )
+                    yield conv_repo, mem_service
+                    await session.commit()
+                except Exception:
+                    await session.rollback()
+                    raise
+        else:
+            yield None, self.memory_service
 
     @staticmethod
     def detect_capability(message: str) -> ModelCapability:
@@ -106,8 +163,8 @@ class KairoAgent:
 
     def resolve_model(
         self,
-        capability: Optional[Union[ModelCapability, str]] = None,
-        model: Optional[str] = None,
+        capability: ModelCapability | str | None = None,
+        model: str | None = None,
     ) -> str:
         """Determine target model ID using router or explicit override."""
         if model:
@@ -118,148 +175,373 @@ class KairoAgent:
             return model_def.id
         return self.model or "openrouter/free"
 
-    def build_prompt_messages(self, user_message: str) -> List[ChatMessage]:
-        """Construct prompt messages incorporating Kairo's system persona."""
-        return [
-            ChatMessage(role=MessageRole.SYSTEM, content=self.system_prompt),
-            ChatMessage(role=MessageRole.USER, content=user_message),
+    def build_prompt_messages(
+        self,
+        user_message: str,
+        memories: list[MemoryResponse] | None = None,
+        history: list[Any] | None = None,
+    ) -> list[ChatMessage]:
+        """Construct prompt messages incorporating system persona, relevant memories, and conversation history."""
+        system_text = self.system_prompt
+        if memories:
+            formatted_memories = MemoryService.format_memories_for_context(memories)
+            if formatted_memories:
+                system_text = f"{system_text}\n\n{formatted_memories}"
+
+        messages: list[ChatMessage] = [
+            ChatMessage(role=MessageRole.SYSTEM, content=system_text)
         ]
 
-    def _get_tool_schemas(self) -> Optional[List[Dict[str, Any]]]:
+        if history:
+            for item in history:
+                if isinstance(item, ChatMessage):
+                    messages.append(item)
+                elif hasattr(item, "role") and hasattr(item, "content"):
+                    role_str = str(item.role).lower()
+                    if role_str == "user":
+                        messages.append(ChatMessage(role=MessageRole.USER, content=item.content))
+                    elif role_str == "assistant":
+                        messages.append(ChatMessage(role=MessageRole.ASSISTANT, content=item.content))
+                    elif role_str == "tool":
+                        meta = getattr(item, "meta", {}) or {}
+                        messages.append(
+                            ChatMessage(
+                                role=MessageRole.TOOL,
+                                content=item.content,
+                                tool_call_id=meta.get("tool_call_id"),
+                                name=meta.get("tool_name"),
+                            )
+                        )
+            # Ensure the current user message is included at the end if history didn't already have it
+            if not messages or messages[-1].content != user_message or messages[-1].role != MessageRole.USER:
+                messages.append(ChatMessage(role=MessageRole.USER, content=user_message))
+        else:
+            messages.append(ChatMessage(role=MessageRole.USER, content=user_message))
+
+        return messages
+
+    def _get_tool_schemas(self) -> list[dict[str, Any]] | None:
         """Fetch model-compatible tool schemas if registry is present."""
         if self.tool_registry is not None:
             schemas = self.tool_registry.get_schemas()
             return schemas if schemas else None
         return None
 
+    async def remember(
+        self,
+        content: str,
+        memory_type: MemoryType | str = MemoryType.FACT,
+        importance: float = 0.5,
+        source: str = "user_explicit",
+    ) -> MemoryResponse | None:
+        """Explicitly store a persistent long-term memory."""
+        m_type = MemoryType(memory_type) if isinstance(memory_type, str) else memory_type
+        async with self._get_services() as (_, mem_service):
+            if mem_service is not None:
+                return await mem_service.create_memory(
+                    content=content,
+                    memory_type=m_type,
+                    importance=importance,
+                    source=source,
+                )
+        return None
+
+    async def recall(
+        self,
+        query: str,
+        top_k: int | None = None,
+        memory_type: MemoryType | str | None = None,
+    ) -> list[MemorySearchResult]:
+        """Retrieve relevant long-term memories for a query."""
+        k = top_k or self.memory_top_k
+        m_type = MemoryType(memory_type) if isinstance(memory_type, str) else memory_type
+        async with self._get_services() as (_, mem_service):
+            if mem_service is not None:
+                return await mem_service.search_memories(
+                    query=query,
+                    top_k=k,
+                    memory_type=m_type,
+                )
+        return []
+
     async def process_message(
         self,
         message: str,
-        capability: Optional[Union[ModelCapability, str]] = None,
-        model: Optional[str] = None,
+        session_id: str | None = None,
+        capability: ModelCapability | str | None = None,
+        model: str | None = None,
     ) -> AgentResponse:
-        """Process user message and execute tool loop if requested by model."""
+        """Process user message, load conversation, retrieve memories, execute tool loop, and persist turn."""
+        active_session_id = (session_id or f"sess_{uuid.uuid4().hex[:12]}").strip()
         selected_model = self.resolve_model(capability=capability, model=model)
-        messages = self.build_prompt_messages(message)
-        tool_schemas = self._get_tool_schemas()
-        tools_used: List[ToolActivity] = []
 
-        iterations = 0
-        while iterations < self.max_tool_iterations:
-            response = await self.provider.generate_response(
-                messages,
-                model=selected_model,
-                tools=tool_schemas,
+        async with self._get_services() as (conv_repo, mem_service):
+            conv: Conversation | None = None
+            history: list[Message] = []
+            relevant_memories: list[MemoryResponse] = []
+
+            # 1. Load conversation & persist user message
+            if conv_repo is not None:
+                try:
+                    conv = await conv_repo.get_or_create(session_id=active_session_id)
+                    await conv_repo.add_message(
+                        conversation_id=conv.id,
+                        role="user",
+                        content=message,
+                    )
+                    history = await conv_repo.get_recent_messages(
+                        conversation_id=conv.id,
+                        limit=self.max_context_messages,
+                    )
+                except Exception as exc:
+                    logger.warning("Error accessing conversation history: %s", exc)
+
+            # 2. Retrieve relevant long-term memories (bounded by memory_top_k)
+            if mem_service is not None:
+                try:
+                    search_results = await mem_service.search_memories(
+                        query=message,
+                        top_k=self.memory_top_k,
+                    )
+                    relevant_memories = [r.memory for r in search_results]
+                except Exception as exc:
+                    logger.warning("Error searching memories: %s", exc)
+
+            # 3. Construct bounded model prompt context
+            messages = self.build_prompt_messages(
+                user_message=message,
+                memories=relevant_memories,
+                history=history,
             )
 
-            # Check if response contains structured tool calls
-            has_tool_calls = getattr(response, "has_tool_calls", False)
-            tool_calls = getattr(response, "tool_calls", None) or []
+            # 4. Tool schemas
+            tool_schemas = self._get_tool_schemas()
+            tools_used: list[ToolActivity] = []
 
-            if not has_tool_calls or not tool_calls:
-                # Model provided a direct final answer
-                final_text = getattr(response, "content", None)
-                if final_text is None:
-                    final_text = str(response) if not isinstance(response, ProviderResponse) else ""
-                return AgentResponse(
-                    message=final_text,
+            iterations = 0
+            final_text = ""
+            while iterations < self.max_tool_iterations:
+                response = await self.provider.generate_response(
+                    messages,
                     model=selected_model,
-                    tools_used=tools_used,
+                    tools=tool_schemas,
                 )
 
-            # Record assistant tool call message in history
-            assistant_tool_call_dicts = [
-                {
-                    "id": tc.id,
-                    "type": "function",
-                    "function": {
-                        "name": tc.name,
-                        "arguments": json.dumps(tc.arguments),
-                    },
-                }
-                for tc in tool_calls
-            ]
-            messages.append(
-                ChatMessage(
-                    role=MessageRole.ASSISTANT,
-                    content=getattr(response, "content", None),
-                    tool_calls=assistant_tool_call_dicts,
-                )
-            )
+                has_tool_calls = getattr(response, "has_tool_calls", False)
+                tool_calls = getattr(response, "tool_calls", None) or []
 
-            # Execute each requested tool call
-            for tc in tool_calls:
-                if self.tool_executor:
-                    result: ToolResult = await self.tool_executor.execute(tc)
-                else:
-                    result = ToolResult(
-                        success=False,
-                        tool_name=tc.name,
-                        tool_call_id=tc.id,
-                        error="Tool execution engine is not configured.",
-                        verification_status="failed",
-                    )
+                if not has_tool_calls or not tool_calls:
+                    final_text = getattr(response, "content", None)
+                    if final_text is None:
+                        final_text = str(response) if not isinstance(response, ProviderResponse) else ""
+                    break
 
-                tools_used.append(
-                    ToolActivity(
-                        tool=tc.name,
-                        status="success" if result.success else "failed",
-                        verification_status=result.verification_status,
-                    )
-                )
-
-                # Feed structured tool result back into conversation
+                # Record assistant tool call message in messages history
+                assistant_tool_call_dicts = [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.name,
+                            "arguments": json.dumps(tc.arguments),
+                        },
+                    }
+                    for tc in tool_calls
+                ]
                 messages.append(
                     ChatMessage(
-                        role=MessageRole.TOOL,
-                        content=result.to_model_output(),
-                        tool_call_id=tc.id,
-                        name=tc.name,
+                        role=MessageRole.ASSISTANT,
+                        content=getattr(response, "content", None),
+                        tool_calls=assistant_tool_call_dicts,
                     )
                 )
 
-            iterations += 1
+                # Execute requested tool calls
+                for tc in tool_calls:
+                    if self.tool_executor:
+                        result: ToolResult = await self.tool_executor.execute(tc)
+                    else:
+                        result = ToolResult(
+                            success=False,
+                            tool_name=tc.name,
+                            tool_call_id=tc.id,
+                            error="Tool execution engine is not configured.",
+                            verification_status="failed",
+                        )
 
-        # Fallback if maximum tool iterations exceeded
-        return AgentResponse(
-            message=f"I reached the maximum number of tool iterations ({self.max_tool_iterations}) without reaching a final response.",
-            model=selected_model,
-            tools_used=tools_used,
-        )
+                    tools_used.append(
+                        ToolActivity(
+                            tool=tc.name,
+                            status="success" if result.success else "failed",
+                            verification_status=result.verification_status,
+                        )
+                    )
+
+                    messages.append(
+                        ChatMessage(
+                            role=MessageRole.TOOL,
+                            content=result.to_model_output(),
+                            tool_call_id=tc.id,
+                            name=tc.name,
+                        )
+                    )
+
+                iterations += 1
+            else:
+                final_text = f"I reached the maximum number of tool iterations ({self.max_tool_iterations}) without reaching a final response."
+
+            # 5. Persist final assistant response if generation succeeded
+            if conv_repo is not None and conv is not None:
+                try:
+                    await conv_repo.add_message(
+                        conversation_id=conv.id,
+                        role="assistant",
+                        content=final_text,
+                        meta={"model": selected_model},
+                    )
+                except Exception as exc:
+                    logger.warning("Failed to persist assistant message: %s", exc)
+
+            # 6. Update session state in Redis / ephemeral store
+            if self.session_manager is not None:
+                try:
+                    await self.session_manager.set_session_state(
+                        session_id=active_session_id,
+                        state={
+                            "session_id": active_session_id,
+                            "conversation_id": conv.id if conv else None,
+                            "last_model": selected_model,
+                            "updated_at": utc_now().isoformat(),
+                        },
+                    )
+                except Exception as exc:
+                    logger.warning("Failed to update session state: %s", exc)
+
+            return AgentResponse(
+                message=final_text,
+                model=selected_model,
+                session_id=active_session_id,
+                tools_used=tools_used,
+            )
 
     async def stream_message(
         self,
         message: str,
-        capability: Optional[Union[ModelCapability, str]] = None,
-        model: Optional[str] = None,
+        session_id: str | None = None,
+        capability: ModelCapability | str | None = None,
+        model: str | None = None,
     ) -> AsyncIterator[str]:
-        """Stream assistant response tokens. If tools are needed, run tool loop first then stream result."""
+        """Stream assistant response tokens. Persist final assistant message upon successful completion."""
+        active_session_id = (session_id or f"sess_{uuid.uuid4().hex[:12]}").strip()
         selected_model = self.resolve_model(capability=capability, model=model)
         tool_schemas = self._get_tool_schemas()
 
-        # If tools are enabled, run tool resolution
+        # If tools are enabled, execute tool loop through process_message
         if tool_schemas and self.tool_executor:
-            agent_resp = await self.process_message(message, capability=capability, model=selected_model)
+            agent_resp = await self.process_message(
+                message=message,
+                session_id=active_session_id,
+                capability=capability,
+                model=selected_model,
+            )
             yield agent_resp.message
-        else:
-            messages = self.build_prompt_messages(message)
-            async for chunk in self.provider.stream_response(messages, model=selected_model):
-                yield chunk
+            return
+
+        # Direct streaming with context loading and safe final response persistence
+        async with self._get_services() as (conv_repo, mem_service):
+            conv: Conversation | None = None
+            history: list[Message] = []
+            relevant_memories: list[MemoryResponse] = []
+
+            if conv_repo is not None:
+                try:
+                    conv = await conv_repo.get_or_create(session_id=active_session_id)
+                    await conv_repo.add_message(
+                        conversation_id=conv.id,
+                        role="user",
+                        content=message,
+                    )
+                    history = await conv_repo.get_recent_messages(
+                        conversation_id=conv.id,
+                        limit=self.max_context_messages,
+                    )
+                except Exception as exc:
+                    logger.warning("Error accessing conversation history: %s", exc)
+
+            if mem_service is not None:
+                try:
+                    search_results = await mem_service.search_memories(
+                        query=message,
+                        top_k=self.memory_top_k,
+                    )
+                    relevant_memories = [r.memory for r in search_results]
+                except Exception as exc:
+                    logger.warning("Error searching memories: %s", exc)
+
+            messages = self.build_prompt_messages(
+                user_message=message,
+                memories=relevant_memories,
+                history=history,
+            )
+
+            accumulated_chunks: list[str] = []
+            try:
+                async for chunk in self.provider.stream_response(messages, model=selected_model):
+                    accumulated_chunks.append(chunk)
+                    yield chunk
+
+                # Successful stream completion: persist final assistant response
+                full_response = "".join(accumulated_chunks)
+                if conv_repo is not None and conv is not None:
+                    try:
+                        await conv_repo.add_message(
+                            conversation_id=conv.id,
+                            role="assistant",
+                            content=full_response,
+                            meta={"model": selected_model},
+                        )
+                    except Exception as exc:
+                        logger.warning("Failed to persist stream assistant response: %s", exc)
+
+                if self.session_manager is not None:
+                    try:
+                        await self.session_manager.set_session_state(
+                            session_id=active_session_id,
+                            state={
+                                "session_id": active_session_id,
+                                "conversation_id": conv.id if conv else None,
+                                "last_model": selected_model,
+                                "updated_at": utc_now().isoformat(),
+                            },
+                        )
+                    except Exception as exc:
+                        logger.warning("Failed to update session state: %s", exc)
+
+            except Exception as exc:
+                logger.warning("Streaming interrupted or failed: %s", exc)
+                raise
 
     async def stream_message_with_metadata(
         self,
         message: str,
-        capability: Optional[Union[ModelCapability, str]] = None,
-        model: Optional[str] = None,
-    ) -> Tuple[str, AsyncIterator[str]]:
-        """Resolve model and return tuple of (model_id, stream_iterator)."""
+        session_id: str | None = None,
+        capability: ModelCapability | str | None = None,
+        model: str | None = None,
+    ) -> tuple[str, str, AsyncIterator[str]]:
+        """Resolve model and return tuple of (model_id, session_id, stream_iterator)."""
+        active_session_id = (session_id or f"sess_{uuid.uuid4().hex[:12]}").strip()
         selected_model = self.resolve_model(capability=capability, model=model)
-        stream = self.stream_message(message, capability=capability, model=selected_model)
-        return selected_model, stream
+        stream = self.stream_message(
+            message=message,
+            session_id=active_session_id,
+            capability=capability,
+            model=selected_model,
+        )
+        return selected_model, active_session_id, stream
 
 
 def get_default_agent() -> KairoAgent:
-    """Factory creating KairoAgent configured with ModelRouter, ToolRegistry, ToolExecutor, and OpenRouter."""
+    """Factory creating KairoAgent configured with ModelRouter, ToolRegistry, ToolExecutor, Memory, and OpenRouter."""
     settings = get_settings()
 
     # Initialize model registry and router
@@ -283,10 +565,21 @@ def get_default_agent() -> KairoAgent:
         app_name=settings.OPENROUTER_APP_NAME,
     )
 
+    # Initialize session manager and database session factory
+    session_manager = get_default_session_manager()
+    session_factory = get_sessionmaker()
+    embedding_provider = get_configured_embedding_provider()
+
     return KairoAgent(
         provider=provider,
         router=router,
         tool_registry=tool_registry,
         tool_executor=tool_executor,
         model=settings.KAIRO_MODEL,
+        session_manager=session_manager,
+        session_factory=session_factory,
+        embedding_provider=embedding_provider,
+        max_context_messages=settings.KAIRO_MAX_CONTEXT_MESSAGES,
+        memory_top_k=settings.KAIRO_MEMORY_TOP_K,
     )
+

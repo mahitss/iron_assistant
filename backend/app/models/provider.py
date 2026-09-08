@@ -1,7 +1,13 @@
 """Model provider abstraction, structured message definitions, and provider response models."""
 
+from collections.abc import AsyncIterator
 from enum import Enum
-from typing import Any, AsyncIterator, Dict, List, Optional, Protocol, Union, runtime_checkable
+from typing import (
+    Any,
+    Protocol,
+    runtime_checkable,
+)
+
 from pydantic import BaseModel, Field
 
 from app.tools.schemas import ToolCall
@@ -20,16 +26,16 @@ class ChatMessage(BaseModel):
     """Structured chat message exchanged with model providers."""
 
     role: MessageRole
-    content: Optional[str] = Field(default=None, description="Message content")
-    name: Optional[str] = Field(default=None, description="Tool name for tool messages")
-    tool_call_id: Optional[str] = Field(default=None, description="Associated tool call identifier")
-    tool_calls: Optional[List[Dict[str, Any]]] = Field(default=None, description="Raw tool call requests from assistant")
+    content: str | None = Field(default=None, description="Message content")
+    name: str | None = Field(default=None, description="Tool name for tool messages")
+    tool_call_id: str | None = Field(default=None, description="Associated tool call identifier")
+    tool_calls: list[dict[str, Any]] | None = Field(default=None, description="Raw tool call requests from assistant")
 
     model_config = {"frozen": True}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert ChatMessage to OpenAI/OpenRouter wire format."""
-        data: Dict[str, Any] = {"role": self.role.value}
+        data: dict[str, Any] = {"role": self.role.value}
         if self.content is not None:
             data["content"] = self.content
         if self.tool_call_id is not None:
@@ -44,9 +50,9 @@ class ChatMessage(BaseModel):
 class ProviderResponse(BaseModel):
     """Structured response from a model provider containing message text and/or tool calls."""
 
-    content: Optional[str] = Field(default=None, description="Assistant text response")
-    tool_calls: Optional[List[ToolCall]] = Field(default=None, description="Requested tool invocations")
-    model: Optional[str] = Field(default=None, description="Model identifier that produced the response")
+    content: str | None = Field(default=None, description="Assistant text response")
+    tool_calls: list[ToolCall] | None = Field(default=None, description="Requested tool invocations")
+    model: str | None = Field(default=None, description="Model identifier that produced the response")
 
     @property
     def has_tool_calls(self) -> bool:
@@ -66,7 +72,7 @@ class ProviderResponse(BaseModel):
 class ProviderError(Exception):
     """Base exception for model provider errors."""
 
-    def __init__(self, message: str, status_code: Optional[int] = None):
+    def __init__(self, message: str, status_code: int | None = None):
         super().__init__(message)
         self.message = message
         self.status_code = status_code
@@ -82,7 +88,7 @@ class AuthenticationError(ProviderError):
 class ProviderAPIError(ProviderError):
     """Raised when the upstream provider returns an error."""
 
-    def __init__(self, message: str, status_code: Optional[int] = 502):
+    def __init__(self, message: str, status_code: int | None = 502):
         super().__init__(message, status_code=status_code)
 
 
@@ -92,19 +98,19 @@ class ModelProvider(Protocol):
 
     async def generate_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
-    ) -> Union[str, ProviderResponse]:
+    ) -> str | ProviderResponse:
         """Generate a single complete response (or tool call) from the model provider."""
         ...
 
     async def stream_response(
         self,
-        messages: List[ChatMessage],
-        model: Optional[str] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[ChatMessage],
+        model: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         """Stream response tokens/chunks from the model provider."""

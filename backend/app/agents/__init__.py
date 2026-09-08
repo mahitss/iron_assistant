@@ -9,9 +9,9 @@ from .core import (
 )
 
 __all__ = [
-    "KairoAgent",
+    "KAIRO_SYSTEM_PROMPT",
     "AgentResponse",
+    "KairoAgent",
     "ToolActivity",
     "get_default_agent",
-    "KAIRO_SYSTEM_PROMPT",
 ]

@@ -1,7 +1,8 @@
 """Data schemas for structured tool calls and tool execution results."""
 
 import json
-from typing import Any, Dict, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -10,7 +11,7 @@ class ToolCall(BaseModel):
 
     id: str = Field(..., description="Unique call identifier matching provider payload")
     name: str = Field(..., description="Target tool name to execute")
-    arguments: Dict[str, Any] = Field(default_factory=dict, description="Parsed tool input arguments")
+    arguments: dict[str, Any] = Field(default_factory=dict, description="Parsed tool input arguments")
 
     model_config = {"frozen": True}
 
@@ -20,9 +21,9 @@ class ToolResult(BaseModel):
 
     success: bool = Field(..., description="True if the tool executed without error")
     tool_name: str = Field(..., description="Name of the executed tool")
-    tool_call_id: Optional[str] = Field(default=None, description="Matching ToolCall ID")
-    result: Optional[Any] = Field(default=None, description="Output returned by the tool")
-    error: Optional[str] = Field(default=None, description="Clean error message if execution failed")
+    tool_call_id: str | None = Field(default=None, description="Matching ToolCall ID")
+    result: Any | None = Field(default=None, description="Output returned by the tool")
+    error: str | None = Field(default=None, description="Clean error message if execution failed")
     verification_status: str = Field(default="verified", description="Outcome of output verification (verified/failed/skipped)")
 
     def to_model_output(self) -> str:

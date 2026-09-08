@@ -1,7 +1,6 @@
 """Permission levels and access control for Kairo tools."""
 
 from enum import Enum
-from typing import Dict, Optional
 
 
 class PermissionLevel(str, Enum):
@@ -39,7 +38,7 @@ class PermissionManager:
     - WRITE, EXTERNAL, DESTRUCTIVE: requires approval (denied without explicit approval).
     """
 
-    def __init__(self, custom_policies: Optional[Dict[PermissionLevel, PermissionDecision]] = None):
+    def __init__(self, custom_policies: dict[PermissionLevel, PermissionDecision] | None = None):
         self._policies = {
             PermissionLevel.READ: PermissionDecision.AUTO_ALLOWED,
             PermissionLevel.WRITE: PermissionDecision.REQUIRES_APPROVAL,

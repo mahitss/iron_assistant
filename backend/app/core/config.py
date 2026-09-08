@@ -163,6 +163,16 @@ class Settings(BaseSettings):
             return []
         return [c.strip() for c in self.KAIRO_ALLOWED_TEST_COMMANDS.split(",") if c.strip()]
 
+    # Automation & Workflow Engine Settings
+    KAIRO_AUTOMATION_ENABLED: bool = True
+    KAIRO_WORKFLOW_TIMEOUT_SECONDS: int = 900
+    KAIRO_WORKFLOW_STEP_TIMEOUT_SECONDS: int = 120
+    KAIRO_MAX_WORKFLOWS_PER_USER: int = 50
+    KAIRO_MAX_CONCURRENT_WORKFLOW_RUNS: int = 5
+    KAIRO_MIN_SCHEDULE_INTERVAL_SECONDS: int = 60
+    KAIRO_WORKFLOW_MAX_RETRIES: int = 3
+    KAIRO_APPROVAL_TIMEOUT_SECONDS: int = 30
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str]:

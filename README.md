@@ -581,9 +581,97 @@ KAIRO_ALLOWED_TEST_COMMANDS=                     # Comma-separated exact allowli
 
 ---
 
+---
+
+## Automation and Workflow Engine (Phase 13)
+
+Kairo includes a durable, observable, permission-aware, cancellable, and idempotent workflow automation engine:
+
+> **"Workflows reference registered tools and cannot execute arbitrary code."**  
+> **"External/destructive actions require the existing permission and approval system."**
+
+### 1. Automation Architecture
+
+```text
+Trigger (Schedule, Manual, Condition)
+   ↓
+Workflow Scheduler (SELECT FOR UPDATE SKIP LOCKED)
+   ↓
+Workflow Instance & State Machine (PENDING → RUNNING)
+   ↓
+Condition Evaluation (Deterministic ConditionEngine; no eval/exec)
+   ↓
+Step Plan Execution
+   ↓
+Permission Check & Human-in-the-Loop Approval Gate (if WRITE / EXTERNAL / EXECUTE / DESTRUCTIVE)
+   ↓
+Action Execution (via registered tools in ToolRegistry)
+   ↓
+Result Verification & Event Emission
+   ↓
+State Finalization (COMPLETED / RETRYING / FAILED / CANCELLED)
+```
+
+- **PostgreSQL as Authoritative Store**: `workflows`, `workflow_runs`, `workflow_steps`, `approvals`, `notifications`, and `workflow_events`.
+- **Redis for Ephemeral Primitives**: Distributed lock coordination and transient status cache. Definitions and history always live in PostgreSQL.
+- **Strict User Ownership**: Workflows, runs, approvals, and notifications are scoped to their creator tenant (`user_id`). Cross-tenant access is prohibited (enforced via 403 Forbidden).
+
+### 2. Triggers & Schedules
+- **SCHEDULE**: Supports `once`, `hourly`, `daily`, and `weekly` intervals.
+- **Timezone Awareness**: All schedule calculations accept explicit IANA timezones (e.g. `Asia/Kolkata`, `America/New_York`) and normalize to UTC.
+- **Minimum Interval Enforcement**: Minimum schedule interval is bounded to 60 seconds (`KAIRO_MIN_SCHEDULE_INTERVAL_SECONDS`). Sub-minute intervals are rejected.
+- **MANUAL**: Triggered directly by the user on demand via `POST /api/v1/automations/{id}/run`.
+- **CONDITION**: Periodically evaluated workflows that run when a specific data condition is met, cleanly stopping or alerting without duplicate spam.
+
+### 3. State Machine Transitions
+Durable status transitions are validated at runtime:
+- `PENDING` → `RUNNING` → `COMPLETED`
+- `RUNNING` → `WAITING_APPROVAL` → `RUNNING` / `EXPIRED`
+- `RUNNING` → `RETRYING` → `RUNNING` / `FAILED`
+- `RUNNING` / `PENDING` / `WAITING_APPROVAL` → `CANCELLED`
+- Invalid transitions immediately raise `InvalidStateTransitionError`.
+
+### 4. Deterministic Condition Engine
+- Supports strict operators: `equals`, `not_equals`, `contains`, `greater_than`, `less_than`, `exists`, `status_is`.
+- Supports nested dot-notation and bracket indexing (e.g., `checks[0].conclusion`, `status.is_clean`).
+- **Security**: No `eval()`, no `exec()`, no dynamic code interpretation. Unknown operators are rejected.
+
+### 5. Retries & Idempotency
+- **Exponential Backoff**: Configurable backoff with jitter and max attempt limits (`KAIRO_WORKFLOW_MAX_RETRIES`).
+- **Transient Failure Filtering**: Never retries permission denials, authentication errors, invalid arguments, or rejected approvals.
+- **Deterministic Idempotency Keys**: Scheduled runs are keyed by `sched_{workflow_id}_{scheduled_ts}`; manual runs use unique UUID keys. Re-running the same scheduled timestamp never produces duplicate runs.
+
+### 6. Human-in-the-Loop Approvals & Cancellation
+- **Approval Gate**: If any step requests tools requiring `WRITE`, `EXTERNAL`, `EXECUTE`, or `DESTRUCTIVE` permissions, the run pauses in `WAITING_APPROVAL`, creates an `ApprovalRequest`, and sets a countdown timer (default 30 seconds).
+- **Expiration**: If the approval expires, the request transitions to `expired` and the run fails safely.
+- **Cancellation**: Users can cancel any active run via `POST /api/v1/automations/{id}/cancel`, stopping future steps and releasing resources.
+
+### 7. Crash Recovery & Bounded Execution
+- **Stale Run Recovery**: On scheduler poll, runs stuck in `running` beyond `KAIRO_WORKFLOW_TIMEOUT_SECONDS` (default 900s) are safely marked failed with diagnostic timeouts.
+- **Step Bounds**: Individual steps are bounded by `KAIRO_WORKFLOW_STEP_TIMEOUT_SECONDS` (default 120s).
+
+### 8. Configuration Variables
+```bash
+KAIRO_AUTOMATION_ENABLED=true                   # Enable workflow engine & scheduler
+KAIRO_WORKFLOW_TIMEOUT_SECONDS=900              # Global workflow timeout (15 minutes)
+KAIRO_WORKFLOW_STEP_TIMEOUT_SECONDS=120         # Individual step execution timeout (2 minutes)
+KAIRO_MAX_WORKFLOWS_PER_USER=50                 # Maximum active workflows per tenant
+KAIRO_MAX_CONCURRENT_WORKFLOW_RUNS=5            # Concurrency limit for background runs
+KAIRO_MIN_SCHEDULE_INTERVAL_SECONDS=60          # Minimum scheduler polling interval (60s)
+KAIRO_WORKFLOW_MAX_RETRIES=3                    # Max retry attempts for transient errors
+KAIRO_APPROVAL_TIMEOUT_SECONDS=30               # Expiration deadline for pending approvals
+```
+
+### 9. Known Limitations
+- Autonomous generation of executable workflows by LLMs is intentionally disabled (workflows are defined via structured API/UI schemas).
+- External notification transports (SMS, WhatsApp, Slack, Telegram) are deferred; in-app event notifications are authoritative.
+- Sub-minute scheduling and arbitrary shell script execution are strictly prohibited.
+
+---
+
 ## Running Tests
 
-The test suite contains **236 unit and integration tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path traversal protection, secret redaction, mocked GitHub integration, and controlled test sandboxing:
+The test suite contains **263 backend unit and integration tests** and **10 frontend tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path traversal protection, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, and tenant isolation:
 
 ```bash
 cd backend
@@ -610,4 +698,5 @@ npm test
 - [x] **Phase 8: Browser Control System** — Playwright Chromium automation, isolated sessions, SSRF & redirect defense, bounded inspection, screenshot capture, sensitive field rejection, approval policy.
 - [x] **Phase 9: Voice Pipeline** — Real-time WebSockets (`/api/v1/voice`), 16kHz PCM streaming, VAD, STT/TTS provider abstraction, barge-in interruption.
 - [x] **Phase 12: Developer & GitHub Intelligence System** — Local Git inspection, code search, path security, secret redaction, read-only GitHub integration, controlled test execution with strict allowlist.
+- [x] **Phase 13: Automation & Workflow Engine** — Durable workflow definitions, deterministic condition engine, distributed scheduler, idempotency keys, human-in-the-loop approval requests, stale run recovery, cancellation, and tenant isolation.
 

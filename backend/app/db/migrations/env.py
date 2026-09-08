@@ -11,6 +11,14 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 # Add backend directory to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
+import app.agents.models  # noqa: F401
+import app.automation.models  # noqa: F401
+import app.context.models  # noqa: F401
+
+# Import all models to register them on Base.metadata for migrations
+import app.memory.models  # noqa: F401
+import app.proactive.models  # noqa: F401
+import app.security.models  # noqa: F401
 from app.core.config import get_settings
 from app.db.session import Base
 

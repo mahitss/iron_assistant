@@ -3,7 +3,6 @@
 import logging
 import re
 
-from app.agents.policies import AgentSecurityPolicy
 from app.context.schemas import ContextItem
 from app.memory.sanitizer import MemorySanitizer
 
@@ -42,6 +41,8 @@ class ContextSafetyGuard:
             content = MemorySanitizer.sanitize(content)
 
         # 2. Prompt injection defense on untrusted content
+        from app.agents.policies import AgentSecurityPolicy
+
         sanitized_content = AgentSecurityPolicy.sanitize_untrusted_input(content)
 
         return ContextItem(

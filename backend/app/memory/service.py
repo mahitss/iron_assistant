@@ -38,6 +38,7 @@ class MemoryService:
         memory_type: MemoryType = MemoryType.FACT,
         importance: float = 0.5,
         source: str | None = "user_explicit",
+        user_id: str | None = "default_user",
     ) -> MemoryResponse:
         """Sanitize content, generate embedding vector, and save new long-term memory."""
         # 1. Sanitize content (rejects secrets/passwords/API keys)
@@ -59,6 +60,7 @@ class MemoryService:
             embedding=embedding,
             importance=importance,
             source=source,
+            user_id=user_id or "default_user",
         )
         return MemoryResponse.model_validate(memory)
 
@@ -68,6 +70,7 @@ class MemoryService:
         top_k: int = 5,
         memory_type: MemoryType | None = None,
         min_score: float = 0.1,
+        user_id: str | None = None,
     ) -> list[MemorySearchResult]:
         """Perform semantic search, rank by similarity + importance + recency, and return top matches."""
         if not self.embedding_provider:
@@ -86,6 +89,7 @@ class MemoryService:
             query_embedding=query_embedding,
             top_k=top_k * 2,  # Retrieve wider candidate window for composite re-ranking
             memory_type=type_str,
+            user_id=user_id,
         )
 
         if not matches:
@@ -129,28 +133,30 @@ class MemoryService:
 
         return top_results
 
-    async def get_memory(self, memory_id: str) -> MemoryResponse | None:
-        """Fetch memory entry by UUID."""
-        mem = await self.repository.get_by_id(memory_id)
+    async def get_memory(self, memory_id: str, user_id: str | None = None) -> MemoryResponse | None:
+        """Fetch memory entry by UUID, optionally filtered by user_id."""
+        mem = await self.repository.get_by_id(memory_id, user_id=user_id)
         return MemoryResponse.model_validate(mem) if mem else None
 
     async def list_memories(
         self,
         memory_type: MemoryType | None = None,
         limit: int = 100,
+        user_id: str | None = None,
     ) -> list[MemoryResponse]:
-        """List stored memories."""
+        """List stored memories, optionally filtered by user_id."""
         type_str = memory_type.value if memory_type else None
-        mems = await self.repository.list_all(memory_type=type_str, limit=limit)
+        mems = await self.repository.list_all(memory_type=type_str, limit=limit, user_id=user_id)
         return [MemoryResponse.model_validate(m) for m in mems]
 
     async def update_memory(
         self,
         memory_id: str,
         update_data: MemoryUpdate,
+        user_id: str | None = None,
     ) -> MemoryResponse | None:
-        """Update an existing memory entry."""
-        mem = await self.repository.get_by_id(memory_id)
+        """Update an existing memory entry, scoped by user_id."""
+        mem = await self.repository.get_by_id(memory_id, user_id=user_id)
         if mem is None:
             return None
 
@@ -175,9 +181,9 @@ class MemoryService:
         )
         return MemoryResponse.model_validate(updated)
 
-    async def delete_memory(self, memory_id: str) -> bool:
-        """Delete a memory entry."""
-        return await self.repository.delete(memory_id)
+    async def delete_memory(self, memory_id: str, user_id: str | None = None) -> bool:
+        """Delete a memory entry, scoped by user_id."""
+        return await self.repository.delete(memory_id, user_id=user_id)
 
     async def process_candidate(
         self,

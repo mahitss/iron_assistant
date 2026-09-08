@@ -98,6 +98,7 @@ class MemoryRepository:
         embedding: list[float] | None = None,
         importance: float = 0.5,
         source: str | None = "user_explicit",
+        user_id: str | None = "default_user",
     ) -> Memory:
         """Persist a new memory entry."""
         memory = Memory(
@@ -106,14 +107,17 @@ class MemoryRepository:
             embedding=embedding,
             importance=importance,
             source=source,
+            user_id=user_id or "default_user",
         )
         self.session.add(memory)
         await self.session.flush()
         return memory
 
-    async def get_by_id(self, memory_id: str) -> Memory | None:
-        """Fetch memory entry by UUID primary key."""
+    async def get_by_id(self, memory_id: str, user_id: str | None = None) -> Memory | None:
+        """Fetch memory entry by UUID primary key, optionally scoped by user."""
         stmt = select(Memory).where(Memory.id == memory_id)
+        if user_id is not None:
+            stmt = stmt.where(Memory.user_id == user_id)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -121,11 +125,14 @@ class MemoryRepository:
         self,
         memory_type: str | None = None,
         limit: int = 100,
+        user_id: str | None = None,
     ) -> list[Memory]:
-        """List stored memories with optional type filter."""
+        """List stored memories with optional type and user filter."""
         stmt = select(Memory).order_by(desc(Memory.created_at)).limit(limit)
         if memory_type:
             stmt = stmt.where(Memory.memory_type == memory_type)
+        if user_id is not None:
+            stmt = stmt.where(Memory.user_id == user_id)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
@@ -134,8 +141,9 @@ class MemoryRepository:
         query_embedding: list[float],
         top_k: int = 5,
         memory_type: str | None = None,
+        user_id: str | None = None,
     ) -> list[tuple[Memory, float]]:
-        """Search memories by vector similarity with pgvector or in-memory fallback."""
+        """Search memories by vector similarity with pgvector or in-memory fallback, scoped by user."""
         bind = self.session.bind
         dialect_name = bind.dialect.name if bind is not None else ""
 
@@ -145,6 +153,8 @@ class MemoryRepository:
             stmt = select(Memory, distance_col)
             if memory_type:
                 stmt = stmt.where(Memory.memory_type == memory_type)
+            if user_id is not None:
+                stmt = stmt.where(Memory.user_id == user_id)
             stmt = stmt.where(Memory.embedding.is_not(None)).order_by("dist").limit(top_k)
 
             result = await self.session.execute(stmt)
@@ -158,6 +168,8 @@ class MemoryRepository:
         stmt = select(Memory).where(Memory.embedding.is_not(None))
         if memory_type:
             stmt = stmt.where(Memory.memory_type == memory_type)
+        if user_id is not None:
+            stmt = stmt.where(Memory.user_id == user_id)
 
         result = await self.session.execute(stmt)
         all_mems = result.scalars().all()
@@ -194,9 +206,9 @@ class MemoryRepository:
         await self.session.flush()
         return memory
 
-    async def delete(self, memory_id: str) -> bool:
-        """Delete a memory entry by ID."""
-        mem = await self.get_by_id(memory_id)
+    async def delete(self, memory_id: str, user_id: str | None = None) -> bool:
+        """Delete a memory entry by ID, scoped by user."""
+        mem = await self.get_by_id(memory_id, user_id=user_id)
         if mem is None:
             return False
         await self.session.delete(mem)

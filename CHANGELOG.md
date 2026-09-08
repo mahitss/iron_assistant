@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-09-09
+
+### Added
+- **Personal Context Engine**:
+  - Centralized `ContextEngine` managing active user context, project affinity, recent working history, and relevant semantic memories.
+  - Multi-tier ranking algorithm combining semantic relevance, recency decay, and importance scoring.
+  - Explainable provenance tracking: every injected context snippet provides clear user-inspectable provenance and confidence without exposing internal weights.
+  - Risk-aware context disambiguation: when user instructions are ambiguous across multiple project workspaces, Kairo prompts for explicit clarification rather than guessing.
+  - Context preference controls: granular user toggles for memory retrieval, project context injection, active git context, and recent history depth.
+- **Project Workspaces**:
+  - Full project workspace management with dedicated tables (`projects`, `project_repositories`, `project_workflows`, `project_conversations`).
+  - Strict user-level tenant isolation: users can only inspect, modify, link, or archive projects they own.
+  - Repository linking with primary branch detection and primary repository flags.
+  - Workflow and conversation association linking automations directly to projects.
+  - Project archival and deletion cascading with foreign key constraints.
+- **Unified Command Center UI**:
+  - Cohesive single-window interface unifying Chat, Personal Context, Projects, Automations, Activity & Audit Logs, Security Center, Memory Management, and System Status.
+  - Command Palette (`Ctrl+K` / `Cmd+K`) for fast, keyboard-driven navigation, project switching, and action execution.
+  - Real-time reactive state store with centralized event dispatch and persistent preferences.
+  - Context Inspector drawer allowing users to inspect active memory provenance, tokens, and relevance scores.
+  - Global Security Banner & Emergency Stop accessible from any view with visual feedback.
+  - Mobile-responsive navigation and WCAG 2.1 AA accessible keyboard navigation and ARIA landmarks.
+- **Comprehensive Integration, Stress Testing & Hardening**:
+  - Full end-to-end integration test suite (`test_v1_1_integration_stress.py`) verifying schema integrity, auth lifecycle, tenant isolation, streaming SSE, prompt injection defenses, emergency stop blocking, and multi-agent cancellation.
+  - Concurrency and load testing verifying zero race conditions under 10, 25, and 50 concurrent requests.
+  - Deterministic 20-step verification demo (`scripts/demo_v1_1_scenario.py`).
+
+### Security
+- **Strict Multi-Tenant Isolation**:
+  - Enforced `user_id` authorization scoping across all long-term memory CRUD endpoints (`/api/v1/memory`, `/api/v1/internal/memories`).
+  - Added user ownership validation on all Project CRUD, repository linking, and workflow association endpoints.
+  - Cross-user approval hijacking prevention: decisions made on approvals owned by other users are rejected with `TenantIsolationError`.
+- **Production Configuration Hardening**:
+  - Updated `validate_environment` to reject `localhost`, `127.0.0.1`, `::1`, and wildcards in `ALLOWED_ORIGINS` when `ENVIRONMENT=production`.
+  - Enforced strong secret key validation and mandatory production secrets.
+
+### Reliability & Infrastructure
+- **Database Migration 0006**:
+  - Added Alembic migration `0006_personal_context_and_projects.py` registering all project and context tables, indexes, and foreign keys.
+  - Base metadata synchronized across all 23 database tables ensuring clean zero-state setup.
+- **Circular Dependency Elimination**:
+  - Decoupled `app.context` from `app.agents` import graph, eliminating module initialization race conditions.
+- **Memory Service Signature Alignment**:
+  - Aligned `MemoryService.create_memory` with caller contracts, ensuring robust multi-tenant memory creation.
+
+---
+
 ## [1.0.0] - 2026-09-08
 
 ### Added

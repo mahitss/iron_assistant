@@ -55,6 +55,13 @@ def validate_environment(settings: "Settings") -> None:
             errors.append("ALLOWED_ORIGINS must specify allowed frontend domains in production.")
         elif "*" in origins:
             errors.append("ALLOWED_ORIGINS must not use wildcard '*' in production.")
+        else:
+            for origin in origins:
+                lower_origin = origin.lower()
+                if "localhost" in lower_origin or "127.0.0.1" in lower_origin or "::1" in lower_origin:
+                    errors.append(
+                        f"ALLOWED_ORIGINS must not contain localhost or local loopback in production: {origin}"
+                    )
 
         if errors:
             err_msg = "Production configuration validation failed:\n" + "\n".join(f"- {e}" for e in errors)

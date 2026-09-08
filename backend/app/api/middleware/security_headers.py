@@ -20,8 +20,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["X-XSS-Protection"] = "1; mode=block"
 
-        # Content-Security-Policy
-        response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none';"
+        # Content-Security-Policy allowing Kairo UI, OpenAPI docs, Google Fonts, and WebSockets
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com data:; "
+            "script-src 'self' 'unsafe-inline'; "
+            "connect-src 'self' ws: wss:; "
+            "img-src 'self' data: https:; "
+            "frame-ancestors 'none';"
+        )
 
         # Strict-Transport-Security in production environments
         settings = get_settings()

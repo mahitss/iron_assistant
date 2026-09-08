@@ -1,9 +1,13 @@
 """Tool execution engine with argument validation, permissions check, and verification."""
 
 import logging
+from typing import Any
 
 from pydantic import ValidationError
 
+from app.security.audit import AuditLogger
+from app.security.center import SecurityCenter, get_security_center
+from app.security.policies import SecurityDecision
 from app.tools.permissions import (
     PermissionDecision,
     PermissionDeniedError,
@@ -16,18 +20,26 @@ logger = logging.getLogger("kairo.tools.executor")
 
 
 class ToolExecutor:
-    """Executes structured tool calls safely against the registry."""
+    """Executes structured tool calls safely against the registry and Security Center."""
 
     def __init__(
         self,
         registry: ToolRegistry,
         permission_manager: PermissionManager | None = None,
+        security_center: SecurityCenter | None = None,
     ) -> None:
         self.registry = registry
         self.permission_manager = permission_manager or PermissionManager()
+        self.security_center = security_center or get_security_center()
 
-    async def execute(self, tool_call: ToolCall) -> ToolResult:
-        """Execute a single structured tool call safely and return structured ToolResult."""
+    async def execute(
+        self,
+        tool_call: ToolCall,
+        user_id: str = "default_user",
+        session_id: str | None = None,
+        db_session: Any = None,
+    ) -> ToolResult:
+        """Execute a single structured tool call safely through the Security Center."""
         tool_name = tool_call.name
         tool = self.registry.get(tool_name)
 
@@ -42,7 +54,39 @@ class ToolExecutor:
                 verification_status="failed",
             )
 
-        # 2. Check permission policy
+        # 2. Authoritative Security Center evaluation
+        sec_decision = await self.security_center.authorize(
+            user_id=user_id,
+            tool_name=tool.name,
+            arguments=tool_call.arguments,
+            permission_level=tool.permission_level,
+            session_id=session_id,
+            db_session=db_session,
+        )
+
+        if sec_decision.decision == SecurityDecision.DENIED:
+            logger.warning("Security Center DENIED tool '%s': %s", tool.name, sec_decision.reason)
+            return ToolResult(
+                success=False,
+                tool_name=tool.name,
+                tool_call_id=tool_call.id,
+                error=sec_decision.reason or f"Action '{tool.name}' is denied by Security Center.",
+                verification_status="denied",
+                approval_required=False,
+            )
+
+        if sec_decision.decision == SecurityDecision.APPROVAL_REQUIRED:
+            logger.info("Security Center requires approval for tool '%s'", tool.name)
+            return ToolResult(
+                success=False,
+                tool_name=tool.name,
+                tool_call_id=tool_call.id,
+                error=sec_decision.reason or f"Action '{tool.name}' requires explicit user approval.",
+                verification_status="denied",
+                approval_required=True,
+            )
+
+        # 3. Check legacy permission manager for backward compatibility with custom test policies
         try:
             self.permission_manager.check_permission(tool.name, tool.permission_level)
         except PermissionDeniedError as exc:

@@ -9,6 +9,7 @@ from app.api.routes.automations import router as automations_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.memory import user_router as user_memory_router
+from app.api.routes.security import router as security_router
 from app.api.routes.voice import router as voice_router
 from app.core.config import get_settings
 
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(user_memory_router, prefix=settings.API_V1_STR)
     app.include_router(voice_router, prefix=settings.API_V1_STR)
     app.include_router(automations_router, prefix=settings.API_V1_STR)
+    app.include_router(security_router, prefix=settings.API_V1_STR)
 
     return app
 

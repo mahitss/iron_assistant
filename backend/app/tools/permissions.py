@@ -1,24 +1,6 @@
 """Permission levels and access control for Kairo tools."""
 
-from enum import Enum
-
-
-class PermissionLevel(str, Enum):
-    """Classification of tool execution risk and impact."""
-
-    READ = "READ"
-    WRITE = "WRITE"
-    EXTERNAL = "EXTERNAL"
-    EXECUTE = "EXECUTE"
-    DESTRUCTIVE = "DESTRUCTIVE"
-
-
-class PermissionDecision(str, Enum):
-    """Authorization status for a tool execution request."""
-
-    AUTO_ALLOWED = "AUTO_ALLOWED"
-    REQUIRES_APPROVAL = "REQUIRES_APPROVAL"
-    DENIED = "DENIED"
+from app.security.permissions import PermissionDecision, PermissionLevel
 
 
 class PermissionDeniedError(Exception):

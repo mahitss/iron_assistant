@@ -173,6 +173,11 @@ class Settings(BaseSettings):
     KAIRO_WORKFLOW_MAX_RETRIES: int = 3
     KAIRO_APPROVAL_TIMEOUT_SECONDS: int = 30
 
+    # Security, Permissions, Approval & Audit Center Settings (Task 14)
+    KAIRO_SECURITY_ENABLED: bool = True
+    KAIRO_AUDIT_ENABLED: bool = True
+    KAIRO_COMPUTER_ENABLED: bool = False
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str]:

@@ -669,9 +669,100 @@ KAIRO_APPROVAL_TIMEOUT_SECONDS=30               # Expiration deadline for pendin
 
 ---
 
+---
+
+## Central Security, Permissions, Approval, and Audit Center (Phase 14)
+
+Kairo incorporates a centralized, authoritative security architecture governing all tool executions, user consent, emergency stops, capability gates, and audit trails:
+
+> **"Kairo's model does not control its own permissions."**  
+> **"All executable tool actions pass through the central security layer."**
+
+### 1. Central Security Architecture
+
+```text
+                                KAIRO CORE / AGENT
+                                        │
+                                        ▼
+                                 SECURITY CENTER
+                                        │
+                    ┌───────────────────┼───────────────────┐
+                    ↓                   ↓                   ↓
+             Capability Gates     Risk & Policy       Audit Trail
+                    │                   │                   │
+                    └───────────────────┼───────────────────┘
+                                        │
+                                        ▼
+                                   ToolExecutor
+                                        │
+                    ┌───────────────────┼───────────────────┐
+                    ↓                   ↓                   ↓
+                Web Tools         Browser Tools       Developer Tools
+                    │                   │                   │
+               Automation         Computer (Mock)     Voice / Vision
+```
+
+Every tool execution follows a mandatory 6-step evaluation pipeline:
+1. **Emergency Stop Check**: Verifies the emergency kill switch. When active, all side-effecting (`WRITE`, `EXTERNAL`, `EXECUTE`, `DESTRUCTIVE`) actions are blocked immediately.
+2. **User Capability Check**: Validates whether the tool's governing capability gate is enabled for the authenticated tenant.
+3. **Rate Limit Check**: Enforces sliding-window limits for tool calls and external side-effects.
+4. **Central Policy & Risk Classification**: Evaluates the tool against the central policy table and classifies risk (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
+5. **Approval Verification & Fingerprint Binding**: Verifies whether an active, valid approval exists for the exact action fingerprint. If not, pauses execution and issues an `ApprovalRequest`.
+6. **Append-Only Audit Logging**: Records the decision, timestamp, tool, risk level, and redacted parameters into the immutable audit trail.
+
+### 2. Permission Levels & Risk Model
+
+- **Permissions**: `READ`, `WRITE`, `EXECUTE`, `EXTERNAL`, `DESTRUCTIVE`.
+- **Risk Levels**: `LOW`, `MEDIUM`, `HIGH`, `CRITICAL`.
+- **Policy Table**:
+  - `READ` operations (e.g. `web_search`, `git_status`, `browser_inspect`) are classified as `LOW` risk and `ALLOWED`.
+  - Interactive & external operations (e.g. `browser_click`, `browser_fill`, `test_runner`, `git_push`) are classified as `MEDIUM`/`HIGH` risk and require explicit human approval (`APPROVAL_REQUIRED`).
+  - Destructive operations (e.g. `github_merge_pr`) are classified as `CRITICAL` risk and strictly `DENIED`.
+
+### 3. Human-in-the-Loop Approvals & Deterministic Fingerprints
+
+- **Exact Fingerprint Binding**: Approvals are cryptographically bound to a `SHA-256` hash of `(tool_name, user_id, session_id, canonical_sanitized_args)`. If an action's arguments or context change after approval, the prior approval cannot be reused.
+- **Strict Expiration**: Approvals expire after `KAIRO_APPROVAL_TIMEOUT_SECONDS` (default 30 seconds). Expired requests transition to `expired` and abort execution.
+- **Cross-User Protection**: Approvals are strictly tenant-isolated; users cannot approve, inspect, or deny other tenants' requests (enforced via `403 Forbidden`).
+
+### 4. Emergency Stop (Kill Switch)
+
+- Dedicated kill switch with `ACTIVE` and `STOPPED` states.
+- When `STOPPED`, all side-effecting operations across browsers, automations, developer tools, and computer interactions are blocked immediately.
+- **Model Tampering Defense**: The AI model cannot disable or reset the emergency stop. Resets strictly require explicit human user authentication.
+
+### 5. Capability Gates
+
+User-level capability controls:
+- Web Research (`web_research`) — Default `ON`
+- Browser Automation (`browser`) — Default `ON`
+- Voice System (`voice`) — Default `ON`
+- Vision Input (`vision`) — Default `ON`
+- Controlled Computer Interaction (`computer_control`) — Default `OFF`
+- Developer Tools (`developer_tools`) — Default `ON`
+- Workflow Automation (`automation`) — Default `ON`
+
+When a capability is toggled OFF, all related tools are denied by policy; the model cannot override capability toggles.
+
+### 6. Argument Redaction & Immutable Audit Trail
+
+- `ArgumentSanitizer` automatically scrubs passwords, API keys (`sk-...`), GitHub tokens (`ghp_...`), Bearer tokens, private keys, and sensitive dictionary keys (`password`, `token`, `secret`, `credential`, `cookie`).
+- Oversized text fields are truncated to 500 characters.
+- Audit records (`security_audit_events`) are append-only and strictly scoped to the tenant.
+
+### 7. Configuration Variables
+```bash
+KAIRO_SECURITY_ENABLED=true                     # Enable Central Security Center
+KAIRO_AUDIT_ENABLED=true                        # Enable append-only audit trail
+KAIRO_APPROVAL_TIMEOUT_SECONDS=30               # Expiration deadline for pending approvals
+KAIRO_COMPUTER_ENABLED=false                    # Computer control capability default gate
+```
+
+---
+
 ## Running Tests
 
-The test suite contains **263 backend unit and integration tests** and **10 frontend tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path traversal protection, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, and tenant isolation:
+The test suite contains **283 backend unit and integration tests** and **15 frontend tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path traversal protection, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, tenant isolation, security policy matrices, emergency stops, capability gates, and audit trails:
 
 ```bash
 cd backend
@@ -699,4 +790,5 @@ npm test
 - [x] **Phase 9: Voice Pipeline** — Real-time WebSockets (`/api/v1/voice`), 16kHz PCM streaming, VAD, STT/TTS provider abstraction, barge-in interruption.
 - [x] **Phase 12: Developer & GitHub Intelligence System** — Local Git inspection, code search, path security, secret redaction, read-only GitHub integration, controlled test execution with strict allowlist.
 - [x] **Phase 13: Automation & Workflow Engine** — Durable workflow definitions, deterministic condition engine, distributed scheduler, idempotency keys, human-in-the-loop approval requests, stale run recovery, cancellation, and tenant isolation.
+- [x] **Phase 14: Central Security, Permissions, Approval & Audit Center** — Authoritative Security Center, permission and risk taxonomy, emergency stop kill switch, capability gates, deterministic approval fingerprinting, secret redaction, append-only audit trail, and user isolation.
 

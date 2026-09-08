@@ -33,23 +33,25 @@ services:
       retries: 5
       start_period: 5s
 
-  backend:
+  api:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: kairo_backend
+      dockerfile: deploy/docker/Dockerfile
+    container_name: kairo_api
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - ENVIRONMENT=production
+      - ENVIRONMENT=${ENVIRONMENT:-production}
       - DEBUG=false
       - HOST=0.0.0.0
       - PORT=8000
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-kairo}:${POSTGRES_PASSWORD:-kairo_secret}@postgres:5432/${POSTGRES_DB:-kairo}
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY}
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY:-default_insecure_auth_secret_key_32_characters}
+      - SECRET_KEY=${SECRET_KEY:-default_system_secret_key_32_characters}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - KAIRO_COMPUTER_ENABLED=false
     depends_on:
       postgres:
         condition: service_healthy
@@ -61,6 +63,26 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  worker:
+    build:
+      context: .
+      dockerfile: deploy/docker/Dockerfile.worker
+    container_name: kairo_worker
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-kairo}:${POSTGRES_PASSWORD:-kairo_secret}@postgres:5432/${POSTGRES_DB:-kairo}
+      - REDIS_URL=redis://redis:6379/0
+      - AUTH_SECRET_KEY=${AUTH_SECRET_KEY:-default_insecure_auth_secret_key_32_characters}
+      - SECRET_KEY=${SECRET_KEY:-default_system_secret_key_32_characters}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - KAIRO_COMPUTER_ENABLED=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

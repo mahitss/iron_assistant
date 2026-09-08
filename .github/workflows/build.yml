@@ -1,0 +1,96 @@
+name: Kairo Container Build & Image Security
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-scan-api:
+    name: Build & Scan API Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: Extract Metadata & Git SHA
+        id: meta
+        run: |
+          echo "GIT_SHA=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          echo "BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
+
+      - name: Build Kairo API Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./deploy/docker/Dockerfile
+          push: false
+          load: true
+          tags: |
+            kairo-api:${{ steps.meta.outputs.GIT_SHA }}
+            kairo-api:latest
+          build-args: |
+            GIT_SHA=${{ steps.meta.outputs.GIT_SHA }}
+            BUILD_TIMESTAMP=${{ steps.meta.outputs.BUILD_TIMESTAMP }}
+
+      - name: Verify Non-Root User in Image
+        run: |
+          USER_ID=$(docker run --rm kairo-api:${{ steps.meta.outputs.GIT_SHA }} id -u)
+          if [ "$USER_ID" -eq 0 ]; then
+            echo "[-] CRITICAL SECURITY ERROR: Image runs as root (uid 0)!" >&2
+            exit 1
+          fi
+          echo "[+] Confirmed non-root execution: uid=${USER_ID}"
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'kairo-api:${{ steps.meta.outputs.GIT_SHA }}'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  build-worker:
+    name: Build Worker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: Extract Metadata & Git SHA
+        id: meta
+        run: |
+          echo "GIT_SHA=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          echo "BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_OUTPUT
+
+      - name: Build Kairo Worker Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./deploy/docker/Dockerfile.worker
+          push: false
+          load: true
+          tags: |
+            kairo-worker:${{ steps.meta.outputs.GIT_SHA }}
+            kairo-worker:latest
+          build-args: |
+            GIT_SHA=${{ steps.meta.outputs.GIT_SHA }}
+            BUILD_TIMESTAMP=${{ steps.meta.outputs.BUILD_TIMESTAMP }}
+
+      - name: Verify Non-Root User in Worker Image
+        run: |
+          USER_ID=$(docker run --rm kairo-worker:${{ steps.meta.outputs.GIT_SHA }} id -u)
+          if [ "$USER_ID" -eq 0 ]; then
+            echo "[-] CRITICAL SECURITY ERROR: Worker runs as root!" >&2
+            exit 1
+          fi
+          echo "[+] Confirmed worker non-root execution: uid=${USER_ID}"

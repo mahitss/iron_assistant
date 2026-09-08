@@ -22,12 +22,18 @@ class Settings(BaseSettings):
     # Core Application Settings
     PROJECT_NAME: str = "Kairo Personal AI Assistant"
     VERSION: str = "0.5.0"
+    GIT_SHA: str = "dev"
+    BUILD_TIMESTAMP: str = ""
     ENVIRONMENT: EnvironmentType = EnvironmentType.DEVELOPMENT
     DEBUG: bool = True
     API_V1_STR: str = "/api/v1"
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     LOG_LEVEL: str = "INFO"
+
+    # Domain URLs for Deployment
+    KAIRO_PUBLIC_API_URL: str | None = None
+    KAIRO_FRONTEND_URL: str | None = None
 
     # Security & Secret Key
     SECRET_KEY: SecretStr | None = None

@@ -2,13 +2,13 @@
 
 Kairo is an autonomous personal AI assistant designed to execute complex tasks, manage workflows, and interface seamlessly across voice, text, tools, memory, and autonomous agent loops.
 
-> **Status: Phase 17 — Production Hardening, Reliability, Observability, Authentication & Deployment Readiness**  
-> 1. **Production Readiness Warning**: *"Kairo is not production-ready until authentication, secret management, HTTPS, backups, monitoring, and security review are configured."*
-> 2. **Authentication & Session Lifecycle**: PBKDF2-SHA256 password hashing, cryptographically random bearer tokens, sliding idle timeout (30 min) and absolute session TTL (24 hr), with automatic revocation of pending approvals on logout.
-> 3. **Defensive API Middleware**: Per-request correlation tracking (`X-Request-ID`), sliding-window rate limiting (with explicit emergency stop & health exemptions), OWASP security headers (HSTS, CSP, X-Frame-Options), 10 MB payload limits, and sanitized error responses masking internal stack traces.
-> 4. **Enterprise Observability**: Structured JSON logging with automated secret and token redaction, Prometheus metrics export (`/metrics`), lightweight distributed tracing context, and decoupled Kubernetes-compatible health probes (`/health/live`, `/health/ready`).
-> 5. **Resilience & Safe Recovery**: Circuit breakers (`CLOSED`, `OPEN`, `HALF_OPEN`) and exponential backoff with jitter on LLM API failures, database connection pooling with pre-ping validation, and startup recovery that transitions orphaned background tasks/workflows to safe failed states.
-> 6. **Production Infrastructure**: Multi-stage non-root container definitions (`uid 1000`), production and development Docker Compose setups, GitHub Actions CI/CD workflow, and production checklists, threat models, and incident playbooks.
+> **Status: Phase 18 — Production Cloud Deployment and Release Engineering System**  
+> 1. **Deployment Architecture**: *"Kairo is deployed as a modular monolith with managed stateful infrastructure."*
+> 2. **Desktop & Voice Cloud Separation**: *"Desktop computer control is a local/trusted capability and is not exposed directly from the public cloud API."* Wake-word detection remains strictly local on client devices.
+> 3. **Production Readiness Warning**: *"Kairo is not production-ready until authentication, secret management, HTTPS, backups, monitoring, and security review are configured."*
+> 4. **Dedicated Worker / Scheduler**: Background scheduler and workflow runners operate via `app.worker` using PostgreSQL `FOR UPDATE SKIP LOCKED` and deterministic idempotency keys, supporting scalable multi-instance deployments without duplicate executions.
+> 5. **Release Engineering & Reverse Proxy**: Multi-stage non-root containers (`uid 1000`), Nginx with HTTP->HTTPS, modern TLS 1.2/1.3, WebSockets upgrade, proxy buffering disabled for AI token streams (`/api/v1/chat/stream`), safe metadata endpoint (`GET /health/version`), and automated deployment, migration, and rollback scripts.
+> 6. **Environment Separation**: Strict isolation across `development`, `staging`, and `production` with separate databases, Redis caches, secrets, and CORS origins.
 
 ---
 
@@ -18,7 +18,8 @@ Kairo is an autonomous personal AI assistant designed to execute complex tasks, 
 kairo/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml            # GitHub Actions CI pipeline (lint, test, SAST)
+│       ├── ci.yml            # GitHub Actions CI pipeline (lint, test, SAST)
+│       └── build.yml         # Container build, Git SHA tagging & security scan
 ├── backend/                  # Python FastAPI agent service & core runtime
 │   ├── alembic.ini           # Alembic database migration configuration
 │   ├── app/
@@ -27,62 +28,54 @@ kairo/
 │   │   │   ├── multi_agent/  # Supervised Multi-Agent Orchestrator (DAG planner, specialists)
 │   │   │   └── registry.py   # Specialist agent definitions & allowlists
 │   │   ├── api/              # API endpoints, routers, and request handlers
-│   │   │   ├── middleware/   # Defensive middleware suite
-│   │   │   │   ├── request_id.py       # X-Request-ID propagation
-│   │   │   │   ├── rate_limit.py       # Sliding-window rate limiter (emergency exempt)
-│   │   │   │   ├── security_headers.py # OWASP defensive headers (HSTS, CSP, X-Frame)
-│   │   │   │   ├── body_size.py        # 10 MB request payload limiter
-│   │   │   │   └── errors.py           # Sanitized exception masks
-│   │   │   └── routes/       # REST API route controllers
-│   │   │       ├── auth.py   # POST /auth/login, POST /auth/logout, GET /auth/me
-│   │   │       ├── chat.py   # POST /chat & POST /chat/stream
-│   │   │       ├── memory.py # GET/DELETE /memories
-│   │   │       ├── workflows.py # Workflow execution & schedule APIs
-│   │   │       ├── security.py  # Emergency stop & capabilities
-│   │   │       ├── proactive.py # Proactive insight center
-│   │   │       └── agents.py    # Multi-agent task orchestration & cancellation
-│   │   ├── auth/             # Authentication & session subsystem
-│   │   │   ├── schemas.py    # User, Token, Login, Session schemas
-│   │   │   ├── security.py   # PBKDF2-SHA256 hasher & constant-time verifier
-│   │   │   ├── sessions.py   # SessionStore (idle timeout + absolute TTL)
-│   │   │   ├── service.py    # AuthService orchestration
-│   │   │   └── dependencies.py # FastAPI current user / session dependencies
+│   │   │   ├── middleware/   # Defensive middleware suite (ID, rate limit, headers, body size, errors)
+│   │   │   └── routes/       # REST API route controllers (auth, chat, memory, workflows, security, agents)
+│   │   ├── auth/             # Authentication & session subsystem (PBKDF2, sessions, dependencies)
+│   │   ├── automation/       # Durable workflow engine, condition triggers, distributed scheduler
 │   │   ├── config/           # Centralized configuration & environment validation
-│   │   │   ├── environments.py # Development, Testing, Production modes
-│   │   │   ├── settings.py   # Pydantic BaseSettings with typed constraints
-│   │   │   └── validation.py # Fail-fast production secret and URL checks
 │   │   ├── db/               # Relational persistence & migrations
 │   │   │   ├── session.py    # Async SQLAlchemy engine with connection pool & pre-ping
 │   │   │   └── migrations/   # Alembic versioned migrations
 │   │   ├── memory/           # Memory layer components (short, conversation, long-term)
 │   │   ├── models/           # Model provider, registry, and router layer
-│   │   │   ├── openrouter.py # OpenRouter client with circuit breaker & jitter retries
-│   │   │   ├── resilience.py # CircuitBreaker & RetryPolicy implementations
-│   │   │   └── router.py     # ModelRouter (capability matching, priority, fallback)
-│   │   ├── observability/    # Metrics, logging, tracing, health probes
-│   │   │   ├── logging.py    # StructuredJsonFormatter with secret redaction
-│   │   │   ├── metrics.py    # Prometheus metrics collector & exposition
-│   │   │   ├── tracing.py    # TraceSpan context manager
-│   │   │   └── health.py     # /health, /health/live, /health/ready, /metrics
+│   │   ├── observability/    # Metrics, logging, tracing, health probes (/health/live, /ready, /version, /metrics)
 │   │   ├── security/         # Security Center, permissions, and secrets
-│   │   │   ├── center.py     # Authoritative SecurityCenter
-│   │   │   └── secrets.py    # SecretProvider abstraction
 │   │   ├── tools/            # Tool framework, safe starters, web, browser, git
 │   │   ├── lifecycle.py      # Startup orphan recovery & graceful shutdown
+│   │   ├── worker.py         # Dedicated background worker & scheduler loop
 │   │   └── main.py           # FastAPI application factory & lifespan wiring
-│   ├── tests/                # Pytest unit and integration test suite (378 tests)
+│   ├── tests/                # Pytest unit and integration test suite (390 tests)
 │   ├── pyproject.toml        # Python project metadata & tool configurations
 │   └── requirements.txt      # Backend dependencies
-├── docs/                     # Production & security documentation
+├── deploy/                   # Cloud deployment & release engineering
+│   ├── docker/               # Production Docker builds
+│   │   ├── Dockerfile        # Multi-stage non-root API container
+│   │   ├── Dockerfile.worker # Dedicated background worker container
+│   │   └── .dockerignore     # Production build exclusion rules
+│   ├── nginx/                # Production reverse proxy
+│   │   └── nginx.conf        # HTTPS, WebSockets, security headers, unbuffered AI streams
+│   ├── scripts/              # Automated deployment scripts
+│   │   ├── deploy.sh         # Pre-flight checks, migration, rollout, smoke tests
+│   │   ├── migrate.sh        # Explicit Alembic migration runner with safe error handling
+│   │   ├── rollback.sh       # Safe container rollback (refuses automatic DB downgrades)
+│   │   ├── healthcheck.sh    # Fast live, ready, and version probe
+│   │   └── smoke-test.sh     # Non-destructive post-deployment smoke test suite
+│   └── environments/         # Environment separation configuration templates
+│       ├── development.env.example # Local development with mock fallbacks
+│       ├── staging.env.example     # Isolated pre-production staging environment
+│       └── production.env.example  # Enterprise production configuration
+├── docs/                     # Production, operations, and security documentation
+│   ├── deployment.md         # Production cloud deployment guide
+│   ├── staging.md            # Staging environment architecture & operations
+│   ├── rollback.md           # Rollback, recovery & schema evolution strategy
+│   ├── operations.md         # 11-scenario operational incident runbook
+│   ├── release-checklist.md  # 20-point pre-flight release engineering checklist
 │   ├── production-checklist.md  # Production pre-flight deployment checklist
 │   ├── security-threat-model.md # 16 threat categories & mitigations
 │   └── incident-response.md     # 10-step incident response playbook
 ├── frontend/                 # Web client UI & test suite (25 tests)
 ├── infra/                    # Cloud infrastructure & deployment scripts
-├── docker/                   # Docker container definitions
-│   └── Dockerfile.backend    # Multi-stage non-root backend container
-├── Dockerfile                # Root multi-stage container definition
-├── docker-compose.yml        # Production Docker Compose configuration
+├── docker-compose.yml        # Production Docker Compose (API, Worker, Postgres, Redis)
 ├── docker-compose.dev.yml    # Development Docker Compose with live reloading
 ├── .env.example              # Environment variables template (no hardcoded secrets)
 ├── .gitignore                # Git ignore rules
@@ -1025,15 +1018,61 @@ Phase 17 establishes an enterprise-grade foundation for running Kairo safely, re
 - **GitHub Actions Pipeline (`.github/workflows/ci.yml`)**: Automated CI running Ruff linting, formatting checks, pytest backend suite, frontend Node tests, and Bandit security scans.
 
 ### 9. Hardening Documentation
-- [Production Deployment Checklist](file:///docs/production-checklist.md) (`docs/production-checklist.md`): Pre-flight readiness guide.
-- [Security Threat Model](file:///docs/security-threat-model.md) (`docs/security-threat-model.md`): 16 threat categories analyzed with attack surfaces, mitigations, and residual risks.
 - [Security Incident Response Playbook](file:///docs/incident-response.md) (`docs/incident-response.md`): 10-step incident containment and recovery protocol.
+
+---
+
+## Phase 18: Production Cloud Deployment and Release Engineering System
+
+> [!CRITICAL]
+> **Core Declarations:**
+> - *"Kairo is deployed as a modular monolith with managed stateful infrastructure."*
+> - *"Desktop computer control is a local/trusted capability and is not exposed directly from the public cloud API."*
+> - *"Kairo is not production-ready until authentication, secret management, HTTPS, backups, monitoring, and security review are configured."*
+
+Phase 18 equips Kairo with a production-grade cloud release engineering system for generic cloud, VPS, or container platforms.
+
+### 1. Modular Monolith & Managed Infrastructure
+- **Modular Monolith**: Kairo packages the API, background worker, tool ecosystem, and multi-agent coordination as a cohesive modular monolith, eliminating premature microservice overhead, service meshes, Kafka, and Kubernetes.
+- **Dedicated Worker / Scheduler (`app.worker`)**: The background automation engine and multi-agent schedulers run via `app.worker`. It uses PostgreSQL `FOR UPDATE SKIP LOCKED` and deterministic idempotency keys, guaranteeing that even with multiple concurrent API and worker instances, each due workflow run is claimed and executed exactly once without duplicate runs.
+- **Managed Stateful Services**: Relies on managed PostgreSQL 16+ with the `vector` extension and managed Redis with TLS encryption.
+
+### 2. Reverse Proxy & Streaming Resilience
+- **Nginx Reverse Proxy (`deploy/nginx/nginx.conf`)**:
+  - Automatically redirects HTTP (port 80) to HTTPS (port 443).
+  - Terminates TLS with modern TLS 1.2 and 1.3 ciphers.
+  - Implements WebSocket upgrade mapping for real-time voice and notifications.
+  - **Disables proxy buffering (`proxy_buffering off;`)** specifically on `/api/v1/chat/stream` and `/api/v1/voice` so token streams and audio chunks arrive without chunk delay.
+  - Enforces `client_max_body_size 10M;` and sets streaming read timeouts to 300 seconds.
+
+### 3. Automated Deployment & Safety Scripts
+- **Database Migrations (`deploy/scripts/migrate.sh`)**: Runs Alembic migrations explicitly prior to traffic routing, validates database connectivity, masks passwords in logs, and aborts safely on error.
+- **Container Rollout (`deploy/scripts/deploy.sh`)**: Orchestrates pre-flight variable validation, database migration, container startup, health verification, and post-deploy smoke tests.
+- **Emergency Rollback (`deploy/scripts/rollback.sh`)**: Instantly rolls back container images to a previous stable Git SHA. Explicitly warns and refuses automated database schema downgrades to prevent catastrophic data loss, mandating the expand/contract migration pattern.
+- **Health & Readiness (`deploy/scripts/healthcheck.sh`)**: Validates `/health/live`, `/health/ready`, and `/health/version`.
+- **Smoke Tests (`deploy/scripts/smoke-test.sh`)**: Non-destructive automated post-deployment smoke test verifying endpoints, authentication rejection, Redis connectivity, and safety gates.
+
+### 4. Release Metadata & Safe Inspection
+- **Safe Version Endpoint (`GET /health/version`)**: Returns application version, Git commit SHA, build timestamp, and environment mode without exposing database URLs, secret keys, or environment dumps.
+
+### 5. Multi-Stage Non-Root Containers & CI/CD
+- **Production API & Worker Images**: Multi-stage Docker builds (`deploy/docker/Dockerfile` and `Dockerfile.worker`) on `python:3.12-slim`, dropping privileges to dedicated non-root user `kairo` (`uid: 1000`).
+- **CI/CD Pipeline**: GitHub Actions workflows:
+  - `.github/workflows/ci.yml`: Automated Ruff linting, formatting checks, pytest backend suite, frontend tests, and Bandit security scans.
+  - `.github/workflows/build.yml`: Container image building tagged with immutable Git SHAs (`kairo-api:<commit-sha>`), non-root execution verification, and Trivy vulnerability scanning.
+
+### 6. Operations & Cloud Safety Documentation
+- [Production Cloud Deployment Guide](file:///docs/deployment.md) (`docs/deployment.md`): Step-by-step cloud topology, pool sizing, and setup.
+- [Staging Environment Guide](file:///docs/staging.md) (`docs/staging.md`): Pre-production testing and data isolation protocols.
+- [Rollback & Recovery Strategy](file:///docs/rollback.md) (`docs/rollback.md`): Fast application rollback and expand/contract schema evolution.
+- [Operations Runbook](file:///docs/operations.md) (`docs/operations.md`): 11 critical incident resolution runbooks.
+- [Release Engineering Checklist](file:///docs/release-checklist.md) (`docs/release-checklist.md`): 20-point pre-flight release checklist.
 
 ---
 
 ## Running Tests
 
-The test suite contains **378 backend unit and integration tests** and **25 frontend tests** (403 tests total) verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path security, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, tenant isolation, security policy matrices, emergency stops, capability gates, audit trails, proactive event detection, deterministic prioritization, fingerprint deduplication, cooldown tracking, user settings, quiet hours, notification delivery, web monitoring, multi-agent planner DAG validation, specialist tool allowlists, budget and tool limits, execution timeouts, cancellation propagation, evidence taxonomy classification, citation preservation, environment validation, auth hashing and sessions, defensive API middleware, sliding-window rate limiting, circuit breaker failover, Prometheus metrics, health probes, and lifecycle recovery:
+The test suite contains **390 backend unit and integration tests** and **25 frontend tests** (415 tests total) verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path security, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, tenant isolation, security policy matrices, emergency stops, capability gates, audit trails, proactive event detection, deterministic prioritization, fingerprint deduplication, cooldown tracking, user settings, quiet hours, notification delivery, web monitoring, multi-agent planner DAG validation, specialist tool allowlists, budget and tool limits, execution timeouts, cancellation propagation, evidence taxonomy classification, citation preservation, environment validation, auth hashing and sessions, defensive API middleware, sliding-window rate limiting, circuit breaker failover, Prometheus metrics, health probes, lifecycle recovery, safe version metadata endpoint, standalone worker scheduling with row-level locks, Nginx AI streaming buffer bypass, and deployment scripts:
 
 ```bash
 cd backend
@@ -1043,6 +1082,7 @@ pytest -v
 And for frontend modules:
 ```bash
 cd frontend
+npm run build
 npm test
 ```
 
@@ -1065,6 +1105,7 @@ npm test
 - [x] **Phase 15: Proactive Intelligence Layer** — Proactive detector, candidate insight lifecycle, deterministic prioritization, SHA-256 deduplication, state transition cooldown, quiet hours, hourly rate limiting, in-app notification center, proactive feed, safe web monitoring, and strict loop prevention.
 - [x] **Phase 16: Multi-Agent Orchestration System** — Supervisor-driven task decomposition, specialist agents (Researcher, Developer, Analyst, Browser), DAG planning and topological execution, context isolation, evidence taxonomy (OBSERVED / INFERRED / UNKNOWN), web citation preservation, tool call budgeting, emergency stop integration, tenant isolation, and task cancellation.
 - [x] **Phase 17: Production Hardening, Reliability, Observability, Authentication & Deployment Readiness** — Environment validation & fail-fast checks, PBKDF2 authentication, session idle/absolute timeouts, logout approval revocation, request ID propagation, rate limiting exempting emergency stop & health, OWASP defensive headers, 10MB body size limit, sanitized error handler, structured JSON logging with secret redaction, Prometheus metrics (`/metrics`), tracing spans, Kubernetes-style health probes (`/health/live`, `/health/ready`), circuit breaker & jitter retries, database connection pooling with pre-ping, startup orphan task recovery, multi-stage non-root Docker builds, and production checklists, threat models, and incident playbooks.
+- [x] **Phase 18: Production Cloud Deployment and Release Engineering System** — Modular monolith architecture, dedicated background worker/scheduler (`app.worker`) with PostgreSQL row-level locks (`FOR UPDATE SKIP LOCKED`), safe version metadata endpoint (`GET /health/version`), Nginx reverse proxy with unbuffered AI streaming (`proxy_buffering off;`) and WebSockets, automated deployment scripts (`deploy.sh`, `migrate.sh`, `rollback.sh`, `healthcheck.sh`, `smoke-test.sh`), environment separation templates (`development`, `staging`, `production`), container build and security scan workflow (`build.yml`), and deployment, staging, rollback, and operational runbooks.
 
 
 

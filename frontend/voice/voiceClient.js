@@ -50,7 +50,10 @@ export class VoiceClient {
   }
 
   _getDefaultWsUrl() {
-    if (typeof window === 'undefined') return 'ws://localhost:8000/api/v1/voice';
+    if (typeof process !== 'undefined' && process.env && process.env.KAIRO_WS_URL) {
+      return process.env.KAIRO_WS_URL;
+    }
+    if (typeof window === 'undefined') return 'ws://127.0.0.1:8000/api/v1/voice';
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${proto}//${window.location.host}/api/v1/voice`;
   }

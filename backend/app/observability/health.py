@@ -118,3 +118,21 @@ async def metrics() -> Response:
     collector = get_metrics_collector()
     text_content = collector.generate_prometheus_text()
     return Response(content=text_content, media_type="text/plain; version=0.0.4")
+
+
+@router.get(
+    "/health/version",
+    summary="Safe Version Metadata",
+)
+async def version() -> dict[str, str]:
+    """Return safe deployment version metadata without exposing environment variables or secrets."""
+    settings = get_settings()
+    env_str = (
+        settings.ENVIRONMENT.value if hasattr(settings.ENVIRONMENT, "value") else str(settings.ENVIRONMENT)
+    )
+    return {
+        "version": settings.VERSION,
+        "git_sha": settings.GIT_SHA,
+        "build_timestamp": settings.BUILD_TIMESTAMP or "unknown",
+        "environment": env_str,
+    }

@@ -10,6 +10,8 @@ from typing import Any
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.context.schemas import ContextPacket
+from app.context.service import ContextEngine
 from app.core.config import get_settings
 from app.db.session import get_sessionmaker
 from app.memory.embeddings import EmbeddingProvider, get_configured_embedding_provider
@@ -119,6 +121,7 @@ class KairoAgent:
         memory_extraction_enabled: bool = True,
         dedup_threshold: float = 0.90,
         max_research_iterations: int = 3,
+        context_engine: ContextEngine | None = None,
     ):
         self.provider = provider
         self.router = router
@@ -138,6 +141,7 @@ class KairoAgent:
         self.memory_extractor = memory_extractor
         self.memory_extraction_enabled = memory_extraction_enabled
         self.dedup_threshold = dedup_threshold
+        self.context_engine = context_engine or ContextEngine()
 
     @asynccontextmanager
     async def _get_services(
@@ -233,10 +237,15 @@ class KairoAgent:
         user_message: str,
         memories: list[MemoryResponse] | None = None,
         history: list[Any] | None = None,
+        context_packet: ContextPacket | None = None,
     ) -> list[ChatMessage]:
-        """Construct prompt messages incorporating system persona, relevant memories, and conversation history."""
+        """Construct prompt messages incorporating system persona, relevant memories, personal context, and conversation history."""
         system_text = self.system_prompt
-        if memories:
+        if context_packet:
+            ctx_text = context_packet.to_prompt_context()
+            if ctx_text:
+                system_text = f"{system_text}\n\n[PERSONAL CONTEXT]\n{ctx_text}"
+        elif memories:
             formatted_memories = MemoryService.format_memories_for_context(memories)
             if formatted_memories:
                 system_text = f"{system_text}\n\n{formatted_memories}"
@@ -404,8 +413,30 @@ class KairoAgent:
                             logger.warning("Failed to persist supervisor assistant message: %s", exc)
                     return supervisor_resp
 
-            # 2. Retrieve relevant long-term memories (bounded by memory_top_k)
-            if mem_service is not None:
+            # 2. Resolve Personal Context (Projects, Workflows, Scoped Memory)
+            context_packet: ContextPacket | None = None
+            if self.context_engine is not None:
+                try:
+                    db_sess = getattr(conv_repo, "session", None) if conv_repo else None
+                    context_packet = await self.context_engine.resolve_context(
+                        user_id="default_user",
+                        message=message,
+                        session_id=active_session_id,
+                        db_session=db_sess,
+                        memory_service=mem_service,
+                    )
+                    # Disambiguation check: if multiple projects match on risky command, ask user
+                    if context_packet.requires_disambiguation and context_packet.clarification_prompt:
+                        return AgentResponse(
+                            message=context_packet.clarification_prompt,
+                            model=selected_model,
+                            session_id=active_session_id,
+                            tools_used=[],
+                        )
+                except Exception as exc:
+                    logger.warning("Error resolving context in agent: %s", exc)
+
+            if context_packet is None and mem_service is not None:
                 try:
                     search_results = await mem_service.search_memories(
                         query=message,
@@ -420,6 +451,7 @@ class KairoAgent:
                 user_message=message,
                 memories=relevant_memories,
                 history=history,
+                context_packet=context_packet,
             )
 
             # 4. Tool schemas

@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.js",
-    "build": "node -e \"import('./agents/agentWorkflowView.js'); import('./automation/automationPanel.js'); import('./developer/developerPanel.js'); import('./proactive/proactivePanel.js'); import('./security/securityPanel.js'); import('./voice/voiceClient.js'); console.log('✓ Kairo frontend built deterministically.');\""
+    "build": "node -e \"import('./agents/agentWorkflowView.js'); import('./automation/automationPanel.js'); import('./context/contextPanel.js'); import('./developer/developerPanel.js'); import('./proactive/proactivePanel.js'); import('./security/securityPanel.js'); import('./voice/voiceClient.js'); console.log('✓ Kairo frontend built deterministically.');\""
   }
 }

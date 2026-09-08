@@ -168,14 +168,25 @@ async def delete_memory(
 # User-facing Memory Inspection and Deletion Endpoints (Section 14)
 # ==============================================================================
 
+# ==============================================================================
+# User-facing Memory Inspection, Retrieval, Update and Deletion Endpoints (Section 14)
+# ==============================================================================
+
+memory_api_router = APIRouter(prefix="/memory", tags=["Memory Management"])
 user_router = APIRouter(prefix="/memories", tags=["User Memory Management (Dev)"])
 
 
+@memory_api_router.get(
+    "",
+    response_model=list[MemoryResponse],
+    summary="List or search memories",
+    description="Retrieve stored long-term memories with optional type, scope, and keyword filtering.",
+)
 @user_router.get(
     "",
     response_model=list[MemoryResponse],
     summary="List stored memories (User Control / Dev)",
-    description="Retrieve stored long-term memories for inspection and management. (Dev endpoint)",
+    description="Retrieve stored long-term memories for inspection and management.",
 )
 async def list_user_memories(
     memory_type: MemoryType | None = Query(default=None, description="Filter by memory type"),
@@ -186,11 +197,71 @@ async def list_user_memories(
     return await service.list_memories(memory_type=memory_type, limit=limit)
 
 
+@memory_api_router.get(
+    "/{memory_id}",
+    response_model=MemoryResponse,
+    summary="Get a memory by ID",
+)
+@user_router.get(
+    "/{memory_id}",
+    response_model=MemoryResponse,
+    summary="Get a memory by ID",
+)
+async def get_user_memory(
+    memory_id: str,
+    service: MemoryService = Depends(get_memory_service),
+) -> MemoryResponse:
+    """Fetch a specific memory by ID."""
+    mem = await service.get_memory(memory_id)
+    if mem is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Memory '{memory_id}' not found.",
+        )
+    return mem
+
+
+@memory_api_router.patch(
+    "/{memory_id}",
+    response_model=MemoryResponse,
+    summary="Update an existing memory",
+)
+@user_router.patch(
+    "/{memory_id}",
+    response_model=MemoryResponse,
+    summary="Update an existing memory",
+)
+async def update_user_memory(
+    memory_id: str,
+    payload: MemoryUpdate,
+    service: MemoryService = Depends(get_memory_service),
+) -> MemoryResponse:
+    """Update content or attributes of an existing memory."""
+    try:
+        updated = await service.update_memory(memory_id, payload)
+        if updated is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Memory '{memory_id}' not found.",
+            )
+        return updated
+    except UnsafeMemoryError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+
+@memory_api_router.delete(
+    "/{memory_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a memory",
+)
 @user_router.delete(
     "/{memory_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a memory (User Control / Dev)",
-    description="Permanently delete a stored memory record. (Dev endpoint)",
+    description="Permanently delete a stored memory record.",
 )
 async def delete_user_memory(
     memory_id: str,

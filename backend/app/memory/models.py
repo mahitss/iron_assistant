@@ -89,6 +89,12 @@ class Memory(Base):
     embedding = mapped_column(Vector(1536), nullable=True)
     importance: Mapped[float] = mapped_column(Float, default=0.5, nullable=False)
     source: Mapped[str | None] = mapped_column(String(128), nullable=True, default="user_explicit")
+    user_id: Mapped[str | None] = mapped_column(
+        String(128), index=True, default="default_user", nullable=True
+    )
+    scope: Mapped[str] = mapped_column(String(32), index=True, default="GLOBAL_USER", nullable=False)
+    project_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
@@ -96,8 +102,13 @@ class Memory(Base):
     last_accessed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, nullable=False
     )
+    last_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
-    __table_args__ = (Index("ix_memories_type_created", "memory_type", "created_at"),)
+    __table_args__ = (
+        Index("ix_memories_type_created", "memory_type", "created_at"),
+        Index("ix_memories_user_scope", "user_id", "scope"),
+        Index("ix_memories_project", "project_id"),
+    )
 
     def __repr__(self) -> str:
         return f"<Memory(id='{self.id}', type='{self.memory_type}', importance={self.importance})>"

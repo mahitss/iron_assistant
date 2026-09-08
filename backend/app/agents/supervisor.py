@@ -32,6 +32,7 @@ class SupervisorAgent:
         tool_executor: ToolExecutor | None = None,
         agent_registry: AgentRegistry | None = None,
         emergency_stop_service: Any | None = None,
+        context_engine: Any | None = None,
     ) -> None:
         self.provider = provider
         self.model_router = model_router
@@ -39,6 +40,7 @@ class SupervisorAgent:
         self.tool_executor = tool_executor or ToolExecutor(self.tool_registry)
         self.agent_registry = agent_registry or create_default_agent_registry()
         self.emergency_stop_service = emergency_stop_service
+        self.context_engine = context_engine
 
         self.planner = AgentPlanner(
             registry=self.agent_registry,

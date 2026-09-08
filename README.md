@@ -1106,6 +1106,84 @@ npm test
 - [x] **Phase 17: Production Hardening, Reliability, Observability, Authentication & Deployment Readiness** — Environment validation & fail-fast checks, PBKDF2 authentication, session idle/absolute timeouts, logout approval revocation, request ID propagation, rate limiting exempting emergency stop & health, OWASP defensive headers, 10MB body size limit, sanitized error handler, structured JSON logging with secret redaction, Prometheus metrics (`/metrics`), tracing spans, Kubernetes-style health probes (`/health/live`, `/health/ready`), circuit breaker & jitter retries, database connection pooling with pre-ping, startup orphan task recovery, multi-stage non-root Docker builds, and production checklists, threat models, and incident playbooks.
 - [x] **Phase 18: Production Cloud Deployment and Release Engineering System** — Modular monolith architecture, dedicated background worker/scheduler (`app.worker`) with PostgreSQL row-level locks (`FOR UPDATE SKIP LOCKED`), safe version metadata endpoint (`GET /health/version`), Nginx reverse proxy with unbuffered AI streaming (`proxy_buffering off;`) and WebSockets, automated deployment scripts (`deploy.sh`, `migrate.sh`, `rollback.sh`, `healthcheck.sh`, `smoke-test.sh`), environment separation templates (`development`, `staging`, `production`), container build and security scan workflow (`build.yml`), and deployment, staging, rollback, and operational runbooks.
 - [x] **Phase 19: Kairo v1.0.0 Full System Validation, Integration Testing, UX Polish, and Release** — Architectural coherence audit, single source of truth verification, end-to-end integration and streaming test suite, adversarial prompt injection defense, secret scrubbing in memory extraction, 427-test automated verification, zero release blockers audit, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, and 14-step reproducible demonstration script (`docs/demo.md`).
+- [x] **Phase 20: Kairo v1.1 Personal Context Engine, Project Model, and Intelligent Assistance** — ContextEngine with deterministic-first resolution, Active Projects (`projects`, `project_repositories`, `project_workflows`, `project_conversations`), bounded memory scopes (`SESSION`, `PROJECT`, `GLOBAL_USER`), multi-factor ranking, hybrid vector + keyword retrieval, ambiguity & risk-aware confirmation gates, provenance tracking, and user privacy toggles.
 
+---
 
+## Personal Context Engine (Task 20 — v1.1)
 
+Kairo v1.1 introduces the **Personal Context Engine**, an architectural subsystem that makes Kairo aware of what the user is working on, active projects, recurring goals, relevant recent activity, and task relationships across conversations, repositories, workflows, and memories — without storing everything.
+
+> **Privacy Guarantee**:
+> "Kairo's Context Engine provides task-relevant context; it does not create unrestricted user profiles."
+>
+> Kairo adheres strictly to the following principles:
+> - **No Surveillance / No Profiling**: Does NOT create psychological profiles, emotional state tracking, political profiling, health profiling, or relationship tracking. Context is strictly task-oriented.
+> - **Bounded & Budgeted**: Every category is bounded (`KAIRO_MAX_CONTEXT_ITEMS=30`, `KAIRO_MAX_MEMORY_ITEMS=10`, `KAIRO_MAX_PROJECT_CONTEXT_ITEMS=10`). Kairo never dumps the database into prompts.
+> - **User-Controlled & Deletable**: Users can toggle context features on/off (`context_enabled`, `memory_enabled`, `project_context_enabled`, `proactive_context_enabled`) and inspect or delete memories via `/api/v1/memory`.
+> - **Deterministic Resolution First**: Prioritizes explicit mentions, active projects, repository links, recent workflows, and conversation continuity before any LLM inference.
+> - **Risk-Aware Ambiguity Gating**: Harmless read actions allow best-effort contextual resolution; risky or destructive actions (`push`, `commit`, `delete`, `deploy`) with multiple matching projects prompt the user for explicit clarification rather than guessing.
+> - **SecurityCenter Supremacy**: ContextEngine never overrides `SecurityCenter`. Context resolution cannot grant permissions, approve actions, or bypass security policies.
+
+### 1. Architecture & Module Structure
+
+```text
+backend/app/context/
+├── __init__.py        # Module exports
+├── schemas.py         # ContextType, MemoryScope, MemorySource, ProjectStatus, ContextPacket, ContextItem
+├── models.py          # SQLAlchemy models: Project, ProjectRepository, ProjectWorkflow, UserContextSettings
+├── project.py         # ProjectService: CRUD, repository linking, workflow association, user ownership
+├── session.py         # SessionContextManager: Ephemeral turn tracking, tool outcomes, active project state
+├── temporal.py        # TemporalResolver: Timezone-aware date parsing ("yesterday", "last week", "recently")
+├── ranking.py         # ContextRanker: Multi-factor deterministic scoring and budget bounding
+├── safety.py          # ContextSafetyGuard: External sanitization, secret scrubbing, and ambiguity check
+├── resolver.py        # ContextResolver: Deterministic-first resolution across projects, workflows, memory
+└── service.py         # ContextEngine: High-level facade with Redis caching and user settings
+```
+
+### 2. Context Types & Provenance
+Every piece of context in a `ContextPacket` carries its source type, source ID, relevance score, confidence, timestamp, and human-readable provenance reason:
+- `SESSION_CONTEXT`: Recent tool outcomes, active session state, immediate follow-up context.
+- `PROJECT_CONTEXT`: Active project status, goals, and description.
+- `CONVERSATION_CONTEXT`: Multi-turn conversational continuity.
+- `MEMORY_CONTEXT`: Scoped, sanitized long-term memories retrieved via hybrid search.
+- `WORKFLOW_CONTEXT`: Active, pending approval, or recently failed workflows.
+- `DEVELOPER_CONTEXT`: Linked Git repositories, branches, and commits.
+- `PROACTIVE_CONTEXT`: High-priority unread insights and system notifications.
+
+### 3. Memory Scopes & Sources
+- **Scopes**:
+  - `SESSION`: Ephemeral, expires with session (e.g. "Currently debugging CI").
+  - `PROJECT`: Scoped to a specific project workspace (e.g. "Repository uses Python 3.12").
+  - `GLOBAL_USER`: Durable cross-project preferences (e.g. "Prefers concise technical explanations").
+- **Sources**: `USER_EXPLICIT` (high confidence) is strictly prioritized over `SYSTEM_DERIVED` (inferred). Secrets, passwords, API keys, and private tokens are unconditionally rejected.
+
+### 4. REST API Endpoints
+All endpoints are user-authenticated and strictly isolated by user ID:
+- `POST /api/v1/projects` — Create project
+- `GET /api/v1/projects` — List user projects
+- `GET /api/v1/projects/{id}` — Get project details
+- `PATCH /api/v1/projects/{id}` — Update status or metadata
+- `DELETE /api/v1/projects/{id}` — Delete project workspace
+- `POST /api/v1/projects/{id}/repositories` — Link repository
+- `POST /api/v1/projects/{id}/workflows` — Link workflow
+- `GET /api/v1/context/current` — Inspect current bounded context packet
+- `GET /api/v1/context/projects/{id}` — Get project-specific context
+- `GET /api/v1/context/search?q=` — Hybrid contextual lookup
+- `GET /api/v1/context/settings` — Read user context personalization toggles
+- `PATCH /api/v1/context/settings` — Update context personalization toggles
+- `GET /api/v1/memory` — List user memories
+- `GET /api/v1/memory/{id}` — Inspect specific memory
+- `PATCH /api/v1/memory/{id}` — Update memory content or importance
+- `DELETE /api/v1/memory/{id}` — Permanently delete memory
+
+### 5. Configuration Variables
+```env
+KAIRO_CONTEXT_ENABLED=true
+KAIRO_MEMORY_ENABLED=true
+KAIRO_PROJECT_CONTEXT_ENABLED=true
+KAIRO_PROACTIVE_CONTEXT_ENABLED=true
+KAIRO_MAX_CONTEXT_ITEMS=30
+KAIRO_MAX_MEMORY_ITEMS=10
+KAIRO_MAX_PROJECT_CONTEXT_ITEMS=10
+```

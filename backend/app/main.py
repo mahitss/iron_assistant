@@ -18,10 +18,13 @@ from app.api.routes.agents import router as agents_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.automations import router as automations_router
 from app.api.routes.chat import router as chat_router
+from app.api.routes.context import router as context_router
+from app.api.routes.memory import memory_api_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.memory import user_router as user_memory_router
 from app.api.routes.notifications import router as notifications_router
 from app.api.routes.proactive import router as proactive_router
+from app.api.routes.projects import router as projects_router
 from app.api.routes.security import router as security_router
 from app.api.routes.voice import router as voice_router
 from app.api.routes.web_monitors import router as web_monitors_router
@@ -90,7 +93,10 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix=settings.API_V1_STR)
     app.include_router(chat_router, prefix=settings.API_V1_STR)
     app.include_router(memory_router, prefix=settings.API_V1_STR)
+    app.include_router(memory_api_router, prefix=settings.API_V1_STR)
     app.include_router(user_memory_router, prefix=settings.API_V1_STR)
+    app.include_router(projects_router, prefix=settings.API_V1_STR)
+    app.include_router(context_router, prefix=settings.API_V1_STR)
     app.include_router(voice_router, prefix=settings.API_V1_STR)
     app.include_router(automations_router, prefix=settings.API_V1_STR)
     app.include_router(security_router, prefix=settings.API_V1_STR)

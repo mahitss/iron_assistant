@@ -96,6 +96,16 @@ class Settings(BaseSettings):
     KAIRO_MAX_CONTEXT_MESSAGES: int = 20
     KAIRO_REDIS_TTL_SECONDS: int = 3600
 
+    # Personal Context Engine Configuration (Task 20)
+    KAIRO_CONTEXT_ENABLED: bool = True
+    KAIRO_MEMORY_ENABLED: bool = True
+    KAIRO_PROJECT_CONTEXT_ENABLED: bool = True
+    KAIRO_PROACTIVE_CONTEXT_ENABLED: bool = True
+
+    KAIRO_MAX_CONTEXT_ITEMS: int = 30
+    KAIRO_MAX_MEMORY_ITEMS: int = 10
+    KAIRO_MAX_PROJECT_CONTEXT_ITEMS: int = 10
+
     # Intelligent Memory Extraction
     KAIRO_MEMORY_EXTRACTION_ENABLED: bool = True
     KAIRO_MEMORY_DEDUP_THRESHOLD: float = 0.90

@@ -8,6 +8,7 @@ from app.api.health import router as health_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.memory import user_router as user_memory_router
+from app.api.routes.voice import router as voice_router
 from app.core.config import get_settings
 
 
@@ -52,12 +53,13 @@ def create_app() -> FastAPI:
     # Register root health endpoint
     app.include_router(health_router)
 
-    # Register API v1 routers
     app.include_router(chat_router, prefix=settings.API_V1_STR)
     app.include_router(memory_router, prefix=settings.API_V1_STR)
     app.include_router(user_memory_router, prefix=settings.API_V1_STR)
+    app.include_router(voice_router, prefix=settings.API_V1_STR)
 
     return app
+
 
 
 app = create_app()

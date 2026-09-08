@@ -2,14 +2,12 @@
 
 Kairo is an autonomous personal AI assistant designed to execute complex tasks, manage workflows, and interface seamlessly across voice, text, tools, memory, and autonomous agent loops.
 
-> **Status: Phase 8 — Browser Control System**  
-> This repository is currently in **Phase 8**. Kairo now features controlled, safe browser automation using Playwright:
-> 1. **Playwright Integration**: Headless Chromium browser automation with isolated contexts per chat session.
-> 2. **Controlled Browser Tools**: `browser_navigate`, `browser_inspect`, `browser_screenshot`, `browser_click`, `browser_fill`.
-> 3. **Defense-in-Depth Security**: Full SSRF protection against private networks/cloud metadata, sensitive field policy (blocking passwords, credit cards, API keys), form submission protection, download cancellation, and prompt injection boundaries (`<web_source>`).
-> 4. **Core Philosophy**: *"Browser pages are untrusted external content."*
-> 
-> **Important**: Voice STT/TTS, desktop mouse/keyboard control, GitHub tools, and frontend UI are **NOT implemented yet** and will be introduced incrementally in future phases.
+> **Status: Phase 9 — Real-time Voice System**  
+> This repository is currently in **Phase 9**. Kairo features real-time, bi-directional voice communication over WebSockets (`/api/v1/voice`):
+> 1. **Audio Pipeline**: 16kHz linear PCM streaming audio capture, Energy/Silero Voice Activity Detection (VAD), Speech-to-Text (STT), Kairo Core reasoning, and Text-to-Speech (TTS).
+> 2. **Full-Duplex WebSockets**: Native binary and JSON frame handling with support for immediate barge-in interruption.
+> 3. **Privacy by Design**: Zero permanent audio storage. Audio buffers are processed purely in ephemeral memory and discarded immediately following transcription. Raw audio is never sent to long-term memory or PostgreSQL vector tables.
+> 4. **Provider Abstraction**: Extensible STT/TTS interfaces with out-of-the-box OpenAI Whisper/TTS and deterministic test mocks.
 
 
 ---

@@ -81,12 +81,44 @@ class Settings(BaseSettings):
     KAIRO_BROWSER_MAX_ELEMENTS: int = 200
     KAIRO_BROWSER_MAX_LINKS: int = 100
 
+    # Voice System (Task 9)
+    KAIRO_VOICE_ENABLED: bool = True
+    KAIRO_STT_PROVIDER: str = "mock"
+    KAIRO_STT_MODEL: str = "whisper-1"
+    KAIRO_STT_API_KEY: SecretStr | None = None
+    KAIRO_STT_BASE_URL: str | None = None
+    KAIRO_TTS_PROVIDER: str = "mock"
+    KAIRO_TTS_MODEL: str = "tts-1"
+    KAIRO_TTS_VOICE: str = "alloy"
+    KAIRO_TTS_API_KEY: SecretStr | None = None
+    KAIRO_TTS_BASE_URL: str | None = None
+    KAIRO_VOICE_SAMPLE_RATE: int = 16000
+    KAIRO_VOICE_MAX_SESSION_SECONDS: int = 1800
+    KAIRO_VOICE_MAX_AUDIO_CHUNK_BYTES: int = 65536
+    KAIRO_VOICE_MAX_MESSAGE_SECONDS: int = 60
+    KAIRO_VOICE_MAX_CONCURRENT_SESSIONS: int = 5
+
     @property
     def openrouter_api_key_str(self) -> str:
         """Safely retrieve the raw API key string without exposing it in repr."""
         if self.OPENROUTER_API_KEY:
             return self.OPENROUTER_API_KEY.get_secret_value().strip()
         return ""
+
+    @property
+    def stt_api_key_str(self) -> str:
+        """Safely retrieve the raw STT API key string."""
+        if self.KAIRO_STT_API_KEY:
+            return self.KAIRO_STT_API_KEY.get_secret_value().strip()
+        return ""
+
+    @property
+    def tts_api_key_str(self) -> str:
+        """Safely retrieve the raw TTS API key string."""
+        if self.KAIRO_TTS_API_KEY:
+            return self.KAIRO_TTS_API_KEY.get_secret_value().strip()
+        return ""
+
 
     @property
     def web_search_api_key_str(self) -> str:

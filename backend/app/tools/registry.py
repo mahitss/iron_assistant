@@ -73,5 +73,42 @@ def create_default_tool_registry() -> ToolRegistry:
         registry.register(BrowserClickTool())
         registry.register(BrowserFillTool())
 
+    if get_settings().KAIRO_DEVELOPER_ENABLED:
+        from app.tools.builtin.developer import (
+            CodeAnalysisTool,
+            CodeReadFileTool,
+            CodeSearchTool,
+            GitBranchesTool,
+            GitDiffTool,
+            GitHubGetChecksTool,
+            GitHubGetIssueTool,
+            GitHubGetPullRequestDiffTool,
+            GitHubGetPullRequestTool,
+            GitHubGetRepositoryTool,
+            GitHubListIssuesTool,
+            GitHubListPullRequestsTool,
+            GitHubListRepositoriesTool,
+            GitLogTool,
+            GitStatusTool,
+            TestRunnerTool,
+        )
+
+        registry.register(GitStatusTool())
+        registry.register(GitBranchesTool())
+        registry.register(GitLogTool())
+        registry.register(GitDiffTool())
+        registry.register(CodeSearchTool())
+        registry.register(CodeReadFileTool())
+        registry.register(CodeAnalysisTool())
+        registry.register(GitHubListRepositoriesTool())
+        registry.register(GitHubGetRepositoryTool())
+        registry.register(GitHubListIssuesTool())
+        registry.register(GitHubGetIssueTool())
+        registry.register(GitHubListPullRequestsTool())
+        registry.register(GitHubGetPullRequestTool())
+        registry.register(GitHubGetPullRequestDiffTool())
+        registry.register(GitHubGetChecksTool())
+        registry.register(TestRunnerTool())
+
     return registry
 

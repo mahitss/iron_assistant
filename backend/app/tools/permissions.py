@@ -9,6 +9,7 @@ class PermissionLevel(str, Enum):
     READ = "READ"
     WRITE = "WRITE"
     EXTERNAL = "EXTERNAL"
+    EXECUTE = "EXECUTE"
     DESTRUCTIVE = "DESTRUCTIVE"
 
 
@@ -35,7 +36,8 @@ class PermissionManager:
 
     Currently:
     - READ: automatically allowed.
-    - WRITE, EXTERNAL, DESTRUCTIVE: requires approval (denied without explicit approval).
+    - WRITE, EXTERNAL, EXECUTE: requires approval (denied without explicit approval).
+    - DESTRUCTIVE: denied.
     """
 
     def __init__(self, custom_policies: dict[PermissionLevel, PermissionDecision] | None = None):
@@ -43,6 +45,7 @@ class PermissionManager:
             PermissionLevel.READ: PermissionDecision.AUTO_ALLOWED,
             PermissionLevel.WRITE: PermissionDecision.REQUIRES_APPROVAL,
             PermissionLevel.EXTERNAL: PermissionDecision.REQUIRES_APPROVAL,
+            PermissionLevel.EXECUTE: PermissionDecision.REQUIRES_APPROVAL,
             PermissionLevel.DESTRUCTIVE: PermissionDecision.DENIED,
         }
         if custom_policies:

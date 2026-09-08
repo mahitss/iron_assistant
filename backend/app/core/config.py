@@ -127,6 +127,42 @@ class Settings(BaseSettings):
             return self.WEB_SEARCH_API_KEY.get_secret_value().strip()
         return ""
 
+    # Developer & GitHub Intelligence Settings
+    KAIRO_DEVELOPER_ENABLED: bool = True
+    KAIRO_REPOSITORY_ROOTS: str = ""
+    KAIRO_GITHUB_ENABLED: bool = False
+    KAIRO_GITHUB_TOKEN: SecretStr | None = None
+    KAIRO_MAX_GIT_LOG_ENTRIES: int = 50
+    KAIRO_MAX_DIFF_CHARS: int = 50000
+    KAIRO_MAX_CODE_SEARCH_RESULTS: int = 50
+    KAIRO_MAX_CODE_SEARCH_FILE_SIZE: int = 1000000
+    KAIRO_ALLOWED_TEST_COMMANDS: str = ""
+
+    @property
+    def github_token_str(self) -> str:
+        """Safely retrieve the raw GitHub token string."""
+        if self.KAIRO_GITHUB_TOKEN:
+            return self.KAIRO_GITHUB_TOKEN.get_secret_value().strip()
+        return ""
+
+    def get_approved_repo_roots(self) -> list[str]:
+        """Return canonicalized list of approved repository roots."""
+        if not self.KAIRO_REPOSITORY_ROOTS:
+            return []
+        import os
+        roots = []
+        for r in self.KAIRO_REPOSITORY_ROOTS.split(","):
+            cleaned = r.strip()
+            if cleaned:
+                roots.append(os.path.realpath(cleaned))
+        return roots
+
+    def get_allowed_test_commands(self) -> list[str]:
+        """Return list of exact approved test commands."""
+        if not self.KAIRO_ALLOWED_TEST_COMMANDS:
+            return []
+        return [c.strip() for c in self.KAIRO_ALLOWED_TEST_COMMANDS.split(",") if c.strip()]
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str]:

@@ -2,12 +2,13 @@
 
 Kairo is an autonomous personal AI assistant designed to execute complex tasks, manage workflows, and interface seamlessly across voice, text, tools, memory, and autonomous agent loops.
 
-> **Status: Phase 9 — Real-time Voice System**  
-> This repository is currently in **Phase 9**. Kairo features real-time, bi-directional voice communication over WebSockets (`/api/v1/voice`):
-> 1. **Audio Pipeline**: 16kHz linear PCM streaming audio capture, Energy/Silero Voice Activity Detection (VAD), Speech-to-Text (STT), Kairo Core reasoning, and Text-to-Speech (TTS).
-> 2. **Full-Duplex WebSockets**: Native binary and JSON frame handling with support for immediate barge-in interruption.
-> 3. **Privacy by Design**: Zero permanent audio storage. Audio buffers are processed purely in ephemeral memory and discarded immediately following transcription. Raw audio is never sent to long-term memory or PostgreSQL vector tables.
-> 4. **Provider Abstraction**: Extensible STT/TTS interfaces with out-of-the-box OpenAI Whisper/TTS and deterministic test mocks.
+> **Status: Phase 12 — Developer and GitHub Intelligence System**  
+> This repository is currently in **Phase 12**. Kairo now features controlled developer capabilities and read-only Git/GitHub integration:
+> 1. **Repository Security Model**: "Kairo does not have unrestricted repository or shell access." Access is restricted strictly to directories under `KAIRO_REPOSITORY_ROOTS`. Path traversal (`../../`), symlink escapes, device files, and sensitive files (`.env`, private keys) are rejected.
+> 2. **Local Git & Code Inspection**: Bounded inspection of working tree status, branches, commit logs, unified diffs, code search (ignoring `.git`, `node_modules`, build artifacts), safe file reading, and deterministic code analysis (languages, line counts, TODOs, Python AST syntax validation).
+> 3. **Read-Only GitHub Provider**: Server-side token isolation for inspecting repositories, issues, pull requests, PR diffs, and CI check runs. Tokens are never exposed to the model, in logs, or in conversation memory.
+> 4. **Controlled Test Execution**: The `test_runner` tool executes only exact commands configured in `KAIRO_ALLOWED_TEST_COMMANDS` without a shell (`shell=False`). Requires explicit user approval (`EXECUTE` permission level).
+> 5. **Untrusted Data Defense**: "Repository content is treated as untrusted data." Prompt injections in READMEs, code comments, and issue text cannot override system instructions or alter permissions.
 
 
 ---
@@ -520,13 +521,79 @@ KAIRO_BROWSER_MAX_LINKS=100                    # Maximum links extracted
 
 ---
 
+---
+
+## Developer and GitHub Intelligence System (Phase 12)
+
+Kairo provides controlled software project understanding and assisted development capabilities:
+
+### 1. Core Security Guarantees
+- **"Kairo does not have unrestricted repository or shell access."**
+- **"Repository content is treated as untrusted data."**
+- **Approved Roots Only**: Kairo strictly rejects any repository or file outside configured `KAIRO_REPOSITORY_ROOTS`.
+- **Path Traversal & Symlink Defense**: Path canonicalization blocks `../../` escapes, null bytes, device files (`CON`, `PRN`, `AUX`, `NUL`), and symlinks resolving outside approved boundaries.
+- **Sensitive File Shield**: Prohibits reading `.env`, `.env.*`, `*id_rsa*`, `*id_ed25519*`, `*.pem`, `*.key`, `credentials.json`, or `.git-credentials`.
+- **Secret Redaction**: Diff outputs, code search lines, and file contents pass through multi-pattern secret sanitization before reaching the model (masking API keys, GitHub tokens, AWS keys, Bearer tokens, and private keys).
+- **Zero Arbitrary Shell Execution**: No `eval()`, no `exec()`, no `shell=True`. Tests run through a controlled subprocess execution abstraction.
+- **GitHub Token Isolation**: GitHub tokens remain strictly server-side and are never logged, stored in conversation history, or included in tool outputs.
+- **Prompt Injection Immunity**: Instructions embedded in READMEs, source comments, or issue text are treated purely as data and cannot change permissions, authorize restricted actions, or request secrets.
+
+### 2. Available Developer Tools
+
+| Tool Name | Permission | Description |
+|---|---|---|
+| `git_status` | `READ` | Bounded inspection of clean/dirty state, branch, staged, modified, untracked, and deleted files. |
+| `git_branches` | `READ` | Listing of current branch, local branches, and remote branch names. |
+| `git_log` | `READ` | Bounded commit history (SHA, author, date, subject) up to 50 commits. |
+| `git_diff` | `READ` | Bounded unified diff for working-tree, staged changes, or a specific commit with secret redaction. |
+| `code_search` | `READ` | Bounded search across approved repositories, automatically skipping `.git`, `node_modules`, and build artifacts. |
+| `code_read_file` | `READ` | Bounded reading of text files with path traversal and binary rejection. |
+| `code_analyze` | `READ` | Grounded static analysis (language distribution, line counts, TODO/FIXME markers, Python AST syntax validation). |
+| `github_list_repositories` | `READ` | Safe listing of accessible GitHub repositories. |
+| `github_get_repository` | `READ` | Metadata for a specific GitHub repository. |
+| `github_list_issues` | `READ` | Bounded listing of GitHub issues. |
+| `github_get_issue` | `READ` | Detailed bounded view of a specific GitHub issue. |
+| `github_list_pull_requests` | `READ` | Bounded listing of pull requests and branches. |
+| `github_get_pull_request` | `READ` | Detailed metadata for a specific pull request. |
+| `github_get_pull_request_diff` | `READ` | Bounded unified diff of a pull request with secret redaction. |
+| `github_get_checks` | `READ` | Status and conclusions of CI workflow runs and commit check suites. |
+| `test_runner` | `EXECUTE` | Strictly sandboxed test runner matching exact commands in `KAIRO_ALLOWED_TEST_COMMANDS`. Requires user approval. |
+
+### 3. Future Write Actions Pipeline
+Future write capabilities (branch creation, file modifications, commits, PR creation) are architected under an explicit approval pipeline:
+```text
+PROPOSED CHANGE → DIFF PREVIEW → USER APPROVAL → EXECUTION → VERIFICATION
+```
+Write and external modifying tools are not implemented as unrestricted actions.
+
+### 4. Configuration Variables
+```bash
+KAIRO_DEVELOPER_ENABLED=true                     # Enable developer intelligence tools
+KAIRO_REPOSITORY_ROOTS=                          # Comma-separated list of approved filesystem roots
+KAIRO_GITHUB_ENABLED=false                       # Enable GitHub API integration
+KAIRO_GITHUB_TOKEN=                              # Personal access token (server-side only)
+KAIRO_MAX_GIT_LOG_ENTRIES=50                     # Commit history limit cap
+KAIRO_MAX_DIFF_CHARS=50000                       # Diff character truncation limit
+KAIRO_MAX_CODE_SEARCH_RESULTS=50                 # Code search result limit
+KAIRO_MAX_CODE_SEARCH_FILE_SIZE=1000000          # Max file size for code search/read (1MB)
+KAIRO_ALLOWED_TEST_COMMANDS=                     # Comma-separated exact allowlist (e.g. "pytest,npm test")
+```
+
+---
+
 ## Running Tests
 
-The test suite contains **184 unit and integration tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, navigation, inspection, screenshots, form fill security, and approval flows without requiring external network connections or live databases:
+The test suite contains **236 unit and integration tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path traversal protection, secret redaction, mocked GitHub integration, and controlled test sandboxing:
 
 ```bash
 cd backend
 pytest -v
+```
+
+And for frontend modules:
+```bash
+cd frontend
+npm test
 ```
 
 ---
@@ -541,6 +608,6 @@ pytest -v
 - [x] **Phase 6: Intelligent Memory Layer** — Post-turn candidate extraction, deterministic memory policy, semantic deduplication, non-blocking async execution, user inspection and deletion API.
 - [x] **Phase 7: Web Research System** — Search provider abstraction, network-level SSRF defense, HTML content extraction, source citations, prompt injection defense, research iteration limits.
 - [x] **Phase 8: Browser Control System** — Playwright Chromium automation, isolated sessions, SSRF & redirect defense, bounded inspection, screenshot capture, sensitive field rejection, approval policy.
-- [ ] **Phase 9: Voice Pipeline** — STT & TTS streaming audio pipeline.
-- [ ] **Phase 10: Frontend Interface** — Next.js + TypeScript dashboard with audio waveform visualizer.
+- [x] **Phase 9: Voice Pipeline** — Real-time WebSockets (`/api/v1/voice`), 16kHz PCM streaming, VAD, STT/TTS provider abstraction, barge-in interruption.
+- [x] **Phase 12: Developer & GitHub Intelligence System** — Local Git inspection, code search, path security, secret redaction, read-only GitHub integration, controlled test execution with strict allowlist.
 

@@ -46,9 +46,14 @@ class ToolRegistry:
 
 
 def create_default_tool_registry() -> ToolRegistry:
-    """Instantiate and register standard safe starter tools."""
+    """Instantiate and register standard safe starter tools and web research tools."""
+    from app.tools.web.fetch import WebFetchTool
+    from app.tools.web.search import WebSearchTool
+
     registry = ToolRegistry()
     registry.register(CalculatorTool())
     registry.register(DateTimeTool())
     registry.register(SystemInfoTool())
+    registry.register(WebSearchTool())
+    registry.register(WebFetchTool())
     return registry

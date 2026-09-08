@@ -58,11 +58,29 @@ class Settings(BaseSettings):
     KAIRO_MEMORY_DEDUP_THRESHOLD: float = 0.90
     KAIRO_MEMORY_EXTRACTION_CAPABILITY: str = "fast"
 
+    # Web Research System (Task 7)
+    WEB_SEARCH_PROVIDER: str | None = None  # e.g., "mock", "duckduckgo", "tavily", "brave"
+    WEB_SEARCH_API_KEY: SecretStr | None = None
+    WEB_SEARCH_MAX_RESULTS: int = 5
+    WEB_FETCH_MAX_BYTES: int = 2000000  # 2MB limit
+    WEB_FETCH_TIMEOUT_SECONDS: float = 10.0
+    WEB_FETCH_MAX_REDIRECTS: int = 3
+    WEB_MAX_EXTRACTED_CHARS: int = 30000
+    KAIRO_MAX_RESEARCH_ITERATIONS: int = 3
+    KAIRO_WEB_CACHE_TTL_SECONDS: int = 900  # 15 minutes
+
     @property
     def openrouter_api_key_str(self) -> str:
         """Safely retrieve the raw API key string without exposing it in repr."""
         if self.OPENROUTER_API_KEY:
             return self.OPENROUTER_API_KEY.get_secret_value().strip()
+        return ""
+
+    @property
+    def web_search_api_key_str(self) -> str:
+        """Safely retrieve the raw search API key string without exposing it in repr."""
+        if self.WEB_SEARCH_API_KEY:
+            return self.WEB_SEARCH_API_KEY.get_secret_value().strip()
         return ""
 
     @field_validator("ALLOWED_ORIGINS", mode="before")

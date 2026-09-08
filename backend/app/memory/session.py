@@ -94,6 +94,35 @@ class SessionManager:
 
         self._in_memory_cache.pop(session_id, None)
 
+    async def get(self, key: str) -> str | None:
+        """Generic get for ephemeral caching (e.g. web search / fetch)."""
+        client = await self._get_client()
+        if client is not None:
+            try:
+                return await client.get(key)
+            except Exception as exc:
+                logger.warning("Error reading from Redis key %s: %s", key, exc)
+
+        val = self._in_memory_cache.get(key)
+        if isinstance(val, str):
+            return val
+        if val is not None:
+            return json.dumps(val)
+        return None
+
+    async def set(self, key: str, value: str, ttl_seconds: int | None = None) -> None:
+        """Generic set for ephemeral caching with TTL."""
+        expiry = ttl_seconds or self.default_ttl
+        client = await self._get_client()
+        if client is not None:
+            try:
+                await client.setex(key, expiry, value)
+                return
+            except Exception as exc:
+                logger.warning("Error writing to Redis key %s: %s", key, exc)
+
+        self._in_memory_cache[key] = value
+
     async def close(self) -> None:
         """Close Redis connection pool cleanly."""
         if self._redis is not None:

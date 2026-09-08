@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
+from app.api.routes.agents import router as agents_router
 from app.api.routes.automations import router as automations_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.memory import router as memory_router
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(proactive_router, prefix=settings.API_V1_STR)
     app.include_router(notifications_router, prefix=settings.API_V1_STR)
     app.include_router(web_monitors_router, prefix=settings.API_V1_STR)
+    app.include_router(agents_router, prefix=settings.API_V1_STR)
 
     return app
 

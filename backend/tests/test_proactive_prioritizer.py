@@ -1,6 +1,5 @@
 """Tests for deterministic priority and actionability assignment in Proactive Intelligence."""
 
-
 from app.proactive.prioritizer import InsightPrioritizer
 from app.proactive.state import Actionability, InsightPriority, SourceType
 

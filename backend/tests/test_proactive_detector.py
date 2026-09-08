@@ -1,6 +1,5 @@
 """Tests for candidate event detection and filtering in Proactive Intelligence."""
 
-
 from app.proactive.detector import ProactiveDetector
 from app.proactive.state import Actionability, InsightPriority, SourceType
 

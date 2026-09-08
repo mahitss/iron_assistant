@@ -375,6 +375,35 @@ class KairoAgent:
                 except Exception as exc:
                     logger.warning("Error accessing conversation history: %s", exc)
 
+            # Check if Multi-Agent Orchestration is applicable
+            cfg = get_settings()
+            if getattr(cfg, "KAIRO_MULTI_AGENT_ENABLED", True):
+                from app.agents.supervisor import SupervisorAgent
+
+                supervisor = SupervisorAgent(
+                    provider=self.provider,
+                    model_router=self.router,
+                    tool_registry=self.tool_registry,
+                    tool_executor=self.tool_executor,
+                )
+                if supervisor.should_decompose(message):
+                    logger.info("Decomposing complex user request into multi-agent plan.")
+                    supervisor_resp = await supervisor.execute(
+                        message=message,
+                        session_id=active_session_id,
+                    )
+                    if conv_repo is not None and conv is not None:
+                        try:
+                            await conv_repo.add_message(
+                                conversation_id=conv.id,
+                                role="assistant",
+                                content=supervisor_resp.message,
+                                meta={"model": supervisor_resp.model},
+                            )
+                        except Exception as exc:
+                            logger.warning("Failed to persist supervisor assistant message: %s", exc)
+                    return supervisor_resp
+
             # 2. Retrieve relevant long-term memories (bounded by memory_top_k)
             if mem_service is not None:
                 try:

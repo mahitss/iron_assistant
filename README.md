@@ -2,13 +2,13 @@
 
 Kairo is an autonomous personal AI assistant designed to execute complex tasks, manage workflows, and interface seamlessly across voice, text, tools, memory, and autonomous agent loops.
 
-> **Status: Phase 12 — Developer and GitHub Intelligence System**  
-> This repository is currently in **Phase 12**. Kairo now features controlled developer capabilities and read-only Git/GitHub integration:
-> 1. **Repository Security Model**: "Kairo does not have unrestricted repository or shell access." Access is restricted strictly to directories under `KAIRO_REPOSITORY_ROOTS`. Path traversal (`../../`), symlink escapes, device files, and sensitive files (`.env`, private keys) are rejected.
-> 2. **Local Git & Code Inspection**: Bounded inspection of working tree status, branches, commit logs, unified diffs, code search (ignoring `.git`, `node_modules`, build artifacts), safe file reading, and deterministic code analysis (languages, line counts, TODOs, Python AST syntax validation).
-> 3. **Read-Only GitHub Provider**: Server-side token isolation for inspecting repositories, issues, pull requests, PR diffs, and CI check runs. Tokens are never exposed to the model, in logs, or in conversation memory.
-> 4. **Controlled Test Execution**: The `test_runner` tool executes only exact commands configured in `KAIRO_ALLOWED_TEST_COMMANDS` without a shell (`shell=False`). Requires explicit user approval (`EXECUTE` permission level).
-> 5. **Untrusted Data Defense**: "Repository content is treated as untrusted data." Prompt injections in READMEs, code comments, and issue text cannot override system instructions or alter permissions.
+> **Status: Phase 16 — Multi-Agent Orchestration System**  
+> This repository features a controlled, supervised multi-agent architecture:
+> 1. **Supervised Coordination**: "Kairo uses a supervised multi-agent architecture, not an unrestricted agent swarm." Only the Supervisor can decompose tasks and create plans; specialists cannot spawn recursive sub-agents.
+> 2. **Specialist Agents**: `SUPERVISOR`, `RESEARCHER`, `DEVELOPER`, `ANALYST`, and `BROWSER` with bounded roles and explicit tool allowlists.
+> 3. **Central Security & Emergency Stop**: "All agent tool calls pass through the same ToolExecutor and SecurityCenter used by normal Kairo operations." Specialists cannot change security policies or self-approve actions.
+> 4. **Evidence Taxonomy**: Strictly distinguishes `OBSERVED`, `INFERRED`, and `UNKNOWN` facts, preserving verified web citations without hallucinations.
+> 5. **Robust Limits & Isolation**: Enforces DAG cycle validation, token/tool call budgets, per-task timeouts, task cancellation API, and tenant isolation.
 
 
 ---
@@ -849,9 +849,96 @@ KAIRO_MAX_PROACTIVE_CHAIN_DEPTH=3                 # Max causal chain depth to ha
 
 ---
 
+## Multi-Agent Orchestration System
+
+Kairo features a controlled, supervised multi-agent architecture designed to decompose complex, cross-domain requests into bounded specialist tasks.
+
+> [!IMPORTANT]
+> **Supervised Architecture, Not a Swarm**: "Kairo uses a supervised multi-agent architecture, not an unrestricted agent swarm."
+> Only the central `SUPERVISOR` coordinates and delegates tasks. Specialist agents cannot recursively spawn sub-agents (maximum delegation depth = 1).
+> 
+> **Centralized Security Enforcement**: "All agent tool calls pass through the same ToolExecutor and SecurityCenter used by normal Kairo operations."
+> Specialist agents cannot modify security policies, cannot self-approve actions, cannot access unapproved databases, and cannot bypass approval checks.
+
+```text
+                    KAIRO SUPERVISOR
+                           │
+              ┌────────────┼────────────┐
+              ↓            ↓            ↓
+          RESEARCHER    DEVELOPER    BROWSER
+              │            │            │
+              └────────────┼────────────┘
+                           ↓
+                        ANALYST
+                           ↓
+                      SUPERVISOR
+                           ↓
+                         USER
+```
+
+### 1. Specialist Agent Roles
+
+| Agent | Capability | Allowed Tools | Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **SUPERVISOR** | `reasoning` | *(None directly)* | Evaluates user requests, generates DAG plans, validates limits, delegates to specialists, resolves conflicts, and synthesizes final answer. |
+| **RESEARCHER** | `fast` / `general` | `web_search`, `web_fetch` | Performs external web research, gathers authoritative documentation, records citations, and classifies facts as `OBSERVED`. Cannot submit forms or modify websites. |
+| **DEVELOPER** | `coding` / `reasoning` | `git_status`, `git_diff`, `git_log`, `code_search`, `code_read_file`, `github_get_*` | Safe local repository inspection, git status/diff analysis, code search, and read-only GitHub queries. Cannot execute arbitrary shell commands or code. |
+| **ANALYST** | `reasoning` | *(None)* | Pure reasoning specialist. Compares findings across upstream specialists, detects contradictions, synthesizes conclusions, and separates `OBSERVED`, `INFERRED`, and `UNKNOWN`. Has zero direct tool privileges. |
+| **BROWSER** | `general` | `browser_inspect`, `browser_screenshot` | Controlled observation of web pages and user interfaces. Operates within isolated browser contexts. Cannot perform external side-effects without explicit user approval. |
+
+### 2. Task DAG & Topological Scheduling
+
+- **Directed Acyclic Graph (DAG)**: The `AgentPlanner` produces structured plans with task dependencies (e.g. Developer and Researcher run in parallel; Analyst depends on both; Supervisor combines).
+- **Cycle Detection**: Kahn's algorithm in `PlanValidator` validates the dependency graph and rejects circular dependencies or non-existent parent references.
+- **Bounded Concurrency**: Independent tasks execute in parallel bounded by `asyncio.Semaphore(KAIRO_MAX_PARALLEL_AGENTS=3)`.
+- **Delegation Depth Limit**: Strictly capped at depth 1. Specialists cannot delegate or spawn new tasks (`assert_can_coordinate` / `assert_delegation_depth`).
+
+### 3. Context Isolation & Result Passing
+
+- **No Global History Sharing**: Specialists never receive the full conversation history or raw system prompts.
+- **Minimal Scoped Context**: Each specialist receives only its specific objective and the structured `AgentResult` summaries of its declared upstream dependencies.
+- **No Hidden Reasoning Persistence**: Intermediate chain-of-thought or raw internal reasoning is never passed between agents or persisted to disk; only structured evidence (`AgentEvidence`), citations (`AgentCitation`), and verified outputs are passed.
+
+### 4. Truth & Evidence Taxonomy
+
+Every piece of evidence gathered or deduced by specialists is categorized into a three-state truth model:
+- **`OBSERVED`**: Direct, verifiable facts gathered from tool output (e.g. repository file pins Python 3.11; official release notes state version 3.13).
+- **`INFERRED`**: Logical deductions and implications (e.g. upgrading to Python 3.13 will require verifying third-party package compatibility).
+- **`UNKNOWN`**: Explicitly recognized gaps and unverified assumptions (e.g. whether custom C-extensions compile under free-threaded mode).
+
+Web citations gathered by the `RESEARCHER` are strictly preserved without hallucinating URLs. If conflicting evidence is uncovered (e.g. external documentation recommends upgrading while repository dependencies are locked), the `SUPERVISOR` explicitly reports both perspectives.
+
+### 5. Multi-Agent Security Boundaries
+
+- **Tool Whitelisting**: Every specialist is bound to an explicit allowlist in `AgentRegistry`. Attempting to invoke an unauthorized tool raises `AgentSecurityViolation`.
+- **Approval Propagation**: If a specialist requests an action requiring approval, execution halts and the request is propagated to the user through `SecurityCenter`. Agents cannot self-approve.
+- **Emergency Stop**: If `EmergencyStopService.is_stopped(user_id)` is active, running agent tasks are cancelled immediately and all new tasks are rejected.
+- **Prompt Injection Defense**: External documents, repository files, issues, and web content are sanitized via `AgentSecurityPolicy.sanitize_untrusted_input()` to neutralize jailbreaks and delegation-hijacking attempts.
+- **Tenant Isolation**: Tasks and results stored in `agent_tasks` and `agent_task_results` enforce strict `user_id` checks. Users cannot inspect or cancel tasks belonging to another user.
+
+### 6. Limits, Deadlines, and Budgets
+
+```bash
+KAIRO_MULTI_AGENT_ENABLED=true             # Master switch for multi-agent layer
+KAIRO_MAX_AGENT_TASKS=8                    # Maximum number of sub-tasks in a single plan
+KAIRO_MAX_PARALLEL_AGENTS=3                # Maximum concurrent specialist tasks
+KAIRO_AGENT_TIMEOUT_SECONDS=300            # Per-task execution deadline (seconds)
+KAIRO_AGENT_TOOL_TIMEOUT_SECONDS=60        # Per-tool execution timeout (seconds)
+KAIRO_MAX_AGENT_TOOL_CALLS=20              # Maximum tool calls per specialist task
+KAIRO_MAX_TOTAL_AGENT_TOOL_CALLS=50        # Maximum tool calls per supervisor request
+```
+
+### 7. REST API & UI Visualization
+
+- **`POST /api/v1/agents/tasks/{task_id}/cancel`**: Allows users to cancel an active multi-agent execution mid-flight.
+- **`GET /api/v1/agents/tasks/{task_id}`**: Inspect status and structured evidence of an orchestrated task (enforces tenant isolation).
+- **Frontend Visualization**: `AgentWorkflowView` renders real-time status (`✓`, `●`, `○`, `✗`, `⏸`), high-level summaries, and safe cancellation controls without exposing raw model reasoning.
+
+---
+
 ## Running Tests
 
-The test suite contains **314 backend unit and integration tests** and **21 frontend tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path security, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, tenant isolation, security policy matrices, emergency stops, capability gates, audit trails, proactive event detection, deterministic prioritization, fingerprint deduplication, cooldown tracking, user settings, quiet hours, notification delivery, web monitoring, and loop prevention:
+The test suite contains **343 backend unit and integration tests** and **25 frontend tests** verifying repositories, memory sanitization, candidate extraction, safety policies, semantic deduplication, session management, router selection, tool execution, SSRF protection, HTML text extraction, web search providers, safe page fetching, source citations, prompt injection defense, browser sessions, voice WebSockets/VAD/audio, local Git inspection, code search, path security, secret redaction, mocked GitHub integration, controlled test sandboxing, durable workflows, deterministic condition engines, timezone schedules, scheduler idempotency, human-in-the-loop approvals, tenant isolation, security policy matrices, emergency stops, capability gates, audit trails, proactive event detection, deterministic prioritization, fingerprint deduplication, cooldown tracking, user settings, quiet hours, notification delivery, web monitoring, multi-agent planner DAG validation, specialist tool allowlists, budget and tool limits, execution timeouts, cancellation propagation, evidence taxonomy classification, citation preservation, and prompt injection defense:
 
 ```bash
 cd backend
@@ -881,5 +968,7 @@ npm test
 - [x] **Phase 13: Automation & Workflow Engine** — Durable workflow definitions, deterministic condition engine, distributed scheduler, idempotency keys, human-in-the-loop approval requests, stale run recovery, cancellation, and tenant isolation.
 - [x] **Phase 14: Central Security, Permissions, Approval & Audit Center** — Authoritative Security Center, permission and risk taxonomy, emergency stop kill switch, capability gates, deterministic approval fingerprinting, secret redaction, append-only audit trail, and user isolation.
 - [x] **Phase 15: Proactive Intelligence Layer** — Proactive detector, candidate insight lifecycle, deterministic prioritization, SHA-256 deduplication, state transition cooldown, quiet hours, hourly rate limiting, in-app notification center, proactive feed, safe web monitoring, and strict loop prevention.
+- [x] **Phase 16: Multi-Agent Orchestration System** — Supervisor-driven task decomposition, specialist agents (Researcher, Developer, Analyst, Browser), DAG planning and topological execution, context isolation, evidence taxonomy (OBSERVED / INFERRED / UNKNOWN), web citation preservation, tool call budgeting, emergency stop integration, tenant isolation, and task cancellation.
+
 
 

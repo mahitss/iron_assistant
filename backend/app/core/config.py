@@ -185,6 +185,17 @@ class Settings(BaseSettings):
     KAIRO_MAX_PROACTIVE_INSIGHTS_PER_HOUR: int = 50
     KAIRO_MAX_PROACTIVE_CHAIN_DEPTH: int = 3
 
+    # Multi-Agent Orchestration Settings (Task 16)
+    KAIRO_MULTI_AGENT_ENABLED: bool = True
+    KAIRO_MAX_AGENT_TASKS: int = 8
+    KAIRO_MAX_PARALLEL_AGENTS: int = 3
+    KAIRO_AGENT_TIMEOUT_SECONDS: int = 300
+    KAIRO_AGENT_TOOL_TIMEOUT_SECONDS: int = 60
+    KAIRO_MAX_AGENT_TOOL_CALLS: int = 20
+    KAIRO_MAX_TOTAL_AGENT_TOOL_CALLS: int = 50
+    KAIRO_MAX_AGENT_TOKENS_PER_TASK: int | None = None
+    KAIRO_MAX_TOTAL_AGENT_TOKENS: int | None = None
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: str | list[str]) -> list[str]:

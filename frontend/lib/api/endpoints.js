@@ -1305,6 +1305,54 @@ export const Endpoints = {
   async postAutonomousEvent(runId, payload) {
     return api.post(`/api/v1/autonomy/runs/${encodeURIComponent(runId)}/events`, payload);
   },
+
+  // ==================================================
+  // Task 46 Perception & Environmental Awareness Engine
+  // ==================================================
+
+  async registerPerceptionSource(payload) {
+    return api.post('/api/v1/perception/sources', payload);
+  },
+
+  async listPerceptionSources(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/perception/sources${qs ? `?${qs}` : ''}`);
+  },
+
+  async disablePerceptionSource(sourceId) {
+    return api.post(`/api/v1/perception/sources/${encodeURIComponent(sourceId)}/disable`);
+  },
+
+  async ingestPerceptionEvent(sourceId, payload) {
+    return api.post(`/api/v1/perception/sources/${encodeURIComponent(sourceId)}/events`, payload);
+  },
+
+  async getRecentObservations(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/perception/observations${qs ? `?${qs}` : ''}`);
+  },
+
+  async getRecentChanges() {
+    return api.get('/api/v1/perception/changes');
+  },
+
+  async captureEnvironmentSnapshot(payload) {
+    return api.post('/api/v1/perception/snapshots', payload);
+  },
+
+  async getLatestSnapshot(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/perception/snapshots/latest${qs ? `?${qs}` : ''}`);
+  },
+
+  async getLiveSituation(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/perception/situation${qs ? `?${qs}` : ''}`);
+  },
+
+  async getPerceptionHealth() {
+    return api.get('/api/v1/perception/health');
+  },
 };
 
 export const endpoints = Endpoints;

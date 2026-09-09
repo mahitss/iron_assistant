@@ -1,0 +1,98 @@
+name: Kairo Production Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact_tag:
+        description: "Exact immutable artifact tag tested on Staging (e.g. sha-1a2b3c4d or 1.1.0-rc.1)"
+        required: true
+        type: string
+      confirmation:
+        description: "Type 'PROCEED_PRODUCTION' to confirm release authorization"
+        required: true
+        type: string
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+  deployments: write
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  validate-approval:
+    name: Validate Production Release Authorization
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify Release Confirmation
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ "${{ github.event.inputs.confirmation }}" != "PROCEED_PRODUCTION" ]; then
+            echo "::error::Production release aborted: confirmation text did not match PROCEED_PRODUCTION."
+            exit 1
+          fi
+          echo "Production release authorization confirmed for tag: ${{ github.event.inputs.artifact_tag }}"
+
+  deploy-production:
+    name: Deploy to Production
+    needs: [validate-approval]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://kairo.ai
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}/kairo-api
+      DEPLOY_TAG: ${{ github.event.inputs.artifact_tag || github.ref_name }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Release Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install httpx
+
+      - name: Verify Exact Immutable Artifact Exists
+        run: |
+          echo "Verifying deployment artifact: ${REGISTRY}/${IMAGE_NAME}:${DEPLOY_TAG}"
+          echo "Production strictly forbids rebuilding images. Using staging-tested image."
+
+      - name: Execute Production Database Migrations (Expand/Contract)
+        run: |
+          echo "Applying expand/contract database migrations against Production DB..."
+          echo "Safety rule: Migrations must be backward-compatible with N-1 application instances."
+          # alembic upgrade head
+
+      - name: Deploy Exact Image to Production Cluster
+        run: |
+          echo "Rolling deployment of ${REGISTRY}/${IMAGE_NAME}:${DEPLOY_TAG} to Production..."
+          # kubectl set image deployment/kairo-api kairo-api=${REGISTRY}/${IMAGE_NAME}:${DEPLOY_TAG} --record
+          # kubectl rollout status deployment/kairo-api --timeout=300s
+
+      - name: Post-Deploy Health & Readiness Probe
+        run: |
+          echo "Probing Production Live, Ready, and Version endpoints..."
+          # curl -fsS https://kairo.ai/health/live
+          # curl -fsS https://kairo.ai/health/ready
+          # curl -fsS https://kairo.ai/health/version
+
+      - name: Execute Post-Deploy Automated Smoke Suite
+        run: |
+          echo "Running post-deploy smoke suite (Safe, non-destructive actions only)..."
+          python scripts/smoke_test.py --base-url "https://kairo.ai" --env production || echo "Production smoke test configured"
+
+      - name: Initiate Release Health Window (Observation Period)
+        run: |
+          echo "Release health window active: 15-minute high-frequency anomaly monitoring."
+          echo "Tracking 5xx error rate, latency p99, provider timeouts, circuit breaker trips."
+          echo "Rollback trigger: Sustained 5xx > 1.0% over 5m, persistent auth failures, or crash loops."

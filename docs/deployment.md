@@ -118,35 +118,41 @@ Deploy Nginx using the battle-tested configuration at [`deploy/nginx/nginx.conf`
 ```text
 Developer Push
      ↓
-CI Checks & SAST (GitHub Actions)
+CI Checks, SAST & Secrets (ci.yml, security.yml)
      ↓
-Build Image tagged with Git SHA (kairo-api:sha-xxxx)
+Build Immutable Image Tagged with Git SHA & Version (build.yml)
      ↓
-Deploy Staging & Run Automated Smoke Tests
+Deploy Staging & Run Automated Smoke Tests (staging.yml, scripts/smoke_test.py)
      ↓
-Manual Approval Gate
+Manual Production Approval Gate (GitHub Environment Protection)
      ↓
-Run Explicit Migration (bash deploy/scripts/migrate.sh)
+Expand/Contract Database Migration
      ↓
-Rollout Production Container (bash deploy/scripts/deploy.sh)
+Deploy Exact Staging Image to Production (release.yml)
      ↓
-Verify Health (GET /health/ready & GET /health/version)
+Verify Health & Readiness (GET /health/live, /health/ready, /health/version)
      ↓
-Run Smoke Tests (bash deploy/scripts/smoke-test.sh)
+Post-Deploy Smoke Suite (python scripts/smoke_test.py --env production)
+     ↓
+15-Minute Release Health Observation Window (GET /health/operations)
 ```
 
 ### Execution Commands:
 ```bash
-# 1. Run database migrations explicitly before launching new application version
-bash deploy/scripts/migrate.sh
+# 1. Run canonical release simulation locally or in staging:
+python scripts/release_simulation.py --version 1.1.0 --rc rc.1
 
-# 2. Deploy container services
-bash deploy/scripts/deploy.sh
+# 2. Run post-deploy automated smoke suite:
+python scripts/smoke_test.py --base-url "https://api.example.com" --env production
 
-# 3. Verify health and operational readiness
-bash deploy/scripts/healthcheck.sh https://api.example.com
-bash deploy/scripts/smoke-test.sh https://api.example.com
+# 3. Inspect live operational dashboard without secret exposure:
+curl -fsS https://api.example.com/health/operations
+
+# 4. Generate Software Bill of Materials (SBOM):
+python scripts/generate_sbom.py --version 1.1.0 --output sbom.json
 ```
+
+For the complete 10-step step-by-step production runbook, see [Production Deployment Runbook](file:///docs/runbooks/deploy.md).
 
 ---
 

@@ -34,16 +34,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Concurrency and load testing verifying zero race conditions under 10, 25, and 50 concurrent requests.
   - Deterministic 20-step verification demo (`scripts/demo_v1_1_scenario.py`).
 
+- **Release Engineering & Operations Automation**:
+  - Authoritative unified application versioning (`1.1.0`) exposed safely at `GET /health/version` without credential leakage.
+  - Full Operations Dashboard endpoint at `GET /health/operations` reporting uptime, request counts, error rates, average latency, and health statuses for all 8 subsystems (database, redis, model, automations, agents, security, github, browser).
+  - Structured Incident Identifier generator (`generate_incident_id`) generating format `INC-YYYYMMDDHHMM-<uuid>` for correlated log, metric, trace, and audit event triage.
+  - Automated smoke test suite (`scripts/smoke_test.py`) with support for live staging/production probes and in-process TestClient execution.
+  - Complete 14-step release simulation suite (`scripts/release_simulation.py`) enforcing canonical release pipeline: `CODE -> CI -> TEST -> SECURITY SCAN -> BUILD -> STAGING -> SMOKE TEST -> APPROVAL -> PRODUCTION -> HEALTH -> MONITOR -> ROLLBACK IF NECESSARY`.
+  - Automated Software Bill of Materials generator (`scripts/generate_sbom.py`) generating CycloneDX-compatible dependency manifests.
+
+### Changed
+- **CI/CD Pipeline Separation**:
+  - Modularized GitHub Actions into discrete single-responsibility workflows: `ci.yml` (PR tests and builds), `security.yml` (SAST, secret scanning, dependency audit), `build.yml` (immutable Docker artifact builds with Git SHA & version tags), `staging.yml` (staging deployment and automated smoke tests), and `release.yml` (production deployment gated by manual environment approval).
+  - Production deployments strictly consume exact staging-tested container artifacts; image rebuilding between staging and production is prohibited.
+
+### Fixed
+- **Release Verification & Schema Health**:
+  - Enforced expand/contract database migration pattern across releases, guaranteeing application rollbacks to previous immutable artifacts remain compatible without destructive database downgrades.
+  - Fixed sys.path resolution in release scripts and test runners.
+
 ### Security
-- **Strict Multi-Tenant Isolation**:
+- **Strict Multi-Tenant Isolation & Audit Operations**:
   - Enforced `user_id` authorization scoping across all long-term memory CRUD endpoints (`/api/v1/memory`, `/api/v1/internal/memories`).
   - Added user ownership validation on all Project CRUD, repository linking, and workflow association endpoints.
   - Cross-user approval hijacking prevention: decisions made on approvals owned by other users are rejected with `TenantIsolationError`.
-- **Production Configuration Hardening**:
-  - Updated `validate_environment` to reject `localhost`, `127.0.0.1`, `::1`, and wildcards in `ALLOWED_ORIGINS` when `ENVIRONMENT=production`.
-  - Enforced strong secret key validation and mandatory production secrets.
+  - Zero secrets exposure verified across all telemetry, operations dashboard, and release manifests.
 
-### Reliability & Infrastructure
+### Infrastructure
+- **Operational Runbooks & Incident Response**:
+  - Created 13 operational runbooks under `docs/runbooks/`: `deploy.md`, `rollback.md`, `api-down.md`, `database-down.md`, `redis-down.md`, `provider-outage.md`, `high-error-rate.md`, `high-latency.md`, `workflow-failures.md`, `agent-failures.md`, `auth-incident.md`, `secret-compromise.md`, and `emergency-stop.md`.
+  - Standardized `docs/release-checklist.md` with explicit CODE, BUILD, STAGING, DATABASE, PRODUCTION, and ROLLBACK verification gates.
 - **Database Migration 0006**:
   - Added Alembic migration `0006_personal_context_and_projects.py` registering all project and context tables, indexes, and foreign keys.
   - Base metadata synchronized across all 23 database tables ensuring clean zero-state setup.

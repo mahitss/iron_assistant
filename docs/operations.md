@@ -171,3 +171,34 @@ This runbook provides actionable procedures for diagnosing, containing, and reso
   2. Verify that Emergency Stop sets the atomic global halt flag and cancels all active tools.
   3. Ensure `KAIRO_COMPUTER_ENABLED=false` is set in configuration and redeploy.
 - **Recovery Verification:** Confirm SecurityCenter reports `emergency_stop: true` and `computer_control: false`.
+
+---
+
+## Dedicated Incident Runbooks
+For detailed, step-by-step incident response procedures, consult the authoritative runbooks under `docs/runbooks/`:
+
+- [Production Deployment Runbook](file:///docs/runbooks/deploy.md)
+- [Emergency Rollback Runbook](file:///docs/runbooks/rollback.md)
+- [API Down Runbook](file:///docs/runbooks/api-down.md)
+- [Database Down Runbook](file:///docs/runbooks/database-down.md)
+- [Redis Down Runbook](file:///docs/runbooks/redis-down.md)
+- [Model Provider Outage Runbook](file:///docs/runbooks/provider-outage.md)
+- [High Error Rate Runbook](file:///docs/runbooks/high-error-rate.md)
+- [High Latency Runbook](file:///docs/runbooks/high-latency.md)
+- [Workflow Failures Runbook](file:///docs/runbooks/workflow-failures.md)
+- [Agent Failures Runbook](file:///docs/runbooks/agent-failures.md)
+- [Authentication Incident Runbook](file:///docs/runbooks/auth-incident.md)
+- [Secret Compromise Runbook](file:///docs/runbooks/secret-compromise.md)
+- [Emergency Stop Runbook](file:///docs/runbooks/emergency-stop.md)
+
+---
+
+## Operations Dashboard & Incident Correlation
+- **Operations Dashboard**: Inspect live system health, uptime, request volume, error rates, and 8 subsystem health states via `GET /health/operations`.
+- **Incident Correlation**: When an anomaly is detected, assign a tracked identifier via `generate_incident_id("<CATEGORY>")` (format: `INC-YYYYMMDDHHMM-<uuid>`). Correlate this ID across logs, traces, metrics, and audit logs.
+- **Data Retention**:
+  - Application logs: 30 days
+  - Prometheus metrics: 90 days
+  - Audit events: 365 days (immutable, append-only)
+  - Workflow & task history: 60 days
+  - User-controlled long-term memories: Indefinite (deleted only upon user request)

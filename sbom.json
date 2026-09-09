@@ -1,0 +1,1244 @@
+{
+  "bomFormat": "CycloneDX-JSON-Subset",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:kairo-sbom-1.1.0",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-09T05:06:56.686368+00:00",
+    "component": {
+      "name": "kairo",
+      "version": "1.1.0",
+      "description": "Kairo Autonomous AI Assistant Platform",
+      "type": "application"
+    },
+    "system_runtime": {
+      "os_name": "Windows",
+      "os_release": "11",
+      "os_version": "10.0.26200",
+      "architecture": "AMD64",
+      "python_version": "3.13.5",
+      "python_compiler": "MSC v.1943 64 bit (AMD64)"
+    }
+  },
+  "components": {
+    "backend_python_packages": {
+      "count": 242,
+      "packages": [
+        {
+          "name": "absl-py",
+          "version": "2.5.0",
+          "type": "pypi"
+        },
+        {
+          "name": "aiohappyeyeballs",
+          "version": "2.7.1",
+          "type": "pypi"
+        },
+        {
+          "name": "aiohttp",
+          "version": "3.14.3",
+          "type": "pypi"
+        },
+        {
+          "name": "aiosignal",
+          "version": "1.4.0",
+          "type": "pypi"
+        },
+        {
+          "name": "aiosqlite",
+          "version": "0.22.1",
+          "type": "pypi"
+        },
+        {
+          "name": "alembic",
+          "version": "1.19.1",
+          "type": "pypi"
+        },
+        {
+          "name": "annotated-doc",
+          "version": "0.0.4",
+          "type": "pypi"
+        },
+        {
+          "name": "annotated-types",
+          "version": "0.7.0",
+          "type": "pypi"
+        },
+        {
+          "name": "anyio",
+          "version": "4.10.0",
+          "type": "pypi"
+        },
+        {
+          "name": "ast_serialize",
+          "version": "0.6.0",
+          "type": "pypi"
+        },
+        {
+          "name": "asyncpg",
+          "version": "0.31.0",
+          "type": "pypi"
+        },
+        {
+          "name": "attrs",
+          "version": "26.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "bandit",
+          "version": "1.9.4",
+          "type": "pypi"
+        },
+        {
+          "name": "bcrypt",
+          "version": "5.0.0",
+          "type": "pypi"
+        },
+        {
+          "name": "blinker",
+          "version": "1.9.0",
+          "type": "pypi"
+        },
+        {
+          "name": "boolean.py",
+          "version": "5.0",
+          "type": "pypi"
+        },
+        {
+          "name": "CacheControl",
+          "version": "0.14.4",
+          "type": "pypi"
+        },
+        {
+          "name": "cachetools",
+          "version": "5.5.2",
+          "type": "pypi"
+        },
+        {
+          "name": "certifi",
+          "version": "2025.8.3",
+          "type": "pypi"
+        },
+        {
+          "name": "cffi",
+          "version": "2.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "charset-normalizer",
+          "version": "3.4.3",
+          "type": "pypi"
+        },
+        {
+          "name": "click",
+          "version": "8.2.1",
+          "type": "pypi"
+        },
+        {
+          "name": "colorama",
+          "version": "0.4.6",
+          "type": "pypi"
+        },
+        {
+          "name": "composio",
+          "version": "0.18.2",
+          "type": "pypi"
+        },
+        {
+          "name": "composio-client",
+          "version": "1.43.0",
+          "type": "pypi"
+        },
+        {
+          "name": "composio-gemini",
+          "version": "0.18.2",
+          "type": "pypi"
+        },
+        {
+          "name": "composio-openai",
+          "version": "0.18.2",
+          "type": "pypi"
+        },
+        {
+          "name": "composio_core",
+          "version": "0.7.21",
+          "type": "pypi"
+        },
+        {
+          "name": "confluent-kafka",
+          "version": "2.14.2",
+          "type": "pypi"
+        },
+        {
+          "name": "contourpy",
+          "version": "1.3.3",
+          "type": "pypi"
+        },
+        {
+          "name": "cryptography",
+          "version": "50.0.0",
+          "type": "pypi"
+        },
+        {
+          "name": "cycler",
+          "version": "0.12.1",
+          "type": "pypi"
+        },
+        {
+          "name": "cyclonedx-python-lib",
+          "version": "11.12.0",
+          "type": "pypi"
+        },
+        {
+          "name": "defusedxml",
+          "version": "0.7.1",
+          "type": "pypi"
+        },
+        {
+          "name": "distro",
+          "version": "1.9.0",
+          "type": "pypi"
+        },
+        {
+          "name": "dnspython",
+          "version": "2.8.0",
+          "type": "pypi"
+        },
+        {
+          "name": "dulwich",
+          "version": "0.25.2",
+          "type": "pypi"
+        },
+        {
+          "name": "ecdsa",
+          "version": "0.19.2",
+          "type": "pypi"
+        },
+        {
+          "name": "elastic-transport",
+          "version": "9.4.2",
+          "type": "pypi"
+        },
+        {
+          "name": "elasticsearch",
+          "version": "9.4.1",
+          "type": "pypi"
+        },
+        {
+          "name": "email-validator",
+          "version": "2.3.0",
+          "type": "pypi"
+        },
+        {
+          "name": "fastapi",
+          "version": "0.136.1",
+          "type": "pypi"
+        },
+        {
+          "name": "filelock",
+          "version": "3.32.5",
+          "type": "pypi"
+        },
+        {
+          "name": "filetype",
+          "version": "1.2.0",
+          "type": "pypi"
+        },
+        {
+          "name": "Flask",
+          "version": "3.1.2",
+          "type": "pypi"
+        },
+        {
+          "name": "Flask-SQLAlchemy",
+          "version": "3.1.1",
+          "type": "pypi"
+        },
+        {
+          "name": "flatbuffers",
+          "version": "25.12.19",
+          "type": "pypi"
+        },
+        {
+          "name": "fonttools",
+          "version": "4.62.1",
+          "type": "pypi"
+        },
+        {
+          "name": "frozenlist",
+          "version": "1.8.0",
+          "type": "pypi"
+        },
+        {
+          "name": "google-ai-generativelanguage",
+          "version": "0.6.15",
+          "type": "pypi"
+        },
+        {
+          "name": "google-api-core",
+          "version": "2.25.1",
+          "type": "pypi"
+        },
+        {
+          "name": "google-api-python-client",
+          "version": "2.182.0",
+          "type": "pypi"
+        },
+        {
+          "name": "google-auth",
+          "version": "2.56.3",
+          "type": "pypi"
+        },
+        {
+          "name": "google-auth-httplib2",
+          "version": "0.2.0",
+          "type": "pypi"
+        },
+        {
+          "name": "google-genai",
+          "version": "2.17.0",
+          "type": "pypi"
+        },
+        {
+          "name": "google-generativeai",
+          "version": "0.8.5",
+          "type": "pypi"
+        },
+        {
+          "name": "googleapis-common-protos",
+          "version": "1.70.0",
+          "type": "pypi"
+        },
+        {
+          "name": "graphifyy",
+          "version": "0.9.50",
+          "type": "pypi"
+        },
+        {
+          "name": "greenlet",
+          "version": "3.2.4",
+          "type": "pypi"
+        },
+        {
+          "name": "grpcio",
+          "version": "1.75.0",
+          "type": "pypi"
+        },
+        {
+          "name": "grpcio-status",
+          "version": "1.71.2",
+          "type": "pypi"
+        },
+        {
+          "name": "h11",
+          "version": "0.16.0",
+          "type": "pypi"
+        },
+        {
+          "name": "httpcore",
+          "version": "1.0.9",
+          "type": "pypi"
+        },
+        {
+          "name": "httplib2",
+          "version": "0.31.0",
+          "type": "pypi"
+        },
+        {
+          "name": "httptools",
+          "version": "0.7.1",
+          "type": "pypi"
+        },
+        {
+          "name": "httpx",
+          "version": "0.28.1",
+          "type": "pypi"
+        },
+        {
+          "name": "idna",
+          "version": "3.10",
+          "type": "pypi"
+        },
+        {
+          "name": "importlib_metadata",
+          "version": "9.0.0",
+          "type": "pypi"
+        },
+        {
+          "name": "inflection",
+          "version": "0.5.1",
+          "type": "pypi"
+        },
+        {
+          "name": "iniconfig",
+          "version": "2.3.0",
+          "type": "pypi"
+        },
+        {
+          "name": "invoke",
+          "version": "3.0.3",
+          "type": "pypi"
+        },
+        {
+          "name": "itsdangerous",
+          "version": "2.2.0",
+          "type": "pypi"
+        },
+        {
+          "name": "Jinja2",
+          "version": "3.1.6",
+          "type": "pypi"
+        },
+        {
+          "name": "jiter",
+          "version": "0.10.0",
+          "type": "pypi"
+        },
+        {
+          "name": "joblib",
+          "version": "1.5.2",
+          "type": "pypi"
+        },
+        {
+          "name": "json-schema-to-pydantic",
+          "version": "0.4.11",
+          "type": "pypi"
+        },
+        {
+          "name": "jsonpatch",
+          "version": "1.33",
+          "type": "pypi"
+        },
+        {
+          "name": "jsonpointer",
+          "version": "3.0.0",
+          "type": "pypi"
+        },
+        {
+          "name": "jsonref",
+          "version": "1.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "jsonschema",
+          "version": "4.26.0",
+          "type": "pypi"
+        },
+        {
+          "name": "jsonschema-specifications",
+          "version": "2025.9.1",
+          "type": "pypi"
+        },
+        {
+          "name": "kairo",
+          "version": "1.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "kiwisolver",
+          "version": "1.5.0",
+          "type": "pypi"
+        },
+        {
+          "name": "langchain",
+          "version": "1.3.11",
+          "type": "pypi"
+        },
+        {
+          "name": "langchain-core",
+          "version": "1.4.9",
+          "type": "pypi"
+        },
+        {
+          "name": "langchain-google-genai",
+          "version": "2.1.11",
+          "type": "pypi"
+        },
+        {
+          "name": "langchain-protocol",
+          "version": "0.0.18",
+          "type": "pypi"
+        },
+        {
+          "name": "langgraph",
+          "version": "1.2.8",
+          "type": "pypi"
+        },
+        {
+          "name": "langgraph-checkpoint",
+          "version": "4.1.1",
+          "type": "pypi"
+        },
+        {
+          "name": "langgraph-prebuilt",
+          "version": "1.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "langgraph-sdk",
+          "version": "0.4.2",
+          "type": "pypi"
+        },
+        {
+          "name": "langsmith",
+          "version": "0.4.28",
+          "type": "pypi"
+        },
+        {
+          "name": "librt",
+          "version": "0.13.0",
+          "type": "pypi"
+        },
+        {
+          "name": "license-expression",
+          "version": "30.4.4",
+          "type": "pypi"
+        },
+        {
+          "name": "Mako",
+          "version": "1.4.1",
+          "type": "pypi"
+        },
+        {
+          "name": "markdown-it-py",
+          "version": "4.2.0",
+          "type": "pypi"
+        },
+        {
+          "name": "MarkupSafe",
+          "version": "3.0.2",
+          "type": "pypi"
+        },
+        {
+          "name": "matplotlib",
+          "version": "3.10.8",
+          "type": "pypi"
+        },
+        {
+          "name": "mdurl",
+          "version": "0.1.2",
+          "type": "pypi"
+        },
+        {
+          "name": "mediapipe",
+          "version": "0.10.35",
+          "type": "pypi"
+        },
+        {
+          "name": "MouseInfo",
+          "version": "0.1.3",
+          "type": "pypi"
+        },
+        {
+          "name": "msgpack",
+          "version": "1.2.2",
+          "type": "pypi"
+        },
+        {
+          "name": "multidict",
+          "version": "6.7.1",
+          "type": "pypi"
+        },
+        {
+          "name": "mypy",
+          "version": "2.3.0",
+          "type": "pypi"
+        },
+        {
+          "name": "mypy_extensions",
+          "version": "1.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "networkx",
+          "version": "3.6.1",
+          "type": "pypi"
+        },
+        {
+          "name": "nltk",
+          "version": "3.9.1",
+          "type": "pypi"
+        },
+        {
+          "name": "nodeenv",
+          "version": "1.10.0",
+          "type": "pypi"
+        },
+        {
+          "name": "numpy",
+          "version": "2.3.3",
+          "type": "pypi"
+        },
+        {
+          "name": "omnia-server",
+          "version": "0.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "openai",
+          "version": "2.53.0",
+          "type": "pypi"
+        },
+        {
+          "name": "opencv-contrib-python",
+          "version": "5.0.0.93",
+          "type": "pypi"
+        },
+        {
+          "name": "orjson",
+          "version": "3.11.9",
+          "type": "pypi"
+        },
+        {
+          "name": "ormsgpack",
+          "version": "1.12.2",
+          "type": "pypi"
+        },
+        {
+          "name": "packageurl-python",
+          "version": "0.17.6",
+          "type": "pypi"
+        },
+        {
+          "name": "packaging",
+          "version": "25.0",
+          "type": "pypi"
+        },
+        {
+          "name": "pandas",
+          "version": "3.0.1",
+          "type": "pypi"
+        },
+        {
+          "name": "paramiko",
+          "version": "5.0.0",
+          "type": "pypi"
+        },
+        {
+          "name": "passlib",
+          "version": "1.7.4",
+          "type": "pypi"
+        },
+        {
+          "name": "pathspec",
+          "version": "1.1.1",
+          "type": "pypi"
+        },
+        {
+          "name": "pgvector",
+          "version": "0.5.0",
+          "type": "pypi"
+        },
+        {
+          "name": "pillow",
+          "version": "10.4.0",
+          "type": "pypi"
+        },
+        {
+          "name": "pip",
+          "version": "26.2.1",
+          "type": "pypi"
+        },
+        {
+          "name": "pip-api",
+          "version": "0.0.34",
+          "type": "pypi"
+        },
+        {
+          "name": "pip-requirements-parser",
+          "version": "32.0.1",
+          "type": "pypi"
+        },
+        {
+          "name": "pip_audit",
+          "version": "2.10.1",
+          "type": "pypi"
+        },
+        {
+          "name": "platformdirs",
+          "version": "4.11.7",
+          "type": "pypi"
+        },
+        {
+          "name": "playwright",
+          "version": "1.62.0",
+          "type": "pypi"
+        },
+        {
+          "name": "pluggy",
+          "version": "1.6.0",
+          "type": "pypi"
+        },
+        {
+          "name": "praw",
+          "version": "7.8.1",
+          "type": "pypi"
+        },
+        {
+          "name": "prawcore",
+          "version": "2.4.0",
+          "type": "pypi"
+        },
+        {
+          "name": "prisma",
+          "version": "0.15.0",
+          "type": "pypi"
+        },
+        {
+          "name": "propcache",
+          "version": "0.5.2",
+          "type": "pypi"
+        },
+        {
+          "name": "proto-plus",
+          "version": "1.26.1",
+          "type": "pypi"
+        },
+        {
+          "name": "protobuf",
+          "version": "5.29.5",
+          "type": "pypi"
+        },
+        {
+          "name": "psycopg",
+          "version": "3.3.4",
+          "type": "pypi"
+        },
+        {
+          "name": "psycopg-binary",
+          "version": "3.3.4",
+          "type": "pypi"
+        },
+        {
+          "name": "psycopg2-binary",
+          "version": "2.9.12",
+          "type": "pypi"
+        },
+        {
+          "name": "py-serializable",
+          "version": "2.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "pyasn1",
+          "version": "0.6.1",
+          "type": "pypi"
+        },
+        {
+          "name": "pyasn1_modules",
+          "version": "0.4.2",
+          "type": "pypi"
+        },
+        {
+          "name": "PyAutoGUI",
+          "version": "0.9.54",
+          "type": "pypi"
+        },
+        {
+          "name": "pycparser",
+          "version": "3.0",
+          "type": "pypi"
+        },
+        {
+          "name": "pydantic",
+          "version": "2.13.4",
+          "type": "pypi"
+        },
+        {
+          "name": "pydantic-settings",
+          "version": "2.14.2",
+          "type": "pypi"
+        },
+        {
+          "name": "pydantic_core",
+          "version": "2.46.4",
+          "type": "pypi"
+        },
+        {
+          "name": "pyee",
+          "version": "13.0.1",
+          "type": "pypi"
+        },
+        {
+          "name": "pygame",
+          "version": "2.6.1",
+          "type": "pypi"
+        },
+        {
+          "name": "PyGetWindow",
+          "version": "0.0.9",
+          "type": "pypi"
+        },
+        {
+          "name": "Pygments",
+          "version": "2.20.0",
+          "type": "pypi"
+        },
+        {
+          "name": "PyJWT",
+          "version": "2.13.0",
+          "type": "pypi"
+        },
+        {
+          "name": "PyMsgBox",
+          "version": "2.0.1",
+          "type": "pypi"
+        },
+        {
+          "name": "PyNaCl",
+          "version": "1.6.2",
+          "type": "pypi"
+        },
+        {
+          "name": "pyparsing",
+          "version": "3.2.4",
+          "type": "pypi"
+        },
+        {
+          "name": "pyperclip",
+          "version": "1.11.0",
+          "type": "pypi"
+        },
+        {
+          "name": "PyRect",
+          "version": "0.2.0",
+          "type": "pypi"
+        },
+        {
+          "name": "PyScreeze",
+          "version": "1.0.1",
+          "type": "pypi"
+        },
+        {
+          "name": "Pysher",
+          "version": "1.0.8",
+          "type": "pypi"
+        },
+        {
+          "name": "pytest",
+          "version": "8.4.2",
+          "type": "pypi"
+        },
+        {
+          "name": "pytest-asyncio",
+          "version": "1.4.0",
+          "type": "pypi"
+        },
+        {
+          "name": "python-dateutil",
+          "version": "2.9.0.post0",
+          "type": "pypi"
+        },
+        {
+          "name": "python-dotenv",
+          "version": "1.2.2",
+          "type": "pypi"
+        },
+        {
+          "name": "python-jose",
+          "version": "3.5.0",
+          "type": "pypi"
+        },
+        {
+          "name": "python-json-logger",
+          "version": "4.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "python-multipart",
+          "version": "0.0.32",
+          "type": "pypi"
+        },
+        {
+          "name": "pytweening",
+          "version": "1.2.0",
+          "type": "pypi"
+        },
+        {
+          "name": "PyYAML",
+          "version": "6.0.2",
+          "type": "pypi"
+        },
+        {
+          "name": "qrcode",
+          "version": "8.2",
+          "type": "pypi"
+        },
+        {
+          "name": "RapidFuzz",
+          "version": "3.14.5",
+          "type": "pypi"
+        },
+        {
+          "name": "redis",
+          "version": "5.3.1",
+          "type": "pypi"
+        },
+        {
+          "name": "referencing",
+          "version": "0.37.0",
+          "type": "pypi"
+        },
+        {
+          "name": "regex",
+          "version": "2025.9.1",
+          "type": "pypi"
+        },
+        {
+          "name": "reportlab",
+          "version": "5.0.0",
+          "type": "pypi"
+        },
+        {
+          "name": "requests",
+          "version": "2.32.5",
+          "type": "pypi"
+        },
+        {
+          "name": "requests-toolbelt",
+          "version": "1.0.0",
+          "type": "pypi"
+        },
+        {
+          "name": "rich",
+          "version": "13.9.4",
+          "type": "pypi"
+        },
+        {
+          "name": "rpds-py",
+          "version": "2026.6.3",
+          "type": "pypi"
+        },
+        {
+          "name": "rsa",
+          "version": "4.9.1",
+          "type": "pypi"
+        },
+        {
+          "name": "ruff",
+          "version": "0.16.1",
+          "type": "pypi"
+        },
+        {
+          "name": "scikit-learn",
+          "version": "1.8.0",
+          "type": "pypi"
+        },
+        {
+          "name": "scipy",
+          "version": "1.17.1",
+          "type": "pypi"
+        },
+        {
+          "name": "seaborn",
+          "version": "0.13.2",
+          "type": "pypi"
+        },
+        {
+          "name": "semver",
+          "version": "3.0.4",
+          "type": "pypi"
+        },
+        {
+          "name": "sentry-sdk",
+          "version": "2.66.1",
+          "type": "pypi"
+        },
+        {
+          "name": "six",
+          "version": "1.17.0",
+          "type": "pypi"
+        },
+        {
+          "name": "sniffio",
+          "version": "1.3.1",
+          "type": "pypi"
+        },
+        {
+          "name": "sortedcontainers",
+          "version": "2.4.0",
+          "type": "pypi"
+        },
+        {
+          "name": "sounddevice",
+          "version": "0.5.5",
+          "type": "pypi"
+        },
+        {
+          "name": "SQLAlchemy",
+          "version": "2.0.44",
+          "type": "pypi"
+        },
+        {
+          "name": "sqlalchemy",
+          "specifier": "sqlalchemy>=2.0.0",
+          "type": "pypi_spec"
+        },
+        {
+          "name": "starlette",
+          "version": "1.0.0",
+          "type": "pypi"
+        },
+        {
+          "name": "stevedore",
+          "version": "5.9.1",
+          "type": "pypi"
+        },
+        {
+          "name": "tenacity",
+          "version": "9.1.2",
+          "type": "pypi"
+        },
+        {
+          "name": "threadpoolctl",
+          "version": "3.6.0",
+          "type": "pypi"
+        },
+        {
+          "name": "tomli",
+          "version": "2.4.1",
+          "type": "pypi"
+        },
+        {
+          "name": "tomli_w",
+          "version": "1.2.0",
+          "type": "pypi"
+        },
+        {
+          "name": "tomlkit",
+          "version": "0.15.1",
+          "type": "pypi"
+        },
+        {
+          "name": "tqdm",
+          "version": "4.67.1",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter",
+          "version": "0.25.2",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-bash",
+          "version": "0.25.1",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-c",
+          "version": "0.24.2",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-c-sharp",
+          "version": "0.23.5",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-cpp",
+          "version": "0.23.4",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-elixir",
+          "version": "0.3.5",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-fortran",
+          "version": "0.6.0",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-go",
+          "version": "0.25.0",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-groovy",
+          "version": "0.1.2",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-java",
+          "version": "0.23.5",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-javascript",
+          "version": "0.25.0",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-json",
+          "version": "0.24.8",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-julia",
+          "version": "0.23.1",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-kotlin",
+          "version": "1.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-lua",
+          "version": "0.5.0",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-objc",
+          "version": "3.0.2",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-php",
+          "version": "0.24.1",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-powershell",
+          "version": "0.26.4",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-python",
+          "version": "0.25.0",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-ruby",
+          "version": "0.23.1",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-rust",
+          "version": "0.24.2",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-scala",
+          "version": "0.26.2",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-swift",
+          "version": "0.7.3",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-typescript",
+          "version": "0.23.2",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-verilog",
+          "version": "1.0.3",
+          "type": "pypi"
+        },
+        {
+          "name": "tree-sitter-zig",
+          "version": "1.1.2",
+          "type": "pypi"
+        },
+        {
+          "name": "typing-inspection",
+          "version": "0.4.2",
+          "type": "pypi"
+        },
+        {
+          "name": "typing_extensions",
+          "version": "4.16.0",
+          "type": "pypi"
+        },
+        {
+          "name": "tzdata",
+          "version": "2025.3",
+          "type": "pypi"
+        },
+        {
+          "name": "update-checker",
+          "version": "0.18.0",
+          "type": "pypi"
+        },
+        {
+          "name": "uritemplate",
+          "version": "4.2.0",
+          "type": "pypi"
+        },
+        {
+          "name": "urllib3",
+          "version": "2.5.0",
+          "type": "pypi"
+        },
+        {
+          "name": "uuid_utils",
+          "version": "0.16.2",
+          "type": "pypi"
+        },
+        {
+          "name": "uvicorn",
+          "version": "0.46.0",
+          "type": "pypi"
+        },
+        {
+          "name": "uvicorn[standard]",
+          "specifier": "uvicorn[standard]>=0.30.0",
+          "type": "pypi_spec"
+        },
+        {
+          "name": "vapor-database",
+          "version": "0.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "watchfiles",
+          "version": "1.1.1",
+          "type": "pypi"
+        },
+        {
+          "name": "websocket-client",
+          "version": "1.9.0",
+          "type": "pypi"
+        },
+        {
+          "name": "websockets",
+          "version": "15.0.1",
+          "type": "pypi"
+        },
+        {
+          "name": "Werkzeug",
+          "version": "3.1.3",
+          "type": "pypi"
+        },
+        {
+          "name": "xxhash",
+          "version": "3.8.1",
+          "type": "pypi"
+        },
+        {
+          "name": "yarl",
+          "version": "1.24.5",
+          "type": "pypi"
+        },
+        {
+          "name": "zipp",
+          "version": "4.1.0",
+          "type": "pypi"
+        },
+        {
+          "name": "zstandard",
+          "version": "0.25.0",
+          "type": "pypi"
+        }
+      ]
+    },
+    "frontend_npm_packages": {
+      "count": 0,
+      "packages": []
+    }
+  }
+}

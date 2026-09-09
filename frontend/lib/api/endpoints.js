@@ -1180,7 +1180,85 @@ export const Endpoints = {
   async getLearningStats() {
     return api.get('/api/v1/learning/stats');
   },
+
+  // ==================================================
+  // Task 44 Multi-Agent Collaboration & Collective Intelligence
+  // ==================================================
+
+  async createCollaborationSession(payload) {
+    return api.post('/api/v1/collaboration/sessions', payload);
+  },
+
+  async getCollaborationSession(sessionId) {
+    return api.get(`/api/v1/collaboration/sessions/${encodeURIComponent(sessionId)}`);
+  },
+
+  async registerCollaborationAgent(payload) {
+    return api.post('/api/v1/collaboration/agents', payload);
+  },
+
+  async listCollaborationAgents(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/collaboration/agents${qs ? `?${qs}` : ''}`);
+  },
+
+  async createAgentContract(payload) {
+    return api.post('/api/v1/collaboration/contracts', payload);
+  },
+
+  async expandAgentContract(payload) {
+    return api.post('/api/v1/collaboration/contracts/expand', payload);
+  },
+
+  async getAgentContract(contractId) {
+    return api.get(`/api/v1/collaboration/contracts/${encodeURIComponent(contractId)}`);
+  },
+
+  async delegateCollaborationSubtask(payload) {
+    return api.post('/api/v1/collaboration/delegations', payload);
+  },
+
+  async sendAgentMessage(payload) {
+    return api.post('/api/v1/collaboration/messages', payload);
+  },
+
+  async getAgentMessages(recipientId) {
+    return api.get(`/api/v1/collaboration/messages/${encodeURIComponent(recipientId)}`);
+  },
+
+  async submitCollaborationEvidence(payload) {
+    return api.post('/api/v1/collaboration/evidence', payload);
+  },
+
+  async listCollaborationEvidence() {
+    return api.get('/api/v1/collaboration/evidence');
+  },
+
+  async createDisagreement(payload) {
+    return api.post('/api/v1/collaboration/disagreements', payload);
+  },
+
+  async resolveDisagreement(payload) {
+    return api.post('/api/v1/collaboration/disagreements/resolve', payload);
+  },
+
+  async checkConsensus(payload) {
+    return api.post('/api/v1/collaboration/consensus', payload);
+  },
+
+  async synthesizeCollaborationFindings(payload) {
+    return api.post('/api/v1/collaboration/synthesis', payload);
+  },
+
+  async triggerEmergencyStop(payload) {
+    return api.post('/api/v1/collaboration/emergency-stop', payload);
+  },
+
+  async getCollaborationProvenance(sessionId) {
+    return api.get(`/api/v1/collaboration/provenance/${encodeURIComponent(sessionId)}`);
+  },
 };
 
 export const endpoints = Endpoints;
+
 

@@ -184,7 +184,7 @@ class KnowledgeChunkModel(Base):
     chunk_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     content_type: Mapped[str] = mapped_column(String(32), default="PARAGRAPH", nullable=False)
-    source_type: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    source_type: Mapped[str] = mapped_column(String(64), nullable=False)
     source_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
     title: Mapped[str | None] = mapped_column(String(256), nullable=True)
     headings: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, default=list)

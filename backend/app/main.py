@@ -48,6 +48,7 @@ from app.agents.router import router as collaboration_router
 from app.autonomy.router import router as autonomy_router
 from app.perception.router import router as perception_router
 from app.prediction.router import router as prediction_router
+from app.communication import communication_router
 from app.api.routes.proactive import router as proactive_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.security import router as security_router
@@ -154,6 +155,7 @@ def create_app() -> FastAPI:
     app.include_router(autonomy_router, prefix=settings.API_V1_STR)
     app.include_router(perception_router, prefix=settings.API_V1_STR)
     app.include_router(prediction_router, prefix=settings.API_V1_STR)
+    app.include_router(communication_router, prefix=settings.API_V1_STR)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

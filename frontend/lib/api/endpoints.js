@@ -1457,6 +1457,63 @@ export const Endpoints = {
   async getIntentHealth() {
     return api.get('/api/v1/intent/health');
   },
+
+  // Task 49: Communication & Social Intelligence
+  async ingestInboundCommunication(payload) {
+    return api.post('/api/v1/communication/messages/inbound', payload);
+  },
+
+  async listCommunicationThreads(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/communication/threads${qs ? `?${qs}` : ''}`);
+  },
+
+  async getCommunicationThread(threadId) {
+    return api.get(`/api/v1/communication/threads/${encodeURIComponent(threadId)}`);
+  },
+
+  async generateCommunicationDraft(threadId, payload = {}) {
+    return api.post(`/api/v1/communication/threads/${encodeURIComponent(threadId)}/draft`, payload);
+  },
+
+  async listCommunicationDrafts(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/communication/drafts${qs ? `?${qs}` : ''}`);
+  },
+
+  async approveCommunicationDraft(draftId, payload = {}) {
+    return api.post(`/api/v1/communication/drafts/${encodeURIComponent(draftId)}/approve`, payload);
+  },
+
+  async sendCommunication(payload, isUserApproved = false) {
+    return api.post(`/api/v1/communication/send?is_user_approved=${Boolean(isUserApproved)}`, payload);
+  },
+
+  async listCommunicationContacts() {
+    return api.get('/api/v1/communication/contacts');
+  },
+
+  async addCommunicationContact(payload) {
+    return api.post('/api/v1/communication/contacts', payload);
+  },
+
+  async listCommunicationCommitments(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/communication/commitments${qs ? `?${qs}` : ''}`);
+  },
+
+  async listCommunicationFollowups(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/communication/followups${qs ? `?${qs}` : ''}`);
+  },
+
+  async getCommunicationMetrics() {
+    return api.get('/api/v1/communication/metrics');
+  },
+
+  async getCommunicationHealth() {
+    return api.get('/api/v1/communication/health');
+  },
 };
 
 export const intentApi = {
@@ -1471,6 +1528,22 @@ export const intentApi = {
   getIntentGraph: (id) => Endpoints.getIntentGraph(id),
   analyzeTradeoffs: (payload) => Endpoints.analyzeTradeoffs(payload),
   getIntentHealth: () => Endpoints.getIntentHealth(),
+};
+
+export const communicationApi = {
+  ingestInbound: (payload) => Endpoints.ingestInboundCommunication(payload),
+  listThreads: (params) => Endpoints.listCommunicationThreads(params),
+  getThread: (id) => Endpoints.getCommunicationThread(id),
+  generateDraft: (id, payload) => Endpoints.generateCommunicationDraft(id, payload),
+  listDrafts: (params) => Endpoints.listCommunicationDrafts(params),
+  approveDraft: (id, payload) => Endpoints.approveCommunicationDraft(id, payload),
+  send: (payload, approved) => Endpoints.sendCommunication(payload, approved),
+  listContacts: () => Endpoints.listCommunicationContacts(),
+  addContact: (payload) => Endpoints.addCommunicationContact(payload),
+  listCommitments: (params) => Endpoints.listCommunicationCommitments(params),
+  listFollowups: (params) => Endpoints.listCommunicationFollowups(params),
+  getMetrics: () => Endpoints.getCommunicationMetrics(),
+  getHealth: () => Endpoints.getCommunicationHealth(),
 };
 
 export const endpoints = Endpoints;

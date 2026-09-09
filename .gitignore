@@ -48,6 +48,7 @@ venv.bak/
 .coverage.*
 htmlcov/
 nosetests.xml
+backend/evals/
 coverage.xml
 *.cover
 *.py,cover

@@ -254,4 +254,83 @@ export const Endpoints = {
   async dispatchDeviceCommand(deviceId, commandData) {
     return api.post(`/api/v1/devices/${encodeURIComponent(deviceId)}/commands`, commandData);
   },
+
+  // --- Knowledge Fabric (Task 25) ---
+  async searchKnowledge({ query, projectId = null, type = null, sourceType = null, limit = 15 }) {
+    let q = `?q=${encodeURIComponent(query)}&limit=${limit}`;
+    if (projectId) q += `&project_id=${encodeURIComponent(projectId)}`;
+    if (type) q += `&type=${encodeURIComponent(type)}`;
+    if (sourceType) q += `&source_type=${encodeURIComponent(sourceType)}`;
+    return api.get(`/api/v1/knowledge/search${q}`);
+  },
+
+  async getKnowledgeNode(nodeId) {
+    return api.get(`/api/v1/knowledge/${encodeURIComponent(nodeId)}`);
+  },
+
+  async getKnowledgeRelationships(nodeId) {
+    return api.get(`/api/v1/knowledge/${encodeURIComponent(nodeId)}/relationships`);
+  },
+
+  async getKnowledgeSources(nodeId) {
+    return api.get(`/api/v1/knowledge/${encodeURIComponent(nodeId)}/sources`);
+  },
+
+  async getKnowledgeTimeline({ projectId = null, type = null, limit = 50 } = {}) {
+    let q = `?limit=${limit}`;
+    if (projectId) q += `&project_id=${encodeURIComponent(projectId)}`;
+    if (type) q += `&type=${encodeURIComponent(type)}`;
+    return api.get(`/api/v1/knowledge/timeline${q}`);
+  },
+
+  async getKnowledgeGraph(nodeId, depth = 2) {
+    return api.get(`/api/v1/knowledge/${encodeURIComponent(nodeId)}/graph?depth=${depth}`);
+  },
+
+  async listDecisions(projectId = null) {
+    const q = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
+    return api.get(`/api/v1/knowledge/decisions${q}`);
+  },
+
+  async createDecision(decisionData) {
+    return api.post('/api/v1/knowledge/decisions', decisionData);
+  },
+
+  async supersedeDecision(decisionId, supersedeData) {
+    return api.post(`/api/v1/knowledge/decisions/${encodeURIComponent(decisionId)}/supersede`, supersedeData);
+  },
+
+  async uploadKnowledgeDocument(formData) {
+    // Note: formData handled via multipart fetch with x-user-id
+    const res = await fetch('/api/v1/knowledge/documents/upload', {
+      method: 'POST',
+      headers: {
+        'x-user-id': api.userId,
+      },
+      body: formData,
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || `Upload failed with status ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async getDocumentIndexingStatus(jobId) {
+    return api.get(`/api/v1/knowledge/documents/${encodeURIComponent(jobId)}/status`);
+  },
+
+  async triggerKnowledgeBackfill() {
+    return api.post('/api/v1/knowledge/backfill');
+  },
+
+  async deleteKnowledgeNode(nodeId) {
+    return api.delete(`/api/v1/knowledge/${encodeURIComponent(nodeId)}`);
+  },
+
+  async getKnowledgeConflicts(projectId = null) {
+    const q = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
+    return api.get(`/api/v1/knowledge/conflicts${q}`);
+  },
 };
+

@@ -1,0 +1,57 @@
+"""Kairo Knowledge Fabric: Unified discovery, graph relationship, and hybrid retrieval layer."""
+
+from app.knowledge.models import (
+    KnowledgeEdgeModel,
+    KnowledgeIndexJobModel,
+    KnowledgeNodeModel,
+    KnowledgeSourceModel,
+)
+from app.knowledge.schemas import (
+    DecisionCreate,
+    DecisionResponse,
+    DecisionStatus,
+    DocumentUploadResponse,
+    KnowledgeEdgeCreate,
+    KnowledgeEdgeResponse,
+    KnowledgeGraphResponse,
+    KnowledgeNodeCreate,
+    KnowledgeNodeResponse,
+    KnowledgeNodeUpdate,
+    KnowledgeRelationType,
+    KnowledgeSearchRequest,
+    KnowledgeSearchResponse,
+    KnowledgeSearchResultItem,
+    KnowledgeSourceResponse,
+    KnowledgeSourceType,
+    KnowledgeTimelineItem,
+    KnowledgeTimelineResponse,
+    KnowledgeType,
+)
+from app.knowledge.service import KnowledgeFabricService
+
+__all__ = [
+    "DecisionCreate",
+    "DecisionResponse",
+    "DecisionStatus",
+    "DocumentUploadResponse",
+    "KnowledgeEdgeCreate",
+    "KnowledgeEdgeModel",
+    "KnowledgeEdgeResponse",
+    "KnowledgeFabricService",
+    "KnowledgeGraphResponse",
+    "KnowledgeIndexJobModel",
+    "KnowledgeNodeCreate",
+    "KnowledgeNodeModel",
+    "KnowledgeNodeResponse",
+    "KnowledgeNodeUpdate",
+    "KnowledgeRelationType",
+    "KnowledgeSearchRequest",
+    "KnowledgeSearchResponse",
+    "KnowledgeSearchResultItem",
+    "KnowledgeSourceModel",
+    "KnowledgeSourceResponse",
+    "KnowledgeSourceType",
+    "KnowledgeTimelineItem",
+    "KnowledgeTimelineResponse",
+    "KnowledgeType",
+]

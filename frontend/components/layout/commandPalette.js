@@ -15,6 +15,7 @@ export class CommandPalette {
       { id: 'nav-automations', label: 'View Automations & Workflows', category: 'Navigation', icon: '⚡', action: () => window.kairoApp.navigateTo('automations') },
       { id: 'nav-activity', label: 'View Activity Timeline', category: 'Navigation', icon: '⏱️', action: () => window.kairoApp.navigateTo('activity') },
       { id: 'nav-security', label: 'Open Security Center', category: 'Navigation', icon: '🛡️', action: () => window.kairoApp.navigateTo('security') },
+      { id: 'nav-knowledge', label: 'Explore Knowledge Fabric', category: 'Navigation', icon: '🌐', action: () => window.kairoApp.navigateTo('knowledge') },
       { id: 'nav-memory', label: 'Inspect Memory Center', category: 'Navigation', icon: '🧠', action: () => window.kairoApp.navigateTo('memory') },
       { id: 'nav-notifications', label: 'Open Notifications', category: 'Navigation', icon: '🔔', action: () => window.kairoApp.navigateTo('notifications') },
       { id: 'nav-status', label: 'Check System Status', category: 'Navigation', icon: '📈', action: () => window.kairoApp.navigateTo('status') },

@@ -22,6 +22,7 @@ from app.api.routes.automations import router as automations_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.context import router as context_router
 from app.api.routes.devices import router as devices_router
+from app.api.routes.knowledge import router as knowledge_router
 from app.api.routes.memory import memory_api_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.memory import user_router as user_memory_router
@@ -108,6 +109,7 @@ def create_app() -> FastAPI:
     app.include_router(web_monitors_router, prefix=settings.API_V1_STR)
     app.include_router(agents_router, prefix=settings.API_V1_STR)
     app.include_router(devices_router, prefix=settings.API_V1_STR)
+    app.include_router(knowledge_router, prefix=settings.API_V1_STR)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

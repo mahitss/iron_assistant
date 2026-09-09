@@ -227,6 +227,36 @@ class ContextResolver:
             except Exception as exc:
                 logger.debug("Memory search error in context resolver: %s", exc)
 
+        # 6.5. Relevant Knowledge Fabric Retrieval
+        if db_session is not None and q_clean:
+            try:
+                from app.knowledge.schemas import KnowledgeSearchRequest
+                from app.knowledge.service import KnowledgeFabricService
+
+                knowledge_svc = KnowledgeFabricService()
+                k_req = KnowledgeSearchRequest(
+                    query=q_clean,
+                    project_id=active_project.id if active_project else None,
+                    limit=min(8, self.max_context_items // 3),
+                )
+                k_results = await knowledge_svc.search(db_session, user_id=user_id, request=k_req)
+                for k_item in k_results:
+                    candidate_items.append(
+                        ContextItem(
+                            source_type=ContextType.KNOWLEDGE_CONTEXT,
+                            source_id=k_item.id,
+                            title=f"Knowledge ({k_item.type.value if hasattr(k_item.type, 'value') else k_item.type}): {k_item.title}",
+                            content=k_item.summary,
+                            relevance_score=k_item.relevance,
+                            confidence=k_item.confidence,
+                            timestamp=k_item.timestamp,
+                            provenance=k_item.source_type,
+                            reason=k_item.explanation or "Knowledge Fabric hybrid retrieval match.",
+                        )
+                    )
+            except Exception as exc:
+                logger.debug("Knowledge Fabric retrieval error in context resolver: %s", exc)
+
         # 7. Rescore candidates with multi-factor ranker
         active_pid = active_project.id if active_project else None
         for idx, it in enumerate(candidate_items):

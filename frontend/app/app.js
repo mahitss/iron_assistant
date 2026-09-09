@@ -18,6 +18,7 @@ import { MemoryView } from '../components/memory/memoryView.js';
 import { NotificationsView } from '../components/notifications/notificationsView.js';
 import { StatusView } from '../components/status/statusView.js';
 import { SettingsView } from '../components/settings/settingsView.js';
+import { KnowledgeView } from '../components/knowledge/knowledgeView.js';
 import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
@@ -167,6 +168,9 @@ export class KairoApp {
         break;
       case 'settings':
         this.currentViewInstance = new SettingsView(viewport);
+        break;
+      case 'knowledge':
+        this.currentViewInstance = new KnowledgeView(viewport);
         break;
       default:
         this.currentViewInstance = new HomeView(viewport);

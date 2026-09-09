@@ -111,6 +111,15 @@ class Settings(BaseSettings):
     KAIRO_MEMORY_DEDUP_THRESHOLD: float = 0.90
     KAIRO_MEMORY_EXTRACTION_CAPABILITY: str = "fast"
 
+    # Knowledge Fabric Configuration (Task 25)
+    KAIRO_KNOWLEDGE_ENABLED: bool = True
+    KAIRO_KNOWLEDGE_MAX_NODES: int = 15
+    KAIRO_KNOWLEDGE_MAX_EDGES: int = 20
+    KAIRO_KNOWLEDGE_MAX_DEPTH: int = 3
+    KAIRO_KNOWLEDGE_INDEX_MAX_BYTES: int = 10485760  # 10MB document limit
+    KAIRO_KNOWLEDGE_CHUNK_SIZE: int = 800
+    KAIRO_KNOWLEDGE_CHUNK_OVERLAP: int = 100
+
     # Web Research System
     WEB_SEARCH_PROVIDER: str | None = None
     WEB_SEARCH_API_KEY: SecretStr | None = None

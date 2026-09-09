@@ -120,6 +120,10 @@ export class AppShell {
                 <span class="nav-text">Security Center</span>
                 ${state.pendingApprovals.length > 0 ? `<span class="pending-pill">${state.pendingApprovals.length}</span>` : ''}
               </button>
+              <button class="nav-item ${state.currentView === 'knowledge' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('knowledge')">
+                <span class="nav-icon">🌐</span>
+                <span class="nav-text">Knowledge</span>
+              </button>
             </div>
 
             <div class="nav-section">

@@ -1353,6 +1353,64 @@ export const Endpoints = {
   async getPerceptionHealth() {
     return api.get('/api/v1/perception/health');
   },
+
+  // ==================================================
+  // Task 47 Predictive Intelligence & Anticipation Engine
+  // ==================================================
+
+  async createPrediction(payload) {
+    return api.post('/api/v1/prediction/predictions', payload);
+  },
+
+  async listPredictions(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/prediction/predictions${qs ? `?${qs}` : ''}`);
+  },
+
+  async getPrediction(predictionId) {
+    return api.get(`/api/v1/prediction/predictions/${encodeURIComponent(predictionId)}`);
+  },
+
+  async evaluatePredictionOutcome(predictionId, payload) {
+    return api.post(`/api/v1/prediction/predictions/${encodeURIComponent(predictionId)}/evaluate`, payload);
+  },
+
+  async createForecast(payload) {
+    return api.post('/api/v1/prediction/forecasts', payload);
+  },
+
+  async issueEarlyWarning(payload) {
+    return api.post('/api/v1/prediction/warnings', payload);
+  },
+
+  async listActiveWarnings() {
+    return api.get('/api/v1/prediction/warnings');
+  },
+
+  async evaluatePredictedRisk(payload) {
+    return api.post('/api/v1/prediction/risks', payload);
+  },
+
+  async listPredictedRisks() {
+    return api.get('/api/v1/prediction/risks');
+  },
+
+  async simulateScenarios(payload) {
+    return api.post('/api/v1/prediction/simulate', payload);
+  },
+
+  async evaluateCounterfactual(payload) {
+    return api.post('/api/v1/prediction/counterfactual', payload);
+  },
+
+  async getCalibrationMetrics(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/prediction/calibration${qs ? `?${qs}` : ''}`);
+  },
+
+  async getPredictionHealth() {
+    return api.get('/api/v1/prediction/health');
+  },
 };
 
 export const endpoints = Endpoints;

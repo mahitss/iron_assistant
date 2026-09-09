@@ -1117,6 +1117,69 @@ export const Endpoints = {
   async getVerificationStats() {
     return api.get('/api/v1/verification/stats');
   },
+
+  // --- Adaptive Learning & Strategy Optimization Engine (Task 43) ---
+  async listLearningStrategies(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/learning/strategies${qs ? `?${qs}` : ''}`);
+  },
+
+  async getLearningStrategy(strategyId) {
+    return api.get(`/api/v1/learning/strategies/${encodeURIComponent(strategyId)}`);
+  },
+
+  async registerLearningStrategy(payload) {
+    return api.post('/api/v1/learning/strategies', payload);
+  },
+
+  async getLearningRecommendations(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/learning/recommendations${qs ? `?${qs}` : ''}`);
+  },
+
+  async listLearningExperiences(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/learning/experiences${qs ? `?${qs}` : ''}`);
+  },
+
+  async recordLearningExperience(payload) {
+    return api.post('/api/v1/learning/experiences', payload);
+  },
+
+  async listLearningFailures(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/learning/failures${qs ? `?${qs}` : ''}`);
+  },
+
+  async checkPreFlightWarning(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/learning/failures/pre-flight${qs ? `?${qs}` : ''}`);
+  },
+
+  async listLearningExperiments(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/learning/experiments${qs ? `?${qs}` : ''}`);
+  },
+
+  async createLearningExperiment(payload) {
+    return api.post('/api/v1/learning/experiments', payload);
+  },
+
+  async promoteLearningStrategy(payload) {
+    return api.post('/api/v1/learning/promote', payload);
+  },
+
+  async rollbackLearningStrategy(payload) {
+    return api.post('/api/v1/learning/rollback', payload);
+  },
+
+  async submitLearningFeedback(payload) {
+    return api.post('/api/v1/learning/feedback', payload);
+  },
+
+  async getLearningStats() {
+    return api.get('/api/v1/learning/stats');
+  },
 };
 
 export const endpoints = Endpoints;

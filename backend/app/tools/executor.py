@@ -173,11 +173,20 @@ class ToolExecutor:
             )
 
         # 4. Execute tool logic
+        exec_start = time.perf_counter()
         try:
             raw_result = await tool.execute(**validated_args.model_dump())
             cb.record_success()
+            from app.observability.dependencies import dependency_tracker
+            from app.observability.metrics import get_metrics_collector
+            dur_ms = (time.perf_counter() - exec_start) * 1000.0
+            dependency_tracker.record_call(source="agent", target=f"tool:{tool.name}", duration_ms=dur_ms, is_error=False)
+            get_metrics_collector().record_latency("tool_duration_seconds", dur_ms / 1000.0, labels={"tool": tool.name})
         except ValueError as exc:
             cb.record_failure()
+            dur_ms = (time.perf_counter() - exec_start) * 1000.0
+            from app.observability.dependencies import dependency_tracker
+            dependency_tracker.record_call(source="agent", target=f"tool:{tool.name}", duration_ms=dur_ms, is_error=True)
             logger.info("Tool '%s' returned value error: %s", tool.name, exc)
             return ToolResult(
                 success=False,

@@ -38,7 +38,10 @@ from app.api.routes.memory import user_router as user_memory_router
 from app.intent import commands_router
 from app.notifications import notifications_router
 from app.policy import admin_policy_router, policy_router
+from app.observability.router import router as observability_router
 from app.resilience.router import router as resilience_router
+from app.state.router import router as state_router
+from app.cognition.router import router as cognition_router
 from app.api.routes.proactive import router as proactive_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.security import router as security_router
@@ -135,6 +138,9 @@ def create_app() -> FastAPI:
     app.include_router(policy_router, prefix=settings.API_V1_STR)
     app.include_router(admin_policy_router, prefix=settings.API_V1_STR)
     app.include_router(resilience_router, prefix=settings.API_V1_STR)
+    app.include_router(state_router)
+    app.include_router(observability_router)
+    app.include_router(cognition_router, prefix=settings.API_V1_STR)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

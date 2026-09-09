@@ -1,6 +1,7 @@
 """Tests for failure classification, secret sanitization, exponential backoff, and bounded retries."""
 
 import asyncio
+import datetime
 import pytest
 
 from app.resilience.backoff import BackoffCalculator
@@ -16,6 +17,11 @@ from app.resilience.schemas import (
 
 def test_failure_classification_categories():
     """Verifies deterministic classification across diverse HTTP status codes and error messages."""
+    # HTTP 400
+    f400 = FailureClassifier.classify("Bad Request: schema mismatch", "test_op", "api", status_code=400)
+    assert f400.category == FailureCategory.VALIDATION
+    assert f400.retryable is False
+
     # HTTP 401
     f401 = FailureClassifier.classify("Unauthorized", "test_op", "auth", status_code=401)
     assert f401.category == FailureCategory.AUTHENTICATION
@@ -27,45 +33,87 @@ def test_failure_classification_categories():
     assert f403.category == FailureCategory.AUTHORIZATION
     assert f403.retryable is False
 
+    # HTTP 404
+    f404 = FailureClassifier.classify("Not Found", "test_op", "store", status_code=404)
+    assert f404.category == FailureCategory.PERMANENT
+    assert f404.retryable is False
+
+    # HTTP 409
+    f409 = FailureClassifier.classify("Conflict: version mismatch", "test_op", "store", status_code=409)
+    assert f409.category == FailureCategory.CONFLICT
+    assert f409.retryable is True
+
     # HTTP 429
     f429 = FailureClassifier.classify("Too Many Requests", "test_op", "rate_limiter", status_code=429)
     assert f429.category == FailureCategory.RATE_LIMITED
     assert f429.retryable is True
+
+    # HTTP 500
+    f500 = FailureClassifier.classify("Internal Server Error", "test_op", "upstream", status_code=500)
+    assert f500.category == FailureCategory.TRANSIENT
+    assert f500.retryable is True
+
+    # HTTP 502
+    f502 = FailureClassifier.classify("Bad Gateway", "test_op", "gateway", status_code=502)
+    assert f502.category == FailureCategory.UNAVAILABLE
+    assert f502.retryable is True
 
     # HTTP 503
     f503 = FailureClassifier.classify("Service Unavailable", "test_op", "upstream", status_code=503)
     assert f503.category == FailureCategory.UNAVAILABLE
     assert f503.retryable is True
 
+    # HTTP 504
+    f504 = FailureClassifier.classify("Gateway Timeout", "test_op", "gateway", status_code=504)
+    assert f504.category == FailureCategory.TIMEOUT
+    assert f504.retryable is True
+
     # Text pattern timeout
     ftimeout = FailureClassifier.classify(Exception("Connection timed out after 30s"), "test_op", "network")
     assert ftimeout.category == FailureCategory.TIMEOUT
     assert ftimeout.retryable is True
 
-    # Permanent error
-    fperm = FailureClassifier.classify(ValueError("Resource not found or deleted"), "test_op", "store")
-    assert fperm.category == FailureCategory.PERMANENT
-    assert fperm.retryable is False
+    # Policy denial
+    fpolicy = FailureClassifier.classify("Policy violation: access denied by governance rule", "test_op", "policy")
+    assert fpolicy.category == FailureCategory.AUTHORIZATION
+    assert fpolicy.retryable is False
 
 
 def test_error_sanitization_removes_secrets():
-    """Verifies that API keys, bearer tokens, passwords, and secrets are stripped."""
-    raw_error = "Failed to authenticate with Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 and sk-proj-1234567890abcdef"
+    """Verifies that API keys, bearer tokens, passwords, database URLs, and private keys are stripped."""
+    raw_error = (
+        "Failed to authenticate with Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 "
+        "and sk-proj-1234567890abcdef "
+        "and connection postgresql://postgres:mypassword123@db.example.com:5432/mydb "
+        "and key -----BEGIN RSA PRIVATE KEY-----MIIEowIBAAKCAQEA0-----END RSA PRIVATE KEY-----"
+    )
     sanitized = ErrorSanitizer.sanitize_text(raw_error)
     assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" not in sanitized
     assert "sk-proj-1234567890abcdef" not in sanitized
+    assert "mypassword123" not in sanitized
+    assert "-----BEGIN RSA PRIVATE KEY-----" not in sanitized
     assert "[REDACTED_TOKEN]" in sanitized
     assert "[REDACTED_API_KEY]" in sanitized
+    assert "[REDACTED_DATABASE_URL]" in sanitized
+    assert "[REDACTED_PRIVATE_KEY]" in sanitized
 
     dict_payload = {
         "user": "alice",
         "api_key": "supersecretkey123",
         "password": "secretpassword!",
+        "token": "tok_abcdef12345",
         "normal_field": "ok_value",
+        "nested": {
+            "secret": "confidential",
+            "count": 42,
+        }
     }
     sanitized_dict = ErrorSanitizer.sanitize_dict(dict_payload)
     assert sanitized_dict["api_key"] == "[REDACTED]"
     assert sanitized_dict["password"] == "[REDACTED]"
+    assert sanitized_dict["token"] == "[REDACTED]"
+    assert sanitized_dict["nested"]["secret"] == "[REDACTED]"
+    assert sanitized_dict["nested"]["count"] == 42
     assert sanitized_dict["normal_field"] == "ok_value"
 
 
@@ -101,6 +149,12 @@ def test_server_retry_after_parsing():
     policy = RetryPolicy(initial_delay=1.0, max_delay=60.0)
     delay = BackoffCalculator.calculate_delay(0, policy, server_retry_after="45")
     assert delay == 45.0
+
+    # HTTP Date format
+    future_date = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=30)).strftime("%a, %d %b %Y %H:%M:%S GMT")
+    parsed = BackoffCalculator.parse_retry_after(future_date)
+    assert parsed is not None
+    assert 20 <= parsed <= 35
 
 
 @pytest.mark.asyncio
@@ -176,3 +230,30 @@ async def test_retry_budget_exceeded():
             policy=policy,
             budget=budget,
         )
+
+
+@pytest.mark.asyncio
+async def test_retry_budget_accumulates_across_task_operations():
+    """Verifies that the overall task budget is decremented across distinct steps."""
+    retry_mgr = RetryManager()
+    task_budget = RetryBudget(max_retries_per_op=3, max_retries_per_task=3)
+
+    call_count = 0
+
+    async def step1():
+        nonlocal call_count
+        call_count += 1
+        if call_count < 3:
+            raise ConnectionError("Step 1 transient glitch")
+        return "STEP1_OK"
+
+    policy = RetryPolicy(max_attempts=4, initial_delay=0.01, jitter=False)
+    res1 = await retry_mgr.execute_with_retry(step1, "step1", "network", policy=policy, budget=task_budget)
+    assert res1 == "STEP1_OK"
+    assert task_budget.current_task_retries == 2
+
+    async def step2():
+        raise TimeoutError("Step 2 timed out")
+
+    with pytest.raises(RetryBudgetExceededError):
+        await retry_mgr.execute_with_retry(step2, "step2", "network", policy=policy, budget=task_budget)

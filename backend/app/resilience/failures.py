@@ -12,6 +12,7 @@ from app.resilience.schemas import (
 # Regex patterns to scrub sensitive data from causes, messages, and stack traces
 _SENSITIVE_PATTERNS = [
     (re.compile(r"(Bearer\s+)[A-Za-z0-9_\-\.]{10,}", re.IGNORECASE), r"\1[REDACTED_TOKEN]"),
+    (re.compile(r"Bearer\s+[A-Za-z0-9_\-\.]{15,}", re.IGNORECASE), r"Bearer [REDACTED_TOKEN]"),
     (re.compile(r"(sk-[A-Za-z0-9_\-]{15,})", re.IGNORECASE), r"[REDACTED_API_KEY]"),
     (re.compile(r'(api[_-]?key["\']?\s*[:=]\s*["\']?)[A-Za-z0-9_\-\.]{8,}(["\']?)', re.IGNORECASE), r"\1[REDACTED]\2"),
     (re.compile(r'(password["\']?\s*[:=]\s*["\']?)[^"\'\s]{4,}(["\']?)', re.IGNORECASE), r"\1[REDACTED]\2"),
@@ -19,6 +20,9 @@ _SENSITIVE_PATTERNS = [
     (re.compile(r'(secret["\']?\s*[:=]\s*["\']?)[^"\'\s]{6,}(["\']?)', re.IGNORECASE), r"\1[REDACTED]\2"),
     (re.compile(r'(authorization["\']?\s*[:=]\s*["\']?)[^"\'\s]{8,}(["\']?)', re.IGNORECASE), r"\1[REDACTED]\2"),
     (re.compile(r'(cookie["\']?\s*[:=]\s*["\']?)[^"\'\s]{8,}(["\']?)', re.IGNORECASE), r"\1[REDACTED]\2"),
+    (re.compile(r"(?:postgresql|postgres|mysql|redis|mongodb|amqp):\/\/[^\s]+", re.IGNORECASE), r"[REDACTED_DATABASE_URL]"),
+    (re.compile(r"(://[^:\s]+:)([^@\s]+)(@)", re.IGNORECASE), r"\1[REDACTED_PASSWORD]\3"),
+    (re.compile(r"-----BEGIN [A-Z ]+ PRIVATE KEY-----[\s\S]+?-----END [A-Z ]+ PRIVATE KEY-----", re.IGNORECASE), r"[REDACTED_PRIVATE_KEY]"),
 ]
 
 
@@ -77,7 +81,11 @@ class FailureClassifier:
 
         # 1. HTTP Status Code or Explicit Error Codes
         if status_code is not None:
-            if status_code == 401:
+            if status_code == 400:
+                category = FailureCategory.VALIDATION
+                severity = FailureSeverity.LOW
+                code = "HTTP_400_BAD_REQUEST"
+            elif status_code == 401:
                 category = FailureCategory.AUTHENTICATION
                 severity = FailureSeverity.HIGH
                 code = "HTTP_401_UNAUTHORIZED"

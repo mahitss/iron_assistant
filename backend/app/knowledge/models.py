@@ -15,6 +15,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Index,
+    Integer,
     String,
     Text,
 )
@@ -170,3 +171,140 @@ class KnowledgeIndexJobModel(Base):
 
     def __repr__(self) -> str:
         return f"<KnowledgeIndexJob(id='{self.id}', type='{self.job_type}', status='{self.status}')>"
+
+
+class KnowledgeChunkModel(Base):
+    """Fine-grained semantic chunk representation for RAG V2."""
+
+    __tablename__ = "knowledge_chunks"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    document_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    node_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    chunk_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    content_type: Mapped[str] = mapped_column(String(32), default="PARAGRAPH", nullable=False)
+    source_type: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    source_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    title: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    headings: Mapped[list[str] | None] = mapped_column(JSON, nullable=True, default=list)
+    page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    section_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    section_title: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    start_time_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    end_time_seconds: Mapped[float | None] = mapped_column(Float, nullable=True)
+    speaker: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    file_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    line_start: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    line_end: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    commit_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    embedding = mapped_column(Vector(1536), nullable=True)
+    content_hash: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    project_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    freshness_state: Mapped[str] = mapped_column(String(32), default="FRESH", nullable=False)
+    metadata_json: Mapped[dict[str, Any] | None] = mapped_column("metadata_json", JSON, nullable=True, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
+    )
+
+    __table_args__ = (
+        Index("ix_knowledge_chunks_user_doc", "user_id", "document_id"),
+        Index("ix_knowledge_chunks_user_proj", "user_id", "project_id"),
+        Index("ix_knowledge_chunks_source_type", "source_type"),
+        Index("ix_knowledge_chunks_hash", "content_hash"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<KnowledgeChunk(id='{self.id}', doc='{self.document_id}', type='{self.content_type}')>"
+
+
+class KnowledgeCitationModel(Base):
+    """Verified citation record mapping grounded answers to authoritative sources."""
+
+    __tablename__ = "knowledge_citations"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    query_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    chunk_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    source_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_id: Mapped[str] = mapped_column(String(256), nullable=False)
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    citation_label: Mapped[str] = mapped_column(String(128), nullable=False)
+    citation_text: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str | None] = mapped_column(String(1024), nullable=True)
+    page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    section_name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    file_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    line_range: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    commit_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    relevance_score: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    project_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    __table_args__ = (
+        Index("ix_knowledge_citations_query", "query_id"),
+        Index("ix_knowledge_citations_user", "user_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<KnowledgeCitation(id='{self.id}', label='{self.citation_label}', chunk='{self.chunk_id}')>"
+
+
+class CodeSymbolModel(Base):
+    """AST-extracted code symbol (function, class, module, imports)."""
+
+    __tablename__ = "code_symbols"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    repo_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    file_path: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
+    symbol_name: Mapped[str] = mapped_column(String(256), index=True, nullable=False)
+    symbol_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    language: Mapped[str] = mapped_column(String(64), default="python", nullable=False)
+    start_line: Mapped[int] = mapped_column(Integer, nullable=False)
+    end_line: Mapped[int] = mapped_column(Integer, nullable=False)
+    signature: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    docstring: Mapped[str | None] = mapped_column(Text, nullable=True)
+    parent_symbol: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    user_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    project_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    __table_args__ = (
+        Index("ix_code_symbols_repo_file", "repo_id", "file_path"),
+        Index("ix_code_symbols_name", "symbol_name"),
+        Index("ix_code_symbols_user_proj", "user_id", "project_id"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<CodeSymbol(id='{self.id}', name='{self.symbol_name}', type='{self.symbol_type}')>"
+
+
+class CodeDependencyModel(Base):
+    """Dependency graph connection between files, modules, and symbols."""
+
+    __tablename__ = "code_dependencies"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    repo_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    source_file: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
+    target_file: Mapped[str] = mapped_column(String(512), index=True, nullable=False)
+    source_symbol: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    target_symbol: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    dependency_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    project_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+    __table_args__ = (
+        Index("ix_code_deps_repo", "repo_id"),
+        Index("ix_code_deps_source", "source_file"),
+        Index("ix_code_deps_target", "target_file"),
+    )
+
+    def __repr__(self) -> str:
+        return f"<CodeDependency(repo='{self.repo_id}', {self.source_file}->{self.target_file})>"
+

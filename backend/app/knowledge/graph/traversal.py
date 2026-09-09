@@ -10,7 +10,7 @@ from app.config.settings import get_settings
 from app.knowledge.models import KnowledgeEdgeModel, KnowledgeNodeModel
 from app.knowledge.schemas import KnowledgeEdgeResponse, KnowledgeGraphResponse, KnowledgeNodeResponse
 
-logger = logging.getLogger("kairo.knowledge.graph")
+logger = logging.getLogger("kairo.knowledge.graph.traversal")
 
 
 class GraphTraversalService:

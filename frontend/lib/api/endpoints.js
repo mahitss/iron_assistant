@@ -931,6 +931,139 @@ export const Endpoints = {
   async setReadOnlyDegradation(enabled) {
     return api.post(`/api/v1/resilience/degradation/read-only?enabled=${enabled ? 'true' : 'false'}`);
   },
+
+  // Observability & System Intelligence (Task 38)
+  async getObservabilityHealth() {
+    return api.get('/api/v1/observability/health-score');
+  },
+
+  async getObservabilityDashboard() {
+    return api.get('/api/v1/observability/dashboard');
+  },
+
+  async getTrace(traceId) {
+    return api.get(`/api/v1/observability/traces/${encodeURIComponent(traceId)}`);
+  },
+
+  async getTaskTrace(taskId) {
+    return api.get(`/api/v1/observability/tasks/${encodeURIComponent(taskId)}`);
+  },
+
+  async listIncidents(statusFilter = null) {
+    const q = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : '';
+    return api.get(`/api/v1/observability/incidents${q}`);
+  },
+
+  async getIncident(incidentId) {
+    return api.get(`/api/v1/observability/incidents/${encodeURIComponent(incidentId)}`);
+  },
+
+  async acknowledgeIncident(incidentId, acknowledgedBy = 'operator') {
+    return api.post(`/api/v1/observability/incidents/${encodeURIComponent(incidentId)}/acknowledge`, {
+      acknowledged_by: acknowledgedBy,
+    });
+  },
+
+  async resolveIncident(incidentId, recoveryEvidence) {
+    return api.post(`/api/v1/observability/incidents/${encodeURIComponent(incidentId)}/resolve`, {
+      recovery_evidence: recoveryEvidence,
+    });
+  },
+
+  async getDependencies() {
+    return api.get('/api/v1/observability/dependencies');
+  },
+
+  async runDiagnostics(targetRef) {
+    return api.post('/api/v1/observability/diagnose', { target_ref: targetRef });
+  },
+
+  async runRootCauseAnalysis(targetRef) {
+    return api.post('/api/v1/observability/root-cause', { target_ref: targetRef });
+  },
+
+  // --- State Fabric (Task 39) ---
+  async getStateHealth() {
+    return api.get('/api/v1/state/health');
+  },
+
+  async getStateRecord(domain, resourceType, resourceId, consistency = 'STRONG') {
+    return api.get(
+      `/api/v1/state/records/${encodeURIComponent(domain)}/${encodeURIComponent(resourceType)}/${encodeURIComponent(resourceId)}?consistency=${encodeURIComponent(consistency)}`
+    );
+  },
+
+  async getStateChangelog(resourceType = null, resourceId = null, limit = 50) {
+    const params = new URLSearchParams();
+    if (resourceType) params.append('resource_type', resourceType);
+    if (resourceId) params.append('resource_id', resourceId);
+    params.append('limit', limit.toString());
+    return api.get(`/api/v1/state/changelog?${params.toString()}`);
+  },
+
+  async triggerStateReconciliation(mode = 'CHECK') {
+    return api.post(`/api/v1/state/reconcile?mode=${encodeURIComponent(mode)}`);
+  },
+
+  async getLastStateReconciliation() {
+    return api.get('/api/v1/state/reconcile/last');
+  },
+
+  async listStateQuarantine() {
+    return api.get('/api/v1/state/quarantine');
+  },
+
+  async releaseStateQuarantine(resourceId, operator = 'operator') {
+    return api.post(
+      `/api/v1/state/quarantine/${encodeURIComponent(resourceId)}/release?operator=${encodeURIComponent(operator)}`
+    );
+  },
+
+  // --- Cognitive Planning & Reasoning Engine (Task 41) ---
+  async createCognitiveGoal(payload) {
+    return api.post('/api/v1/cognition/goals', payload);
+  },
+
+  async getCognitiveGoal(goalId) {
+    return api.get(`/api/v1/cognition/goals/${encodeURIComponent(goalId)}`);
+  },
+
+  async buildCognitivePlan(goalId, payload = {}) {
+    return api.post(`/api/v1/cognition/goals/${encodeURIComponent(goalId)}/plan`, payload);
+  },
+
+  async getCognitivePlan(planId) {
+    return api.get(`/api/v1/cognition/plans/${encodeURIComponent(planId)}`);
+  },
+
+  async validateCognitivePlan(planId) {
+    return api.post(`/api/v1/cognition/plans/${encodeURIComponent(planId)}/validate`);
+  },
+
+  async replanCognitivePlan(planId, payload) {
+    return api.post(`/api/v1/cognition/plans/${encodeURIComponent(planId)}/replan`, payload);
+  },
+
+  async verifyCognitiveStep(planId, payload) {
+    return api.post(`/api/v1/cognition/plans/${encodeURIComponent(planId)}/verify-step`, payload);
+  },
+
+  async getCognitivePlanPreview(planId) {
+    return api.get(`/api/v1/cognition/plans/${encodeURIComponent(planId)}/preview`);
+  },
+
+  async explainCognitiveStep(planId, stepId) {
+    return api.get(`/api/v1/cognition/plans/${encodeURIComponent(planId)}/steps/${encodeURIComponent(stepId)}/explain`);
+  },
+
+  async getCognitiveDashboard() {
+    return api.get('/api/v1/cognition/dashboard');
+  },
+
+  async listCognitiveTemplates() {
+    return api.get('/api/v1/cognition/templates');
+  },
 };
 
 export const endpoints = Endpoints;
+

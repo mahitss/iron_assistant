@@ -40,3 +40,7 @@ class RateLimitExceededError(SecurityError):
 
 class TenantIsolationError(SecurityError):
     """Raised when a user attempts cross-tenant access to another user's security resources."""
+
+
+class SecurityPolicyViolationError(SecurityError):
+    """Raised when an action violates security policy or is forbidden."""

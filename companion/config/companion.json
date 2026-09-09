@@ -1,0 +1,18 @@
+{
+  "companion_version": "1.1.0",
+  "cloud_url": "http://localhost:8000",
+  "device_name": "My PC",
+  "allowed_directories": [
+    "~/KairoWorkspace"
+  ],
+  "inactivity_timeout_seconds": 900,
+  "telemetry": {
+    "enabled": true,
+    "interval_seconds": 60
+  },
+  "privacy": {
+    "screen_indicator": true,
+    "camera_indicator": true,
+    "microphone_indicator": true
+  }
+}

@@ -1,6 +1,8 @@
 """Central Security Center: authoritative coordinator for permissions, approvals, audit, and gates."""
 
+import hashlib
 import logging
+import uuid
 from datetime import UTC, datetime
 from typing import Any
 
@@ -337,6 +339,76 @@ class SecurityCenter:
             risk_level=risk,
             action_fingerprint=fingerprint,
         )
+
+    # --- Device Companion Approval Artifacts ---
+
+    def create_device_approval_artifact(
+        self,
+        user_id: str,
+        device_id: str,
+        action: str,
+        target_scope: str = "*",
+        ttl_seconds: int = 300,
+    ) -> dict[str, Any]:
+        """Generate a cryptographically verifiable approval artifact for companion execution."""
+        import hmac
+
+        approval_id = f"appr_{uuid.uuid4().hex[:12]}"
+        now = datetime.now(UTC)
+        expires_at = datetime.fromtimestamp(now.timestamp() + ttl_seconds, tz=UTC)
+        payload = {
+            "approval_id": approval_id,
+            "user_id": user_id,
+            "device_id": device_id,
+            "action": action,
+            "target_scope": target_scope,
+            "issued_at": now.isoformat(),
+            "expires_at": expires_at.isoformat(),
+        }
+        signing_content = (
+            f"{approval_id}:{user_id}:{device_id}:{action}:{target_scope}:{payload['expires_at']}"
+        )
+        secret_key = (
+            self.settings.AUTH_SECRET_KEY.encode("utf-8")
+            if hasattr(self.settings, "AUTH_SECRET_KEY")
+            else b"kairo_approval_signing_secret"
+        )
+        sig = hmac.new(secret_key, signing_content.encode("utf-8"), hashlib.sha256).hexdigest()
+        payload["signature"] = sig
+        return payload
+
+    def verify_device_approval_artifact(self, artifact: dict[str, Any]) -> bool:
+        """Verify the integrity, scope, and expiration of a companion approval artifact."""
+        import hmac
+
+        try:
+            required = [
+                "approval_id",
+                "user_id",
+                "device_id",
+                "action",
+                "target_scope",
+                "expires_at",
+                "signature",
+            ]
+            if not all(k in artifact for k in required):
+                return False
+            expires_at = datetime.fromisoformat(artifact["expires_at"])
+            if datetime.now(UTC) > expires_at:
+                return False
+            signing_content = (
+                f"{artifact['approval_id']}:{artifact['user_id']}:{artifact['device_id']}:"
+                f"{artifact['action']}:{artifact['target_scope']}:{artifact['expires_at']}"
+            )
+            secret_key = (
+                self.settings.AUTH_SECRET_KEY.encode("utf-8")
+                if hasattr(self.settings, "AUTH_SECRET_KEY")
+                else b"kairo_approval_signing_secret"
+            )
+            expected = hmac.new(secret_key, signing_content.encode("utf-8"), hashlib.sha256).hexdigest()
+            return hmac.compare_digest(expected, artifact["signature"])
+        except Exception:
+            return False
 
 
 # Global singleton instance

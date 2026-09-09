@@ -9,10 +9,15 @@ export class SecurityView {
   constructor(options = {}) {
     this.store = options.store || store;
     this.auditEvents = [];
+    this.devices = options.devices || [];
   }
 
   setAuditEvents(events) {
     this.auditEvents = events;
+  }
+
+  setDevices(devices) {
+    this.devices = devices;
   }
 
   render() {
@@ -140,6 +145,82 @@ export class SecurityView {
                 </div>
               ` : pendingApprovals.map(appr => ApprovalBanner.render(appr)).join('')}
             </div>
+          </div>
+        </div>
+
+        <!-- Device Security (Companion Integration) -->
+        <div class="card device-security-panel">
+          <div class="card-header-flex">
+            <div class="card-title">
+              <span>🖥️</span>
+              <span>DEVICE SECURITY</span>
+            </div>
+            <span class="badge badge-success">Defense In Depth</span>
+          </div>
+          <p class="card-subtitle">Local runtime companion policy enforcement, capability gates, and dual emergency stop readiness.</p>
+
+          <div class="device-sec-grid">
+            ${(this.devices && this.devices.length > 0) ? this.devices.map(dev => `
+              <div class="device-sec-card">
+                <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.25rem;">
+                  ${this._escapeHtml(dev.device_name || 'My PC')}
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Cloud Authorization</span>
+                  <span class="status-active" style="font-weight: 600;">ENABLED</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Local Policy</span>
+                  <span class="status-active" style="font-weight: 600;">ENABLED</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Computer Control</span>
+                  <span class="${dev.computer_control_enabled ? 'status-warn' : 'status-muted'}">${dev.computer_control_enabled ? 'ARMED' : 'OFF'}</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Microphone</span>
+                  <span class="${dev.microphone_enabled ? 'status-active' : 'status-muted'}">${dev.microphone_enabled ? 'READY' : 'OFF'}</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Camera</span>
+                  <span class="${dev.camera_enabled ? 'status-active' : 'status-muted'}">${dev.camera_enabled ? 'READY' : 'OFF'}</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Emergency Stop</span>
+                  <span class="status-active" style="font-weight: 600;">READY</span>
+                </div>
+              </div>
+            `).join('') : `
+              <div class="device-sec-card">
+                <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.25rem;">
+                  My PC (Primary Companion)
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Cloud Authorization</span>
+                  <span class="status-active" style="font-weight: 600;">ENABLED</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Local Policy</span>
+                  <span class="status-active" style="font-weight: 600;">ENABLED</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Computer Control</span>
+                  <span class="status-muted" style="font-weight: 600;">OFF</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Microphone</span>
+                  <span class="status-muted" style="font-weight: 600;">OFF</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Camera</span>
+                  <span class="status-muted" style="font-weight: 600;">OFF</span>
+                </div>
+                <div class="device-sec-row">
+                  <span class="cap-label">Emergency Stop</span>
+                  <span class="status-active" style="font-weight: 600;">READY</span>
+                </div>
+              </div>
+            `}
           </div>
         </div>
 

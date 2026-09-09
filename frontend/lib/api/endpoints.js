@@ -229,4 +229,29 @@ export const Endpoints = {
   async getSystemVersion() {
     return api.get('/health/version');
   },
+
+  // --- Devices & Local Companion ---
+  async listDevices(includeRevoked = false) {
+    return api.get(`/api/v1/devices?include_revoked=${includeRevoked}`);
+  },
+
+  async getDevice(deviceId) {
+    return api.get(`/api/v1/devices/${encodeURIComponent(deviceId)}`);
+  },
+
+  async registerDevice(deviceData) {
+    return api.post('/api/v1/devices/register', deviceData);
+  },
+
+  async updateDevice(deviceId, updateData) {
+    return api.patch(`/api/v1/devices/${encodeURIComponent(deviceId)}`, updateData);
+  },
+
+  async revokeDevice(deviceId) {
+    return api.post(`/api/v1/devices/${encodeURIComponent(deviceId)}/revoke`);
+  },
+
+  async dispatchDeviceCommand(deviceId, commandData) {
+    return api.post(`/api/v1/devices/${encodeURIComponent(deviceId)}/commands`, commandData);
+  },
 };

@@ -1514,6 +1514,77 @@ export const Endpoints = {
   async getCommunicationHealth() {
     return api.get('/api/v1/communication/health');
   },
+
+  // Task 50: Personal Knowledge Graph & Relationship Memory
+  async createKnowledgeNode(payload) {
+    return api.post('/api/v1/knowledge-graph/nodes', payload);
+  },
+
+  async listKnowledgeNodes(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/knowledge-graph/nodes${qs ? `?${qs}` : ''}`);
+  },
+
+  async getKnowledgeNode(nodeId) {
+    return api.get(`/api/v1/knowledge-graph/nodes/${encodeURIComponent(nodeId)}`);
+  },
+
+  async createKnowledgeEdge(payload) {
+    return api.post('/api/v1/knowledge-graph/edges', payload);
+  },
+
+  async traverseKnowledgeGraph(payload) {
+    return api.post('/api/v1/knowledge-graph/traverse', payload);
+  },
+
+  async recordKnowledgeAssertion(payload) {
+    return api.post('/api/v1/knowledge-graph/assertions', payload);
+  },
+
+  async findKnowledgeAssertions(subject, params = {}) {
+    const qs = new URLSearchParams({ subject, ...params }).toString();
+    return api.get(`/api/v1/knowledge-graph/assertions?${qs}`);
+  },
+
+  async recordKnowledgeDecision(payload) {
+    return api.post('/api/v1/knowledge-graph/decisions', payload);
+  },
+
+  async listKnowledgeDecisions(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/knowledge-graph/decisions${qs ? `?${qs}` : ''}`);
+  },
+
+  async setKnowledgePreference(payload) {
+    return api.post('/api/v1/knowledge-graph/preferences', payload);
+  },
+
+  async resolveKnowledgePreference(category, params = {}) {
+    const qs = new URLSearchParams({ category, ...params }).toString();
+    return api.get(`/api/v1/knowledge-graph/preferences/resolve?${qs}`);
+  },
+
+  async queryKnowledgeAsOf(timestamp, params = {}) {
+    const qs = new URLSearchParams({ timestamp, ...params }).toString();
+    return api.get(`/api/v1/knowledge-graph/temporal/as-of?${qs}`);
+  },
+
+  async listKnowledgeContradictions(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/knowledge-graph/contradictions${qs ? `?${qs}` : ''}`);
+  },
+
+  async forgetKnowledgeEntity(payload) {
+    return api.post('/api/v1/knowledge-graph/forget', payload);
+  },
+
+  async getKnowledgeGraphMetrics() {
+    return api.get('/api/v1/knowledge-graph/metrics');
+  },
+
+  async getKnowledgeGraphHealth() {
+    return api.get('/api/v1/knowledge-graph/health');
+  },
 };
 
 export const intentApi = {
@@ -1544,6 +1615,25 @@ export const communicationApi = {
   listFollowups: (params) => Endpoints.listCommunicationFollowups(params),
   getMetrics: () => Endpoints.getCommunicationMetrics(),
   getHealth: () => Endpoints.getCommunicationHealth(),
+};
+
+export const knowledgeGraphApi = {
+  createNode: (payload) => Endpoints.createKnowledgeNode(payload),
+  listNodes: (params) => Endpoints.listKnowledgeNodes(params),
+  getNode: (id) => Endpoints.getKnowledgeNode(id),
+  createEdge: (payload) => Endpoints.createKnowledgeEdge(payload),
+  traverse: (payload) => Endpoints.traverseKnowledgeGraph(payload),
+  recordAssertion: (payload) => Endpoints.recordKnowledgeAssertion(payload),
+  findAssertions: (subject, params) => Endpoints.findKnowledgeAssertions(subject, params),
+  recordDecision: (payload) => Endpoints.recordKnowledgeDecision(payload),
+  listDecisions: (params) => Endpoints.listKnowledgeDecisions(params),
+  setPreference: (payload) => Endpoints.setKnowledgePreference(payload),
+  resolvePreference: (category, params) => Endpoints.resolveKnowledgePreference(category, params),
+  queryAsOf: (ts, params) => Endpoints.queryKnowledgeAsOf(ts, params),
+  listContradictions: (params) => Endpoints.listKnowledgeContradictions(params),
+  forgetEntity: (payload) => Endpoints.forgetKnowledgeEntity(payload),
+  getMetrics: () => Endpoints.getKnowledgeGraphMetrics(),
+  getHealth: () => Endpoints.getKnowledgeGraphHealth(),
 };
 
 export const endpoints = Endpoints;

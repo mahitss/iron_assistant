@@ -28,6 +28,7 @@ import app.observability.models  # noqa: F401
 import app.resilience.models  # noqa: F401
 import app.security.models  # noqa: F401
 import app.state.models  # noqa: F401
+import app.verification.models  # noqa: F401
 from app.core.config import get_settings
 from app.db.session import Base
 

@@ -1063,6 +1063,60 @@ export const Endpoints = {
   async listCognitiveTemplates() {
     return api.get('/api/v1/cognition/templates');
   },
+
+  // --- Truth, Verification & Self-Correction Engine (Task 42) ---
+  async createVerificationClaim(payload) {
+    return api.post('/api/v1/verification/claims', payload);
+  },
+
+  async listVerificationClaims(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/verification/claims${qs ? `?${qs}` : ''}`);
+  },
+
+  async getVerificationClaim(claimId) {
+    return api.get(`/api/v1/verification/claims/${encodeURIComponent(claimId)}`);
+  },
+
+  async registerVerificationEvidence(payload) {
+    return api.post('/api/v1/verification/evidence', payload);
+  },
+
+  async getVerificationEvidence(evidenceId) {
+    return api.get(`/api/v1/verification/evidence/${encodeURIComponent(evidenceId)}`);
+  },
+
+  async verifyClaimContract(claimId, payload) {
+    return api.post(`/api/v1/verification/claims/${encodeURIComponent(claimId)}/verify`, payload);
+  },
+
+  async triangulateClaim(claimId) {
+    return api.get(`/api/v1/verification/claims/${encodeURIComponent(claimId)}/triangulate`);
+  },
+
+  async getClaimConfidence(claimId) {
+    return api.get(`/api/v1/verification/claims/${encodeURIComponent(claimId)}/confidence`);
+  },
+
+  async getClaimContradictions(claimId) {
+    return api.get(`/api/v1/verification/claims/${encodeURIComponent(claimId)}/contradictions`);
+  },
+
+  async submitSelfCorrection(payload) {
+    return api.post('/api/v1/verification/corrections', payload);
+  },
+
+  async validateCitation(payload) {
+    return api.post('/api/v1/verification/citations/validate', payload);
+  },
+
+  async evaluateInvariants(payload) {
+    return api.post('/api/v1/verification/invariants/evaluate', payload);
+  },
+
+  async getVerificationStats() {
+    return api.get('/api/v1/verification/stats');
+  },
 };
 
 export const endpoints = Endpoints;

@@ -16,6 +16,14 @@ from app.devices.schemas import (
     DeviceUpdateRequest,
 )
 from app.devices.service import DeviceService
+from app.identity.devices import IdentityDeviceManager
+from app.identity.schemas import (
+    DevicePairingConsumeRequest,
+    DevicePairingRequest,
+    DevicePairingResponse,
+    DeviceTrustUpdateRequest,
+)
+from app.identity.trust import DeviceTrustManager
 from app.security.exceptions import (
     CapabilityDisabledError,
     SecurityPolicyViolationError,
@@ -159,6 +167,77 @@ async def dispatch_device_command(
     except TenantIsolationError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     except CapabilityDisabledError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+    except SecurityPolicyViolationError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+
+@router.post(
+    "/{device_id}/trust",
+    response_model=DeviceResponse,
+    summary="Update device trust status",
+)
+async def update_device_trust(
+    device_id: str,
+    payload: DeviceTrustUpdateRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession | None = Depends(get_db_session),
+    service: DeviceService = Depends(get_device_service),
+) -> DeviceResponse:
+    """Explicitly mark device as TRUSTED, UNTRUSTED, or REVOKED (Spec 12, 116)."""
+    if db is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable.")
+    trust_mgr = DeviceTrustManager(db)
+    try:
+        updated = await trust_mgr.update_trust(
+            user_id=user_id,
+            device_id=device_id,
+            target_trust=payload.trust_status,
+            expires_in_days=payload.expires_in_days or 90,
+        )
+        return service._to_response(updated)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found.")
+    except TenantIsolationError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
+
+
+@router.post(
+    "/pair",
+    response_model=DevicePairingResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Initiate device pairing",
+)
+async def initiate_device_pairing(
+    payload: DevicePairingRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession | None = Depends(get_db_session),
+) -> DevicePairingResponse:
+    """Issue a single-use, 10-minute expiring pairing code for Local Companion runtime (Spec 16, 17)."""
+    if db is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable.")
+    dev_mgr = IdentityDeviceManager(db)
+    return await dev_mgr.initiate_pairing(user_id=user_id, request=payload)
+
+
+@router.post(
+    "/pair/consume",
+    summary="Consume device pairing code",
+)
+async def consume_device_pairing(
+    payload: DevicePairingConsumeRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession | None = Depends(get_db_session),
+) -> dict:
+    """Consume pairing code and activate companion device with replay protection (Spec 17, 18)."""
+    if db is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database unavailable.")
+    dev_mgr = IdentityDeviceManager(db)
+    try:
+        return await dev_mgr.consume_pairing(user_id=user_id, request=payload)
+    except KeyError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found.")
+    except TenantIsolationError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc))
     except SecurityPolicyViolationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))

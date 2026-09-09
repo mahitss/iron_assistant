@@ -61,14 +61,18 @@ class DeviceResponse(BaseModel):
     device_id: str
     user_id: str
     device_name: str
+    client_type: str = "LOCAL_COMPANION"
     os_name: str
     os_version: str
     companion_version: str
     status: DeviceStatus
+    trust_status: str = "UNTRUSTED"
     capabilities: DeviceCapabilitiesSchema
+    declared_capabilities: list[str] = Field(default_factory=list)
     allowed_paths: list[str]
     created_at: datetime
     last_seen_at: datetime
+    trust_expires_at: datetime | None = None
     revoked_at: datetime | None = None
 
 

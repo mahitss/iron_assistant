@@ -46,6 +46,7 @@ export class SettingsView {
             <button class="settings-nav-btn" data-tab="notifications">Notifications</button>
             <button class="settings-nav-btn" data-tab="security">Security</button>
             <button class="settings-nav-btn" data-tab="devices">Devices</button>
+            <button class="settings-nav-btn" data-tab="skills">Skills</button>
           </nav>
 
           <section class="settings-content-panel" id="settings-panel-body">
@@ -58,6 +59,10 @@ export class SettingsView {
     this._bindEvents();
     if (this.activeTab === 'devices') {
       this._loadDevices();
+    } else if (this.activeTab === 'skills') {
+      this._loadSkills();
+    } else if (this.activeTab === 'security') {
+      this._loadSessions();
     }
   }
 
@@ -73,6 +78,10 @@ export class SettingsView {
           panelBody.innerHTML = this._renderTabContent();
           if (this.activeTab === 'devices') {
             this._loadDevices();
+          } else if (this.activeTab === 'skills') {
+            this._loadSkills();
+          } else if (this.activeTab === 'security') {
+            this._loadSessions();
           }
         }
       });
@@ -213,31 +222,183 @@ export class SettingsView {
         `;
 
       case 'security':
-        return `
-          <div class="settings-section">
-            <h2 class="settings-section-title">Security Center Policies</h2>
-            <div class="setting-row">
-              <div class="setting-meta">
-                <strong>Strict Human-In-The-Loop Approvals</strong>
-                <p>Requires explicit click authorization for code execution, file writes, and external API requests.</p>
-              </div>
-              <span class="badge badge-success">Always Required</span>
-            </div>
-            <div class="setting-row">
-              <div class="setting-meta">
-                <strong>Emergency Stop Availability</strong>
-                <p>Top-right security indicator provides immediate kill switch for all active actions.</p>
-              </div>
-              <span class="badge badge-info">Armed</span>
-            </div>
-          </div>
-        `;
+        return this._renderSecurityTab();
 
       case 'devices':
         return this._renderDevicesTab();
 
+      case 'skills':
+        return this._renderSkillsTab();
+
       default:
         return '';
+    }
+  }
+
+  _renderSecurityTab() {
+    return `
+      <div class="settings-section">
+        <h2 class="settings-section-title">Security Center Policies</h2>
+        <div class="setting-row">
+          <div class="setting-meta">
+            <strong>Strict Human-In-The-Loop Approvals</strong>
+            <p>Requires explicit click authorization for code execution, file writes, and external API requests.</p>
+          </div>
+          <span class="badge badge-success">Always Required</span>
+        </div>
+        <div class="setting-row">
+          <div class="setting-meta">
+            <strong>Emergency Stop Availability</strong>
+            <p>Top-right security indicator provides immediate kill switch for all active actions.</p>
+          </div>
+          <span class="badge badge-info">Armed</span>
+        </div>
+      </div>
+
+      <div class="settings-section" style="margin-top: 1.5rem;">
+        <div class="card-header-flex" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+          <div>
+            <h2 class="settings-section-title">ACTIVE SESSIONS</h2>
+            <p class="settings-section-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+              Interactive sessions authorized across your browser, desktop companion, voice, and API clients.
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary" id="refresh-sessions-btn" style="font-size: 0.8rem;">↻ Refresh</button>
+            <button class="btn btn-danger" id="signout-everywhere-btn" style="font-size: 0.8rem;">Sign Out Everywhere</button>
+          </div>
+        </div>
+
+        <div id="active-sessions-list" class="sessions-grid" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div class="loading-spinner" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">
+            Scanning active sessions...
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async _loadSessions() {
+    const container = this.container.querySelector('#active-sessions-list');
+    if (!container) return;
+
+    const refreshBtn = this.container.querySelector('#refresh-sessions-btn');
+    if (refreshBtn) {
+      refreshBtn.onclick = () => this._loadSessions();
+    }
+
+    const signoutAllBtn = this.container.querySelector('#signout-everywhere-btn');
+    if (signoutAllBtn) {
+      signoutAllBtn.onclick = async () => {
+        if (confirm('Sign out from all active sessions everywhere? You will need to re-authenticate on all devices.')) {
+          try {
+            await Endpoints.revokeAllSessions();
+            await this._loadSessions();
+          } catch (err) {
+            alert(`Failed to sign out everywhere: ${err.message}`);
+          }
+        }
+      };
+    }
+
+    try {
+      const sessions = await Endpoints.getSessions();
+      if (!Array.isArray(sessions) || sessions.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state-box" style="padding: 1.5rem; text-align: center; color: var(--text-muted); background: rgba(0,0,0,0.2); border-radius: 4px;">
+            No active interactive sessions found.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = sessions.map(s => this._renderSessionCard(s)).join('');
+      this._bindSessionCardEvents();
+    } catch (err) {
+      container.innerHTML = `
+        <div class="empty-state-box" style="padding: 1.5rem; text-align: center; color: #ef4444;">
+          Failed to load active sessions: ${this._escapeHtml(err.message)}
+        </div>
+      `;
+    }
+  }
+
+  _renderSessionCard(session) {
+    const clientIconMap = {
+      WEB: '🌐',
+      DESKTOP: '🖥️',
+      MOBILE: '📱',
+      VOICE: '🎙️',
+      API: '⚡',
+      LOCAL_COMPANION: '💻',
+    };
+    const icon = clientIconMap[session.client_type] || '🔑';
+    const lastActive = session.last_activity_at ? new Date(session.last_activity_at).toLocaleTimeString() : 'Unknown';
+    const created = session.created_at ? new Date(session.created_at).toLocaleDateString() : 'Unknown';
+
+    return `
+      <div class="card session-card" id="session-card-${session.session_id}" style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.25rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glass); border-radius: 6px;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <span style="font-size: 1.5rem;">${icon}</span>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <strong>${this._escapeHtml(session.client_type)} Session</strong>
+              <span class="badge badge-success" style="font-size: 0.7rem;">● Active</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
+              ID: <span class="font-mono">${session.session_id.slice(0, 14)}...</span> &bull; Device: ${this._escapeHtml(session.device_id || 'Standalone')} &bull; Started: ${created} &bull; Last seen: ${lastActive}
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm revoke-session-btn" data-id="${session.session_id}" style="color: #ef4444; border-color: rgba(239,68,68,0.3);">
+          Sign Out
+        </button>
+      </div>
+    `;
+  }
+
+  _bindSessionCardEvents() {
+    this.container.querySelectorAll('.revoke-session-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const sid = e.currentTarget.dataset.id;
+        if (confirm('Sign out this session?')) {
+          try {
+            await Endpoints.revokeSession(sid);
+            await this._loadSessions();
+          } catch (err) {
+            alert(`Failed to revoke session: ${err.message}`);
+          }
+        }
+      });
+    });
+  }
+
+  _renderSkillsTab() {
+    return `
+      <div class="settings-section" style="padding: 0;">
+        <div id="skills-catalog-mount">
+          <div class="loading-spinner" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+            Loading Kairo Skills Catalog...
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  async _loadSkills() {
+    const mount = this.container.querySelector('#skills-catalog-mount');
+    if (!mount) return;
+
+    try {
+      const { SkillsView } = await import('../skills/skillsView.js');
+      const skillsView = new SkillsView(mount);
+      await skillsView.render();
+    } catch (err) {
+      mount.innerHTML = `
+        <div class="empty-state-box" style="padding: 2rem; text-align: center; color: #ef4444;">
+          Failed to load Skills: ${this._escapeHtml(err.message)}
+        </div>
+      `;
     }
   }
 
@@ -251,7 +412,10 @@ export class SettingsView {
               Manage paired local runtime companions, hardware capabilities, and cryptographic credentials.
             </p>
           </div>
-          <button class="btn btn-secondary" id="refresh-devices-btn" style="font-size: 0.8rem;">↻ Refresh</button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary" id="refresh-devices-btn" style="font-size: 0.8rem;">↻ Refresh</button>
+            <button class="btn btn-primary" id="pair-device-modal-btn" style="font-size: 0.8rem;">+ Pair New Device</button>
+          </div>
         </div>
 
         <div id="devices-container" class="devices-grid">
@@ -282,6 +446,11 @@ export class SettingsView {
       refreshBtn.onclick = () => this._loadDevices();
     }
 
+    const pairBtn = this.container.querySelector('#pair-device-modal-btn');
+    if (pairBtn) {
+      pairBtn.onclick = () => this._showPairingModal();
+    }
+
     try {
       const devices = await Endpoints.listDevices(true);
       if (!Array.isArray(devices) || devices.length === 0) {
@@ -290,7 +459,7 @@ export class SettingsView {
             <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🖥️</span>
             <strong>No devices currently paired</strong>
             <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
-              Connect your first desktop or laptop runtime using the registration command below.
+              Connect your first desktop or laptop runtime using the pairing button above.
             </p>
           </div>
         `;
@@ -310,9 +479,12 @@ export class SettingsView {
 
   _renderDeviceCard(device) {
     const isOnline = device.status === 'ACTIVE';
-    const isRevoked = device.status === 'REVOKED';
+    const isRevoked = device.status === 'REVOKED' || device.trust_status === 'REVOKED';
     const badgeClass = isOnline ? 'badge-success' : (isRevoked ? 'badge-danger' : 'badge-warning');
     const badgeText = isOnline ? '● Online' : (isRevoked ? '✕ Revoked' : `○ ${device.status}`);
+
+    const trustClass = device.trust_status === 'TRUSTED' ? 'badge-success' : (device.trust_status === 'REVOKED' ? 'badge-danger' : 'badge-warning');
+    const trustText = device.trust_status === 'TRUSTED' ? '🛡️ Trusted' : (device.trust_status === 'REVOKED' ? '✕ Revoked' : `⚠️ ${device.trust_status || 'Untrusted'}`);
 
     return `
       <div class="device-card" id="device-card-${device.id}">
@@ -326,7 +498,10 @@ export class SettingsView {
               ${this._escapeHtml(device.os_name || 'OS')} ${this._escapeHtml(device.os_version || '')} &bull; Companion ${this._escapeHtml(device.companion_version || '1.0.0')}
             </div>
           </div>
-          <span class="badge ${badgeClass}">${badgeText}</span>
+          <div style="display: flex; gap: 0.4rem; align-items: center;">
+            <span class="badge ${trustClass}" style="font-size: 0.7rem;">${trustText}</span>
+            <span class="badge ${badgeClass}">${badgeText}</span>
+          </div>
         </div>
 
         <div class="device-capabilities-summary">
@@ -338,8 +513,8 @@ export class SettingsView {
           </div>
           <div class="cap-item">
             <span class="cap-label">Voice:</span>
-            <span class="cap-status ${device.microphone_enabled ? 'status-active' : 'status-muted'}">
-              ${device.microphone_enabled ? 'Ready' : 'OFF'}
+            <span class="cap-status ${(device.voice_enabled || device.microphone_enabled) ? 'status-active' : 'status-muted'}">
+              ${(device.voice_enabled || device.microphone_enabled) ? 'Ready' : 'OFF'}
             </span>
           </div>
           <div class="cap-item">
@@ -350,13 +525,16 @@ export class SettingsView {
           </div>
           <div class="cap-item">
             <span class="cap-label">Filesystem:</span>
-            <span class="cap-status ${device.filesystem_restricted ? 'status-active' : 'status-muted'}">
-              ${device.filesystem_restricted ? 'Restricted' : 'OFF'}
+            <span class="cap-status ${device.filesystem_enabled ? 'status-active' : 'status-muted'}">
+              ${device.filesystem_enabled ? 'Active' : 'OFF'}
             </span>
           </div>
         </div>
 
         <div class="device-card-actions">
+          ${device.trust_status !== 'TRUSTED' && !isRevoked ? `
+            <button class="btn btn-primary btn-sm trust-dev-btn" data-id="${device.id}">Trust Device</button>
+          ` : ''}
           <button class="btn btn-secondary btn-sm manage-dev-btn" data-id="${device.id}">Manage</button>
           ${!isRevoked ? `
             <button class="btn btn-danger btn-sm revoke-dev-btn" data-id="${device.id}" data-name="${this._escapeHtml(device.device_name)}">Revoke</button>
@@ -367,6 +545,18 @@ export class SettingsView {
   }
 
   _bindDeviceCardEvents(devices) {
+    this.container.querySelectorAll('.trust-dev-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const deviceId = e.currentTarget.dataset.id;
+        try {
+          await Endpoints.trustDevice(deviceId, 'TRUSTED');
+          await this._loadDevices();
+        } catch (err) {
+          alert(`Failed to trust device: ${err.message}`);
+        }
+      });
+    });
+
     this.container.querySelectorAll('.revoke-dev-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const deviceId = e.currentTarget.dataset.id;
@@ -389,6 +579,48 @@ export class SettingsView {
         if (device) this._showDeviceDetailModal(device);
       });
     });
+  }
+
+  async _showPairingModal() {
+    try {
+      const pairing = await Endpoints.initiateDevicePairing();
+      const existing = document.getElementById('device-pairing-modal');
+      if (existing) existing.remove();
+
+      const modal = document.createElement('div');
+      modal.id = 'device-pairing-modal';
+      modal.className = 'modal-backdrop';
+      modal.innerHTML = `
+        <div class="modal-dialog" style="max-width: 500px; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 1.5rem; color: #f3f4f6;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.75rem;">
+            <h3 style="font-size: 1.1rem; margin: 0;">🔐 Pair Companion Device</h3>
+            <button id="close-pairing-modal-btn" style="background: none; border: none; color: #9ca3af; font-size: 1.25rem; cursor: pointer;">&times;</button>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Enter this one-time pairing code into your Kairo Desktop Companion or CLI within 10 minutes.
+          </p>
+          <div style="background: rgba(0,0,0,0.4); border: 2px dashed #38bdf8; border-radius: 8px; padding: 1.25rem; text-align: center; margin-bottom: 1rem;">
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">PAIRING CODE (SINGLE-USE)</div>
+            <span class="font-mono" style="font-size: 1.8rem; font-weight: bold; color: #38bdf8; letter-spacing: 2px;">
+              ${this._escapeHtml(pairing.pairing_code)}
+            </span>
+          </div>
+          <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 1rem;">
+            Expires in 10 minutes. Consumed tokens cannot be replayed.
+          </p>
+          <div style="display: flex; justify-content: flex-end;">
+            <button class="btn btn-secondary" id="dismiss-pairing-modal-btn">Done</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const closeModal = () => { modal.remove(); this._loadDevices(); };
+      modal.querySelector('#close-pairing-modal-btn').onclick = closeModal;
+      modal.querySelector('#dismiss-pairing-modal-btn').onclick = closeModal;
+    } catch (err) {
+      alert(`Failed to generate pairing code: ${err.message}`);
+    }
   }
 
   _showDeviceDetailModal(device) {

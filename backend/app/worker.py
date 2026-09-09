@@ -111,6 +111,13 @@ class KairoWorker:
                 # Check for due workflows
                 await self.run_once(session_factory)
 
+                # Process transactional outbox events
+                try:
+                    from app.events.outbox import outbox_processor
+                    await outbox_processor.process_batch(limit=50)
+                except Exception as outbox_err:
+                    logger.debug("Worker outbox cycle skipped/error: %s", outbox_err)
+
                 # Periodic stale run recovery
                 current_time = loop.time()
                 if (current_time - self._last_stale_recovery) >= self.stale_recovery_interval_seconds:

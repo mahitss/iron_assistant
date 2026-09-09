@@ -204,9 +204,17 @@ export const Endpoints = {
   },
 
   // --- Notifications & Proactive Insights ---
-  async listNotifications(unreadOnly = false) {
-    const q = unreadOnly ? '?status=unread' : '';
-    return api.get(`/api/v1/notifications${q}`);
+  async listNotifications(unreadOnly = false, typeFilter = null, priorityFilter = null) {
+    const params = new URLSearchParams();
+    if (unreadOnly) params.set('status', 'unread');
+    if (typeFilter) params.set('type', typeFilter);
+    if (priorityFilter) params.set('priority', priorityFilter);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return api.get(`/api/v1/notifications${qs}`);
+  },
+
+  async getNotification(notificationId) {
+    return api.get(`/api/v1/notifications/${encodeURIComponent(notificationId)}`);
   },
 
   async markNotificationRead(notificationId) {
@@ -215,6 +223,25 @@ export const Endpoints = {
 
   async dismissNotification(notificationId) {
     return api.post(`/api/v1/notifications/${encodeURIComponent(notificationId)}/dismiss`);
+  },
+
+  async markAllNotificationsRead() {
+    return api.post('/api/v1/notifications/read-all');
+  },
+
+  async executeNotificationAction(notificationId, actionId, reason = null) {
+    return api.post(`/api/v1/notifications/${encodeURIComponent(notificationId)}/action`, {
+      action_id: actionId,
+      reason,
+    });
+  },
+
+  async getNotificationPreferences() {
+    return api.get('/api/v1/notifications/preferences');
+  },
+
+  async updateNotificationPreferences(preferences) {
+    return api.put('/api/v1/notifications/preferences', preferences);
   },
 
   // --- Observability & System Status ---
@@ -332,5 +359,578 @@ export const Endpoints = {
     const q = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
     return api.get(`/api/v1/knowledge/conflicts${q}`);
   },
+
+  // --- Skills & Capabilities (Task 26) ---
+  async listSkills(category = null, enabledOnly = false) {
+    let q = `?enabled_only=${enabledOnly}`;
+    if (category) q += `&category=${encodeURIComponent(category)}`;
+    return api.get(`/api/v1/skills${q}`);
+  },
+
+  async getSkillDetail(skillId) {
+    return api.get(`/api/v1/skills/${encodeURIComponent(skillId)}`);
+  },
+
+  async getSkillHealth(skillId) {
+    return api.get(`/api/v1/skills/${encodeURIComponent(skillId)}/health`);
+  },
+
+  async executeSkill(skillId, payload = {}) {
+    return api.post(`/api/v1/skills/${encodeURIComponent(skillId)}/execute`, payload);
+  },
+
+  async getSkillExecutionStatus(executionId) {
+    return api.get(`/api/v1/skills/executions/${encodeURIComponent(executionId)}`);
+  },
+
+  async cancelSkillExecution(executionId) {
+    return api.post(`/api/v1/skills/executions/${encodeURIComponent(executionId)}/cancel`);
+  },
+
+  async toggleSkill(skillId, enabled) {
+    return api.post(`/api/v1/skills/${encodeURIComponent(skillId)}/toggle`, { enabled });
+  },
+
+  // --- Evaluation & Benchmarking (Task 27) ---
+  async listEvaluationScenarios(category = null, suite = null) {
+    let q = '';
+    if (category) q += `?category=${encodeURIComponent(category)}`;
+    else if (suite) q += `?suite=${encodeURIComponent(suite)}`;
+    return api.get(`/api/v1/evaluation/scenarios${q}`);
+  },
+
+  async listEvaluationSuites() {
+    return api.get('/api/v1/evaluation/suites');
+  },
+
+  async runEvaluation(suite = 'full', scenarioId = null, multiRunCount = 1) {
+    return api.post('/api/v1/evaluation/run', {
+      suite,
+      scenario_id: scenarioId,
+      multi_run_count: multiRunCount,
+    });
+  },
+
+  async listEvaluationRuns() {
+    return api.get('/api/v1/evaluation/runs');
+  },
+
+  async getEvaluationRunDetail(runId) {
+    return api.get(`/api/v1/evaluation/runs/${encodeURIComponent(runId)}`);
+  },
+
+  async getEvaluationBaselines() {
+    return api.get('/api/v1/evaluation/baselines');
+  },
+
+  async compareEvaluationRun(runId = null, baselineVersion = 'v1.0.0') {
+    let q = `?baseline_version=${encodeURIComponent(baselineVersion)}`;
+    if (runId) q += `&run_id=${encodeURIComponent(runId)}`;
+    return api.get(`/api/v1/evaluation/compare${q}`);
+  },
+
+  async getSecurityEvaluationDashboard() {
+    return api.get('/api/v1/evaluation/security');
+  },
+
+  // --- Unified Event Bus (Task 28) ---
+  async getEventRegistryCatalog() {
+    return api.get('/api/v1/events/registry');
+  },
+
+  async getEventBusMetrics() {
+    return api.get('/api/v1/events/metrics');
+  },
+
+  async listDeadLetters(status = null, limit = 50, offset = 0) {
+    let q = `?limit=${limit}&offset=${offset}`;
+    if (status) q += `&status=${encodeURIComponent(status)}`;
+    return api.get(`/api/v1/events/dead-letters${q}`);
+  },
+
+  async getDeadLetterDetail(deadLetterId) {
+    return api.get(`/api/v1/events/dead-letters/${encodeURIComponent(deadLetterId)}`);
+  },
+
+  async replayDeadLetter(deadLetterId, force = false, reason = null) {
+    return api.post(`/api/v1/events/dead-letters/${encodeURIComponent(deadLetterId)}/replay`, {
+      force,
+      reason,
+    });
+  },
+
+  async discardDeadLetter(deadLetterId, reason = null) {
+    let q = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+    return api.post(`/api/v1/events/dead-letters/${encodeURIComponent(deadLetterId)}/discard${q}`);
+  },
+
+  async getActivityTimeline(limit = 50, offset = 0) {
+    return api.get(`/api/v1/events/activity?limit=${limit}&offset=${offset}`);
+  },
+
+  async publishEvent(eventType, source = 'web_client', payload = {}, correlationId = null, metadata = null) {
+    return api.post('/api/v1/events/publish', {
+      event_type: eventType,
+      source,
+      payload,
+      correlation_id: correlationId,
+      metadata,
+    });
+  },
+
+  // --- Feedback & Experience Learning (Task 29) ---
+  async submitFeedback({ feedback_type, session_id = null, message_id = null, rating = null, comment = null, correction = null }) {
+    return api.post('/api/v1/feedback', {
+      feedback_type,
+      session_id,
+      message_id,
+      rating,
+      comment,
+      correction,
+    });
+  },
+
+  async listFeedback(feedbackType = null, limit = 50, offset = 0) {
+    let q = `?limit=${limit}&offset=${offset}`;
+    if (feedbackType) q += `&feedback_type=${encodeURIComponent(feedbackType)}`;
+    return api.get(`/api/v1/feedback${q}`);
+  },
+
+  async getFeedback(feedbackId) {
+    return api.get(`/api/v1/feedback/${encodeURIComponent(feedbackId)}`);
+  },
+
+  async listExperiences({ projectId = null, type = null, status = null, scope = null, limit = 50, offset = 0 } = {}) {
+    let params = new URLSearchParams();
+    if (projectId) params.set('project_id', projectId);
+    if (type) params.set('experience_type', type);
+    if (status) params.set('status_filter', status);
+    if (scope) params.set('scope', scope);
+    params.set('limit', limit);
+    params.set('offset', offset);
+    return api.get(`/api/v1/experience?${params.toString()}`);
+  },
+
+  async getExperience(experienceId) {
+    return api.get(`/api/v1/experience/${encodeURIComponent(experienceId)}`);
+  },
+
+  async recordCorrection({ summary, correction, project_id = null, scope = 'PROJECT', temporal_hours = null }) {
+    return api.post('/api/v1/experience/corrections', {
+      summary,
+      correction,
+      project_id,
+      scope,
+      temporal_hours,
+    });
+  },
+
+  async supersedeExperience(experienceId, supersededById) {
+    return api.post(`/api/v1/experience/${encodeURIComponent(experienceId)}/supersede?superseded_by_id=${encodeURIComponent(supersededById)}`);
+  },
+
+  async deleteExperience(experienceId) {
+    return api.delete(`/api/v1/experience/${encodeURIComponent(experienceId)}`);
+  },
+
+  async setPreference({ key, value, scope = 'USER', source = 'USER_EXPLICIT' }) {
+    return api.post('/api/v1/experience/preferences', {
+      key,
+      value,
+      scope,
+      source,
+    });
+  },
+
+  async listPreferences(scope = null) {
+    const q = scope ? `?scope=${encodeURIComponent(scope)}` : '';
+    return api.get(`/api/v1/experience/preferences${q}`);
+  },
+
+  async deletePreference(key, scope = 'USER') {
+    return api.delete(`/api/v1/experience/preferences/${encodeURIComponent(key)}?scope=${encodeURIComponent(scope)}`);
+  },
+
+  async exportExperienceData() {
+    return api.get('/api/v1/experience/export');
+  },
+
+  async listLearningCandidates(statusFilter = null, limit = 50) {
+    let q = `?limit=${limit}`;
+    if (statusFilter) q += `&status_filter=${encodeURIComponent(statusFilter)}`;
+    return api.get(`/api/v1/experience/candidates${q}`);
+  },
+
+  async reviewLearningCandidate(candidateId, decision, reviewNotes = null) {
+    return api.post(`/api/v1/experience/candidates/${encodeURIComponent(candidateId)}/review`, {
+      decision,
+      review_notes: reviewNotes,
+    });
+  },
+
+  async getFailureAnalytics(days = 30, skill = null, tool = null, projectId = null) {
+    let params = new URLSearchParams({ days: days.toString() });
+    if (skill) params.set('skill', skill);
+    if (tool) params.set('tool', tool);
+    if (projectId) params.set('project_id', projectId);
+    return api.get(`/api/v1/experience/analytics/failures?${params.toString()}`);
+  },
+
+  async getSuccessAnalytics(days = 30, skill = null, tool = null, projectId = null) {
+    let params = new URLSearchParams({ days: days.toString() });
+    if (skill) params.set('skill', skill);
+    if (tool) params.set('tool', tool);
+    if (projectId) params.set('project_id', projectId);
+    return api.get(`/api/v1/experience/analytics/successes?${params.toString()}`);
+  },
+
+
+  async analyzeMultimodal({ prompt, project_id = null, device_id = null, capture_screen = false, attachments = [] }) {
+    return api.post('/api/v1/multimodal/analyze', {
+      prompt,
+      project_id,
+      device_id,
+      capture_screen,
+      attachments,
+    });
+  },
+
+  async transcribeAudio({ device_id = null, audio_format = 'wav', audio_base64 = null, duration_seconds = null }) {
+    return api.post('/api/v1/multimodal/transcribe', {
+      device_id,
+      audio_format,
+      audio_base64,
+      duration_seconds,
+    });
+  },
+
+  async processMultimodal({ query = null, project_id = null, device_id = null, media_type = 'image', media_base64 = null, filename = null }) {
+    return api.post('/api/v1/multimodal/process', {
+      query,
+      project_id,
+      device_id,
+      media_type,
+      media_base64,
+      filename,
+    });
+  },
+
+  async getMultimodalRequest(requestId) {
+    return api.get(`/api/v1/multimodal/${encodeURIComponent(requestId)}`);
+  },
+
+  // --- Autonomous Task Engine (Task 31) ---
+  async createTask({ objective, project_id = null, priority = 'NORMAL', autonomy_level = 'SUPERVISED', budget = null, deadline = null, dry_run = false, metadata = {} }) {
+    return api.post('/api/v1/tasks', {
+      objective,
+      project_id,
+      priority,
+      autonomy_level,
+      budget,
+      deadline,
+      dry_run,
+      metadata,
+    });
+  },
+
+  async getTasks({ status = null, project_id = null, limit = 50, offset = 0 } = {}) {
+    let params = new URLSearchParams({ limit: limit.toString(), offset: offset.toString() });
+    if (status) params.set('status', status);
+    if (project_id) params.set('project_id', project_id);
+    return api.get(`/api/v1/tasks?${params.toString()}`);
+  },
+
+  async getTask(taskId) {
+    return api.get(`/api/v1/tasks/${encodeURIComponent(taskId)}`);
+  },
+
+  async pauseTask(taskId) {
+    return api.post(`/api/v1/tasks/${encodeURIComponent(taskId)}/pause`, {});
+  },
+
+  async resumeTask(taskId) {
+    return api.post(`/api/v1/tasks/${encodeURIComponent(taskId)}/resume`, {});
+  },
+
+  async cancelTask(taskId) {
+    return api.post(`/api/v1/tasks/${encodeURIComponent(taskId)}/cancel`, {});
+  },
+
+  async retryTask(taskId) {
+    return api.post(`/api/v1/tasks/${encodeURIComponent(taskId)}/retry`, {});
+  },
+
+  async approveTaskStep(taskId, { approved, reason = '' }) {
+    return api.post(`/api/v1/tasks/${encodeURIComponent(taskId)}/approve`, { approved, reason });
+  },
+
+  async respondToTask(taskId, responseText) {
+    return api.post(`/api/v1/tasks/${encodeURIComponent(taskId)}/respond`, { response: responseText });
+  },
+
+  async getTaskActivity(taskId) {
+    return api.get(`/api/v1/tasks/${encodeURIComponent(taskId)}/activity`);
+  },
+
+  async getTaskPlans(taskId) {
+    return api.get(`/api/v1/tasks/${encodeURIComponent(taskId)}/plan`);
+  },
+
+  // --- World Model & Environment State (Task 32) ---
+  async getWorldOverview() {
+    return api.get('/api/v1/world');
+  },
+
+  async getWorldProject(projectId) {
+    return api.get(`/api/v1/world/projects/${encodeURIComponent(projectId)}`);
+  },
+
+  async getWorldEntity(entityId) {
+    return api.get(`/api/v1/world/entities/${encodeURIComponent(entityId)}`);
+  },
+
+  async getWorldDependencies(entityId, maxDepth = 3) {
+    return api.get(`/api/v1/world/entities/${encodeURIComponent(entityId)}/dependencies?max_depth=${maxDepth}`);
+  },
+
+  async getWorldChanges({ sinceSeconds = 3600, projectId = null } = {}) {
+    let params = new URLSearchParams({ since_seconds: sinceSeconds.toString() });
+    if (projectId) params.set('project_id', projectId);
+    return api.get(`/api/v1/world/changes?${params.toString()}`);
+  },
+
+  async refreshWorld(entityId = null) {
+    let params = entityId ? `?entity_id=${encodeURIComponent(entityId)}` : '';
+    return api.post(`/api/v1/world/refresh${params}`, {});
+  },
+
+  async createWorldSnapshot(projectId = null) {
+    return api.post('/api/v1/world/snapshots', { project_id: projectId });
+  },
+
+  async getWorldHealth() {
+    return api.get('/api/v1/world/health');
+  },
+
+  // --- Identity, Sessions, Device Trust, Presence & Handoff (Task 33) ---
+  async getSessions(includeRevoked = false) {
+    return api.get(`/api/v1/identity/sessions?include_revoked=${includeRevoked}`);
+  },
+
+  async createSession({ client_type, device_id = null, metadata = {} }) {
+    return api.post('/api/v1/identity/sessions', { client_type, device_id, metadata });
+  },
+
+  async revokeSession(sessionId, reason = 'User initiated revocation') {
+    return api.post(`/api/v1/identity/sessions/${encodeURIComponent(sessionId)}/revoke`, { reason });
+  },
+
+  async revokeAllSessions(exceptSessionId = null) {
+    let params = exceptSessionId ? `?except_session_id=${encodeURIComponent(exceptSessionId)}` : '';
+    return api.post(`/api/v1/identity/sessions/revoke-all${params}`, {});
+  },
+
+  async getPresence() {
+    return api.get('/api/v1/identity/presence');
+  },
+
+  async sendPresenceHeartbeat({ session_id, device_id = null, interface_name = 'WEB', state = 'ACTIVE' }) {
+    return api.post('/api/v1/identity/presence/heartbeat', {
+      session_id,
+      device_id,
+      interface: interface_name,
+      state,
+    });
+  },
+
+  async getOnlineStatus() {
+    return api.get('/api/v1/identity/presence/online-status');
+  },
+
+  async createHandoff({ source_session_id, target_device_id = null, conversation_id = null, task_id = null, project_id = null, explicit_consent = true }) {
+    return api.post('/api/v1/identity/handoff', {
+      source_session_id,
+      target_device_id,
+      conversation_id,
+      task_id,
+      project_id,
+      explicit_consent,
+    });
+  },
+
+  async completeHandoff(handoffId, handoffToken, targetSessionId) {
+    return api.post(`/api/v1/identity/handoff/${encodeURIComponent(handoffId)}/complete`, {
+      handoff_token: handoffToken,
+      target_session_id: targetSessionId,
+    });
+  },
+
+  async resolveTaskContinuity(taskId = null, projectId = null) {
+    let params = new URLSearchParams();
+    if (taskId) params.set('task_id', taskId);
+    if (projectId) params.set('project_id', projectId);
+    return api.get(`/api/v1/identity/continuity/task?${params.toString()}`);
+  },
+
+  async resolveDeviceTarget(deviceId = null, capability = null) {
+    let params = new URLSearchParams();
+    if (deviceId) params.set('device_id', deviceId);
+    if (capability) params.set('capability', capability);
+    return api.get(`/api/v1/identity/continuity/device?${params.toString()}`);
+  },
+
+  async trustDevice(deviceId, trustStatus = 'TRUSTED', expiresInDays = 90) {
+    return api.post(`/api/v1/devices/${encodeURIComponent(deviceId)}/trust`, {
+      trust_status: trustStatus,
+      expires_in_days: expiresInDays,
+    });
+  },
+
+  async initiateDevicePairing(deviceName = null, clientType = 'LOCAL_COMPANION', capabilities = []) {
+    return api.post('/api/v1/devices/pair', {
+      device_name: deviceName,
+      client_type: clientType,
+      capabilities,
+    });
+  },
+
+  async consumeDevicePairing(deviceId, pairingCode, publicKey = null) {
+    return api.post('/api/v1/devices/pair/consume', {
+      device_id: deviceId,
+      pairing_code: pairingCode,
+      public_key: publicKey,
+    });
+  },
+
+  // Unified Command & Intent Layer (Task 35, Spec 122)
+  async sendCommand({ text, session_id = null, conversation_id = null, attachments = [], source_interface = 'WEB', project_hint = null, clarification_response = null }) {
+    return api.post('/api/v1/commands', {
+      text,
+      session_id,
+      conversation_id,
+      attachments,
+      source_interface,
+      project_hint,
+      clarification_response,
+    });
+  },
+
+  async resolveCommand({ text, session_id = null, conversation_id = null, attachments = [], source_interface = 'WEB', project_hint = null }) {
+    return api.post('/api/v1/commands/resolve', {
+      text,
+      session_id,
+      conversation_id,
+      attachments,
+      source_interface,
+      project_hint,
+    });
+  },
+
+  async getCommand(commandId) {
+    return api.get(`/api/v1/commands/${encodeURIComponent(commandId)}`);
+  },
+
+  // Policy, Governance, Risk, and Authorization Engine (Task 36)
+  async evaluatePolicy(context, simulate = false) {
+    return api.post('/api/v1/policy/evaluate', {
+      context,
+      simulate,
+    });
+  },
+
+  async simulatePolicy(context, candidatePolicy = null) {
+    return api.post('/api/v1/policy/simulate', {
+      context,
+      candidate_policy: candidatePolicy,
+    });
+  },
+
+  async getPolicyDecision(evaluationId) {
+    return api.get(`/api/v1/policy/decision/${encodeURIComponent(evaluationId)}`);
+  },
+
+  async getPolicyStatus() {
+    return api.get('/api/v1/policy/status');
+  },
+
+  async listPolicies(includeDisabled = true) {
+    return api.get(`/api/v1/admin/policies?include_disabled=${includeDisabled}`);
+  },
+
+  async createPolicy(policyData) {
+    return api.post('/api/v1/admin/policies', policyData);
+  },
+
+  async updatePolicy(policyId, updateData) {
+    return api.put(`/api/v1/admin/policies/${encodeURIComponent(policyId)}`, updateData);
+  },
+
+  async activatePolicy(policyId) {
+    return api.post(`/api/v1/admin/policies/${encodeURIComponent(policyId)}/activate`);
+  },
+
+  async disablePolicy(policyId) {
+    return api.post(`/api/v1/admin/policies/${encodeURIComponent(policyId)}/disable`);
+  },
+
+  async rollbackPolicy(policyId, targetVersion, reason) {
+    return api.post(`/api/v1/admin/policies/${encodeURIComponent(policyId)}/rollback`, {
+      target_version: targetVersion,
+      reason,
+    });
+  },
+
+  async setChangeFreeze(environment, active, reason = '') {
+    const params = new URLSearchParams({
+      environment,
+      active: active ? 'true' : 'false',
+      reason,
+    });
+    return api.post(`/api/v1/admin/freeze?${params.toString()}`);
+  },
+
+  async toggleSafeMode(enabled) {
+    const params = new URLSearchParams({
+      enabled: enabled ? 'true' : 'false',
+    });
+    return api.post(`/api/v1/admin/safemode?${params.toString()}`);
+  },
+
+  // ============================================================================
+  // Resilience & Fault-Tolerance Endpoints (Task 37)
+  // ============================================================================
+
+  async getResilienceHealth() {
+    return api.get('/api/v1/resilience/health');
+  },
+
+  async getResilienceDashboard() {
+    return api.get('/api/v1/resilience/dashboard');
+  },
+
+  async listCircuitBreakers() {
+    return api.get('/api/v1/resilience/circuits');
+  },
+
+  async resetCircuitBreaker(circuitId) {
+    return api.post(`/api/v1/resilience/circuits/${encodeURIComponent(circuitId)}/reset`);
+  },
+
+  async listQuarantinedTasks() {
+    return api.get('/api/v1/resilience/quarantine');
+  },
+
+  async releaseQuarantinedTask(taskId, releasedBy = 'operator') {
+    return api.post(`/api/v1/resilience/quarantine/${encodeURIComponent(taskId)}/release?released_by=${encodeURIComponent(releasedBy)}`);
+  },
+
+  async recoverTask(taskId, workerId = 'worker-ui', policyVersion = 1) {
+    return api.post(`/api/v1/resilience/tasks/${encodeURIComponent(taskId)}/recover?worker_id=${encodeURIComponent(workerId)}&current_policy_version=${policyVersion}`);
+  },
+
+  async setReadOnlyDegradation(enabled) {
+    return api.post(`/api/v1/resilience/degradation/read-only?enabled=${enabled ? 'true' : 'false'}`);
+  },
 };
 
+export const endpoints = Endpoints;

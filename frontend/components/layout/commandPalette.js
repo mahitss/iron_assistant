@@ -18,8 +18,21 @@ export class CommandPalette {
       { id: 'nav-knowledge', label: 'Explore Knowledge Fabric', category: 'Navigation', icon: '🌐', action: () => window.kairoApp.navigateTo('knowledge') },
       { id: 'nav-memory', label: 'Inspect Memory Center', category: 'Navigation', icon: '🧠', action: () => window.kairoApp.navigateTo('memory') },
       { id: 'nav-notifications', label: 'Open Notifications', category: 'Navigation', icon: '🔔', action: () => window.kairoApp.navigateTo('notifications') },
-      { id: 'nav-status', label: 'Check System Status', category: 'Navigation', icon: '📈', action: () => window.kairoApp.navigateTo('status') },
       { id: 'nav-settings', label: 'Open Settings', category: 'Navigation', icon: '⚙️', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'nav-evaluation', label: 'Open Evaluation & Benchmarks', category: 'Evaluation', icon: '🧪', keywords: 'eval benchmark quality metrics security tests', action: () => window.kairoApp.navigateTo('evaluation') },
+      { id: 'act-run-security-eval', label: 'Run Security Evaluation Gate', category: 'Evaluation', icon: '🛡️', keywords: 'security gate verify prompt injection ssrf', action: () => window.kairoApp.navigateTo('evaluation') },
+      { id: 'nav-skills', label: 'Manage Skills & Capabilities', category: 'Skills', icon: '⚡', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-research-web', label: 'Web Research (research.web)', category: 'Skill', icon: '🌐', keywords: 'research web search intelligence', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-knowledge-search', label: 'Knowledge Search (knowledge.search)', category: 'Skill', icon: '🧠', keywords: 'research search knowledge docs fabric', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-developer-repo', label: 'Repository Analysis (developer.repository)', category: 'Skill', icon: '💻', keywords: 'code git diff repo ci', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-github-analysis', label: 'GitHub Analysis (github.analysis)', category: 'Skill', icon: '🐙', keywords: 'github pr issues pull requests commits', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-documents-analyze', label: 'Document Analysis (documents.analyze)', category: 'Skill', icon: '📄', keywords: 'documents pdf text analyze parse', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-project-analysis', label: 'Project Analysis (project.analysis)', category: 'Skill', icon: '📁', keywords: 'projects workspace tasks status', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-automation-manage', label: 'Automation Management (automation.manage)', category: 'Skill', icon: '⚡', keywords: 'automation workflow cron trigger', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-browser-research', label: 'Browser Research (browser.research)', category: 'Skill', icon: '🌍', keywords: 'browser navigate playwright crawl', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-voice-assist', label: 'Voice Assistant (voice.assist)', category: 'Skill', icon: '🎙️', keywords: 'voice mic audio speech tts stt', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-vision-analyze', label: 'Vision Analysis (vision.analyze)', category: 'Skill', icon: '👁️', keywords: 'vision image screen ocr screenshot', action: () => window.kairoApp.navigateTo('settings') },
+      { id: 'skill-computer-assist', label: 'Computer Assistance (computer.assist)', category: 'Skill', icon: '🖥️', keywords: 'computer desktop mouse keyboard control', action: () => window.kairoApp.navigateTo('settings') },
       { id: 'act-new-chat', label: 'New Conversation', category: 'Action', icon: '✨', action: () => { window.kairoApp.newChat(); window.kairoApp.navigateTo('chat'); } },
       { id: 'act-context', label: 'Inspect Current Context', category: 'Action', icon: '🔍', action: () => window.kairoApp.openContextInspector() },
       { id: 'act-emergency', label: 'EMERGENCY STOP (Halt All Actions)', category: 'Security', icon: '🛑', action: () => window.kairoApp.confirmEmergencyStop() },
@@ -78,7 +91,11 @@ export class CommandPalette {
   getFilteredCommands() {
     if (!this.query.trim()) return this.commands;
     const q = this.query.toLowerCase();
-    return this.commands.filter(c => c.label.toLowerCase().includes(q) || c.category.toLowerCase().includes(q));
+    return this.commands.filter(c =>
+      c.label.toLowerCase().includes(q) ||
+      c.category.toLowerCase().includes(q) ||
+      (c.keywords && c.keywords.toLowerCase().includes(q))
+    );
   }
 
   setQuery(q) {

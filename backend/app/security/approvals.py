@@ -92,6 +92,28 @@ class ApprovalManager:
         except Exception as exc:
             logger.debug("Proactive approval notification skipped: %s", exc)
 
+        # Emit approval.requested to Unified Event Bus
+        try:
+            from app.events import event_bus
+
+            await event_bus.publish(
+                event_bus.publisher.create_event(
+                    event_type="approval.requested",
+                    source="security_center",
+                    payload={
+                        "approval_id": req.id,
+                        "action": desc_text,
+                        "tool_name": tool_name,
+                        "risk_level": risk_level,
+                        "action_fingerprint": fingerprint,
+                        "arguments": clean_args,
+                    },
+                    user_id=user_id,
+                )
+            )
+        except Exception as eb_err:
+            logger.debug("EventBus approval.requested publication skipped: %s", eb_err)
+
         return req
 
     @classmethod
@@ -199,4 +221,39 @@ class ApprovalManager:
         await db_session.refresh(req)
 
         logger.info("ApprovalRequest '%s' marked '%s' by user '%s'.", req.id, req.status, user_id)
+
+        # Emit approval.granted or security.blocked event
+        try:
+            from app.events import event_bus
+
+            if decision == "approve":
+                await event_bus.publish(
+                    event_bus.publisher.create_event(
+                        event_type="approval.granted",
+                        source="security_center",
+                        payload={
+                            "approval_id": req.id,
+                            "action": req.action_description,
+                            "tool_name": req.tool_name,
+                            "action_fingerprint": req.action_fingerprint,
+                        },
+                        user_id=user_id,
+                    )
+                )
+            else:
+                await event_bus.publish(
+                    event_bus.publisher.create_event(
+                        event_type="security.blocked",
+                        source="security_center",
+                        payload={
+                            "approval_id": req.id,
+                            "tool_name": req.tool_name,
+                            "reason": reason or "Approval rejected by user",
+                        },
+                        user_id=user_id,
+                    )
+                )
+        except Exception as eb_err:
+            logger.debug("EventBus decision event skipped: %s", eb_err)
+
         return req

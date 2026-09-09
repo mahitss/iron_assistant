@@ -67,6 +67,10 @@ class EmergencyStopService:
             return bool(self._local_state[user_id].get("stopped", False))
         return False
 
+    def is_emergency_stop_active(self, user_id: str | None = None) -> bool:
+        """Alias for is_stopped."""
+        return self.is_stopped(user_id)
+
     def verify_can_execute(
         self, tool_name: str, permission_level: PermissionLevel, user_id: str | None = None
     ) -> None:

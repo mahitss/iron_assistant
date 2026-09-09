@@ -127,6 +127,36 @@ class DeviceService:
             created_at=device.created_at,
         )
 
+    def _to_response(self, device: DeviceModel) -> DeviceResponse:
+        st = DeviceStatus.PENDING
+        try:
+            st = DeviceStatus(device.status)
+        except Exception:
+            pass
+        return DeviceResponse(
+            device_id=device.id,
+            user_id=device.user_id,
+            device_name=device.device_name,
+            client_type=getattr(device, "client_type", "LOCAL_COMPANION"),
+            os_name=device.os_name,
+            os_version=device.os_version,
+            companion_version=device.companion_version,
+            status=st,
+            trust_status=getattr(device, "trust_status", "UNTRUSTED"),
+            capabilities=DeviceCapabilitiesSchema(
+                computer_control=device.computer_control_enabled,
+                voice=device.voice_enabled,
+                camera=device.camera_enabled,
+                filesystem=device.filesystem_enabled,
+            ),
+            declared_capabilities=getattr(device, "capabilities", []),
+            allowed_paths=device.allowed_paths,
+            created_at=device.created_at,
+            last_seen_at=device.last_seen_at,
+            trust_expires_at=getattr(device, "trust_expires_at", None),
+            revoked_at=device.revoked_at,
+        )
+
     async def list_user_devices(self, user_id: str, include_revoked: bool = False) -> list[DeviceResponse]:
         """Fetch all devices owned by the authenticated user."""
         stmt = select(DeviceModel).where(DeviceModel.user_id == user_id)
@@ -137,28 +167,7 @@ class DeviceService:
         result = await self.db.execute(stmt)
         devices = result.scalars().all()
 
-        return [
-            DeviceResponse(
-                device_id=d.id,
-                user_id=d.user_id,
-                device_name=d.device_name,
-                os_name=d.os_name,
-                os_version=d.os_version,
-                companion_version=d.companion_version,
-                status=DeviceStatus(d.status),
-                capabilities=DeviceCapabilitiesSchema(
-                    computer_control=d.computer_control_enabled,
-                    voice=d.voice_enabled,
-                    camera=d.camera_enabled,
-                    filesystem=d.filesystem_enabled,
-                ),
-                allowed_paths=d.allowed_paths,
-                created_at=d.created_at,
-                last_seen_at=d.last_seen_at,
-                revoked_at=d.revoked_at,
-            )
-            for d in devices
-        ]
+        return [self._to_response(d) for d in devices]
 
     async def get_device(self, user_id: str, device_id: str) -> DeviceResponse:
         """Fetch specific device metadata with strict tenant boundary enforcement."""
@@ -168,25 +177,7 @@ class DeviceService:
         if device.user_id != user_id:
             raise TenantIsolationError(f"Access denied: Device '{device_id}' belongs to another user.")
 
-        return DeviceResponse(
-            device_id=device.id,
-            user_id=device.user_id,
-            device_name=device.device_name,
-            os_name=device.os_name,
-            os_version=device.os_version,
-            companion_version=device.companion_version,
-            status=DeviceStatus(device.status),
-            capabilities=DeviceCapabilitiesSchema(
-                computer_control=device.computer_control_enabled,
-                voice=device.voice_enabled,
-                camera=device.camera_enabled,
-                filesystem=device.filesystem_enabled,
-            ),
-            allowed_paths=device.allowed_paths,
-            created_at=device.created_at,
-            last_seen_at=device.last_seen_at,
-            revoked_at=device.revoked_at,
-        )
+        return self._to_response(device)
 
     async def update_device(
         self, user_id: str, device_id: str, payload: DeviceUpdateRequest
@@ -236,25 +227,7 @@ class DeviceService:
             metadata={"device_id": device_id, "changes": changes},
         )
 
-        return DeviceResponse(
-            device_id=device.id,
-            user_id=device.user_id,
-            device_name=device.device_name,
-            os_name=device.os_name,
-            os_version=device.os_version,
-            companion_version=device.companion_version,
-            status=DeviceStatus(device.status),
-            capabilities=DeviceCapabilitiesSchema(
-                computer_control=device.computer_control_enabled,
-                voice=device.voice_enabled,
-                camera=device.camera_enabled,
-                filesystem=device.filesystem_enabled,
-            ),
-            allowed_paths=device.allowed_paths,
-            created_at=device.created_at,
-            last_seen_at=device.last_seen_at,
-            revoked_at=device.revoked_at,
-        )
+        return self._to_response(device)
 
     async def revoke_device(self, user_id: str, device_id: str) -> DeviceResponse:
         """Revoke device authorization immediately invalidating credentials and closing sessions."""
@@ -264,15 +237,9 @@ class DeviceService:
         if device.user_id != user_id:
             raise TenantIsolationError(f"Access denied: Device '{device_id}' belongs to another user.")
 
-        device.status = DeviceStatus.REVOKED.value
-        device.credentials_hash = None
-        device.revoked_at = datetime.now(UTC)
-        device.computer_control_enabled = False
-        device.voice_enabled = False
-        device.camera_enabled = False
-        device.filesystem_enabled = False
-
-        await self.db.commit()
+        from app.identity.revocation import RevocationCoordinator
+        coordinator = RevocationCoordinator(self.db)
+        await coordinator.revoke_device(user_id=user_id, device_id=device_id, reason="User explicit revocation")
         await self.db.refresh(device)
 
         await AuditLogger.log_event(
@@ -284,25 +251,7 @@ class DeviceService:
             metadata={"device_id": device_id, "reason": "User explicit revocation"},
         )
 
-        return DeviceResponse(
-            device_id=device.id,
-            user_id=device.user_id,
-            device_name=device.device_name,
-            os_name=device.os_name,
-            os_version=device.os_version,
-            companion_version=device.companion_version,
-            status=DeviceStatus.REVOKED,
-            capabilities=DeviceCapabilitiesSchema(
-                computer_control=False,
-                voice=False,
-                camera=False,
-                filesystem=False,
-            ),
-            allowed_paths=device.allowed_paths,
-            created_at=device.created_at,
-            last_seen_at=device.last_seen_at,
-            revoked_at=device.revoked_at,
-        )
+        return self._to_response(device)
 
     async def dispatch_command(
         self, user_id: str, device_id: str, payload: DeviceCommandRequest

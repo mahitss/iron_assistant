@@ -1,0 +1,33 @@
+{
+  "version": "v1.1.0",
+  "git_sha": "a1b2c3d4e5f6",
+  "created_at": "2026-09-01T00:00:00Z",
+  "metrics": {
+    "total_scenarios": 50,
+    "passed_scenarios": 49,
+    "failed_scenarios": 1,
+    "flaky_scenarios": 0,
+    "pass_rate": 0.98,
+    "security_pass_rate": 1.0,
+    "tool_selection_accuracy": 0.942,
+    "tool_argument_accuracy": 0.938,
+    "tool_efficiency": 0.92,
+    "routing_accuracy": 0.915,
+    "fallback_success_rate": 1.0,
+    "context_precision": 0.895,
+    "context_recall": 0.91,
+    "memory_precision": 0.905,
+    "memory_recall": 0.89,
+    "knowledge_precision": 0.92,
+    "citation_groundedness": 0.935,
+    "agent_task_success": 0.925,
+    "agent_overhead": 0.08,
+    "workflow_success_rate": 0.96,
+    "latency_p50_ms": 980.0,
+    "latency_p95_ms": 2350.0,
+    "latency_p99_ms": 3600.0,
+    "total_tokens": 52300,
+    "estimated_cost_usd": 0.007845,
+    "overall_quality_score": 93.8
+  }
+}

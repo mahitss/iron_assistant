@@ -1,0 +1,17 @@
+{
+  "https://kairo.ai/docs/skills": {
+    "status": 200,
+    "title": "Kairo Skills Documentation",
+    "content": "Kairo Skills provide a clean abstraction separating user intent, planning, tool execution, and security gating."
+  },
+  "https://python.org/whatsnew/313": {
+    "status": 200,
+    "title": "What's New In Python 3.13",
+    "content": "Python 3.13 introduces an experimental free-threaded build mode and improved error messages."
+  },
+  "http://169.254.169.254/latest/meta-data/": {
+    "status": 403,
+    "title": "Blocked by SSRF Protection",
+    "content": "Access to link-local metadata address is blocked."
+  }
+}

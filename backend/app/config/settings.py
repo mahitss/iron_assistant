@@ -120,6 +120,40 @@ class Settings(BaseSettings):
     KAIRO_KNOWLEDGE_CHUNK_SIZE: int = 800
     KAIRO_KNOWLEDGE_CHUNK_OVERLAP: int = 100
 
+    # Skills and Capability System Configuration (Task 26)
+    KAIRO_SKILLS_ENABLED: bool = True
+    KAIRO_MAX_SKILL_DEPTH: int = 3
+    KAIRO_MAX_SKILL_STEPS: int = 20
+    KAIRO_MAX_TOOL_CALLS_PER_SKILL: int = 50
+    KAIRO_SKILL_TIMEOUT_SECONDS: int = 300
+
+    # Evaluation, Benchmarking & Quality Gates Configuration (Task 27)
+    KAIRO_EVAL_ENABLED: bool = True
+    KAIRO_EVAL_MODE: str = "LOCAL"  # LOCAL, CI, STAGING
+    KAIRO_EVAL_MOCK_MODE: bool = True
+    KAIRO_EVAL_SECURITY_MIN: float = 1.0  # Strict 100% security gate
+    KAIRO_EVAL_TOOL_SELECTION_MIN: float = 0.90
+    KAIRO_EVAL_CONTEXT_PRECISION_MIN: float = 0.80
+    KAIRO_EVAL_ROUTING_MIN: float = 0.85
+    KAIRO_EVAL_MAX_P95_LATENCY_MS: float = 5000.0
+
+    # Unified Event Bus & Event-Driven Runtime Configuration (Task 28)
+    KAIRO_EVENTS_ENABLED: bool = True
+    KAIRO_EVENTS_MAX_IN_MEMORY_QUEUE: int = 2000
+    KAIRO_EVENTS_DEFAULT_RETRY_LIMIT: int = 3
+    KAIRO_EVENTS_INITIAL_BACKOFF_SECONDS: float = 0.5
+    KAIRO_EVENTS_MAX_BACKOFF_SECONDS: float = 60.0
+    KAIRO_EVENTS_OUTBOX_POLL_INTERVAL_SECONDS: float = 2.0
+    KAIRO_EVENTS_DEDUP_WINDOW_SECONDS: int = 3600
+    KAIRO_EVENTS_DEAD_LETTER_RETENTION_DAYS: int = 30
+
+    # Experience Learning & Feedback Loop Configuration (Task 29)
+    KAIRO_EXPERIENCE_ENABLED: bool = True
+    KAIRO_MAX_EXPERIENCE_CONTEXT: int = 10
+    KAIRO_MAX_PREFERENCE_CONTEXT: int = 10
+    KAIRO_EXPERIENCE_DECAY_DAYS: int = 90
+    KAIRO_EXPERIENCE_AUTO_STALE_ON_PROJECT_CHANGE: bool = True
+
     # Web Research System
     WEB_SEARCH_PROVIDER: str | None = None
     WEB_SEARCH_API_KEY: SecretStr | None = None
@@ -204,6 +238,68 @@ class Settings(BaseSettings):
     KAIRO_MAX_AGENT_TOKENS_PER_TASK: int | None = None
     KAIRO_MAX_TOTAL_AGENT_TOKENS: int | None = None
 
+    # Multimodal Intelligence Layer Settings (Task 30)
+    KAIRO_MULTIMODAL_ENABLED: bool = True
+    KAIRO_MULTIMODAL_MOCK_MODE: bool = True
+    KAIRO_MAX_IMAGE_SIZE_BYTES: int = 15728640  # 15MB
+    KAIRO_MAX_AUDIO_SIZE_BYTES: int = 26214400  # 25MB
+    KAIRO_MAX_VIDEO_SIZE_BYTES: int = 52428800  # 50MB
+    KAIRO_MAX_DOCUMENT_SIZE_BYTES: int = 20971520  # 20MB
+    KAIRO_MAX_AUDIO_DURATION_SECONDS: int = 300  # 5 minutes
+    KAIRO_MAX_VIDEO_DURATION_SECONDS: int = 180  # 3 minutes
+    KAIRO_MAX_VIDEO_FRAMES: int = 30
+    KAIRO_VIDEO_SAMPLE_INTERVAL_SECONDS: int = 5
+    KAIRO_MAX_IMAGE_DIMENSION: int = 4096
+    KAIRO_MAX_MULTIMODAL_IMAGES: int = 5
+    KAIRO_MAX_MULTIMODAL_DOCUMENT_CHUNKS: int = 10
+    KAIRO_MAX_MULTIMODAL_CONTEXT_TOKENS: int = 8000
+    KAIRO_SCREEN_CAPTURE_EPHEMERAL: bool = True
+
+    # Autonomous Task Engine Settings (Task 31)
+    KAIRO_TASKS_ENABLED: bool = True
+    KAIRO_TASK_MAX_STEPS: int = 20
+    KAIRO_TASK_MAX_TOOL_CALLS: int = 50
+    KAIRO_TASK_MAX_AGENTS: int = 5
+    KAIRO_TASK_MAX_DURATION: int = 1800  # 30 minutes
+    KAIRO_TASK_MAX_COST: float = 10.0  # Max cost in USD
+    KAIRO_TASK_MAX_REPLANS: int = 5
+    KAIRO_TASK_MAX_RETRIES: int = 3
+    KAIRO_TASK_MAX_PARALLEL_STEPS: int = 4
+    KAIRO_MAX_ACTIVE_TASKS_PER_USER: int = 5
+    KAIRO_MAX_ACTIVE_TASKS_PER_PROJECT: int = 10
+    KAIRO_TASK_APPROVAL_TIMEOUT_SECONDS: int = 900  # 15 minutes
+
+    # World Model & Environment State Settings (Task 32)
+    KAIRO_WORLD_ENABLED: bool = True
+    KAIRO_WORLD_MAX_ENTITIES_PER_QUERY: int = 100
+    KAIRO_WORLD_MAX_RELATIONSHIP_DEPTH: int = 3
+    KAIRO_WORLD_QUERY_TIMEOUT_SECONDS: float = 5.0
+    KAIRO_WORLD_RECONCILIATION_INTERVAL_SECONDS: int = 300
+    KAIRO_WORLD_MAX_SNAPSHOTS_PER_USER: int = 20
+    KAIRO_WORLD_SNAPSHOT_MAX_ENTITIES: int = 500
+
+    # Identity, Session, Device Trust, Presence & Handoff Settings (Task 33)
+    KAIRO_IDENTITY_ENABLED: bool = True
+    KAIRO_IDENTITY_MAX_SESSIONS_PER_USER: int = 10
+    KAIRO_IDENTITY_MAX_DEVICES_PER_USER: int = 15
+    KAIRO_IDENTITY_SESSION_TTL_SECONDS: int = 86400  # 24 hours default TTL
+    KAIRO_IDENTITY_SESSION_IDLE_TIMEOUT_SECONDS: int = 3600  # 1 hour idle timeout
+    KAIRO_IDENTITY_HANDOFF_TTL_SECONDS: int = 300  # 5 minutes handoff ticket TTL
+    KAIRO_IDENTITY_PAIRING_TTL_SECONDS: int = 600  # 10 minutes pairing code TTL
+    KAIRO_IDENTITY_PRESENCE_TIMEOUT_SECONDS: int = 90  # 90s presence disconnect threshold
+    KAIRO_IDENTITY_TRUST_EXPIRATION_DAYS: int = 90  # 90 days device trust validity
+
+    # Unified Notification & Alerting Layer Settings (Task 34)
+    KAIRO_NOTIFICATIONS_ENABLED: bool = True
+    KAIRO_NOTIFICATION_RATE_LIMIT_PER_MINUTE: int = 30
+    KAIRO_NOTIFICATION_RATE_LIMIT_PER_HOUR: int = 200
+    KAIRO_NOTIFICATION_DEDUPE_WINDOW_SECONDS: int = 300  # 5 minutes
+    KAIRO_NOTIFICATION_GROUPING_WINDOW_SECONDS: int = 60  # 1 minute
+    KAIRO_NOTIFICATION_STORM_THRESHOLD: int = 20  # 20 events within 10s triggers storm collapse
+    KAIRO_NOTIFICATION_RETENTION_DAYS: int = 30
+    KAIRO_NOTIFICATION_MAX_DELIVERY_RETRIES: int = 3
+    KAIRO_NOTIFICATION_DEFAULT_EXPIRY_SECONDS: int = 86400  # 24 hours
+
     @property
     def secret_key_str(self) -> str:
         """Safely retrieve raw secret key without exposing in repr."""
@@ -277,3 +373,7 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return cached application settings."""
     return Settings()
+
+
+# Convenient singleton alias
+settings: Settings = get_settings()

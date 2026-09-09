@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  eval-postgres:
+    image: pgvector/pgvector:pg16
+    container_name: kairo-eval-db
+    environment:
+      POSTGRES_USER: kairo_eval
+      POSTGRES_PASSWORD: kairo_eval_password
+      POSTGRES_DB: kairo_eval_db
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kairo_eval -d kairo_eval_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  eval-redis:
+    image: redis:7-alpine
+    container_name: kairo-eval-redis
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kairo-eval-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: kairo-eval-runner
+    environment:
+      ENVIRONMENT: TESTING
+      DEBUG: "true"
+      DATABASE_URL: postgresql+asyncpg://kairo_eval:kairo_eval_password@eval-postgres:5432/kairo_eval_db
+      REDIS_URL: redis://eval-redis:6379/0
+      KAIRO_EVAL_MODE: CI
+      KAIRO_EVAL_MOCK_MODE: "true"
+      KAIRO_EVAL_SECURITY_MIN: "1.0"
+      KAIRO_SECURITY_ENABLED: "true"
+      KAIRO_COMPUTER_ENABLED: "false"
+    depends_on:
+      eval-postgres:
+        condition: service_healthy
+      eval-redis:
+        condition: service_healthy
+    command: ["python", "-m", "app.evaluation.cli", "run", "--suite", "full", "--report"]

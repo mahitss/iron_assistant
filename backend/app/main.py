@@ -22,11 +22,23 @@ from app.api.routes.automations import router as automations_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.context import router as context_router
 from app.api.routes.devices import router as devices_router
+from app.api.routes.identity import router as identity_router
 from app.api.routes.knowledge import router as knowledge_router
+from app.api.routes.skills import router as skills_router
+from app.api.routes.evaluation import router as evaluation_router
+from app.api.routes.events import router as events_router
+from app.api.routes.experience import router as experience_router
+from app.api.routes.feedback import router as feedback_router
+from app.api.routes.multimodal import router as multimodal_router
+from app.api.routes.tasks import router as tasks_router
+from app.api.routes.world import router as world_router
 from app.api.routes.memory import memory_api_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.memory import user_router as user_memory_router
-from app.api.routes.notifications import router as notifications_router
+from app.intent import commands_router
+from app.notifications import notifications_router
+from app.policy import admin_policy_router, policy_router
+from app.resilience.router import router as resilience_router
 from app.api.routes.proactive import router as proactive_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.security import router as security_router
@@ -110,6 +122,19 @@ def create_app() -> FastAPI:
     app.include_router(agents_router, prefix=settings.API_V1_STR)
     app.include_router(devices_router, prefix=settings.API_V1_STR)
     app.include_router(knowledge_router, prefix=settings.API_V1_STR)
+    app.include_router(skills_router, prefix=settings.API_V1_STR)
+    app.include_router(evaluation_router, prefix=settings.API_V1_STR)
+    app.include_router(events_router, prefix=settings.API_V1_STR)
+    app.include_router(experience_router, prefix=settings.API_V1_STR)
+    app.include_router(feedback_router, prefix=settings.API_V1_STR)
+    app.include_router(multimodal_router, prefix=settings.API_V1_STR)
+    app.include_router(tasks_router, prefix=settings.API_V1_STR)
+    app.include_router(world_router, prefix=settings.API_V1_STR)
+    app.include_router(identity_router, prefix=settings.API_V1_STR)
+    app.include_router(commands_router, prefix=settings.API_V1_STR)
+    app.include_router(policy_router, prefix=settings.API_V1_STR)
+    app.include_router(admin_policy_router, prefix=settings.API_V1_STR)
+    app.include_router(resilience_router, prefix=settings.API_V1_STR)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

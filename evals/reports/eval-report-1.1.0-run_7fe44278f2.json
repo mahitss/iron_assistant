@@ -1,0 +1,205 @@
+{
+  "run_id": "run_7fe44278f2",
+  "suite_name": "routing",
+  "dataset_version": "v1.0.0",
+  "kairo_version": "1.1.0",
+  "git_sha": "dev",
+  "mode": "LOCAL",
+  "status": "PASSED",
+  "metrics": {
+    "total_scenarios": 4,
+    "passed_scenarios": 4,
+    "failed_scenarios": 0,
+    "flaky_scenarios": 0,
+    "pass_rate": 1.0,
+    "security_pass_rate": 1.0,
+    "tool_selection_accuracy": 1.0,
+    "tool_argument_accuracy": 1.0,
+    "tool_efficiency": 1.0,
+    "routing_accuracy": 1.0,
+    "fallback_success_rate": 1.0,
+    "context_precision": 1.0,
+    "context_recall": 1.0,
+    "memory_precision": 1.0,
+    "memory_recall": 1.0,
+    "knowledge_precision": 1.0,
+    "citation_groundedness": 1.0,
+    "agent_task_success": 1.0,
+    "agent_overhead": 0.0,
+    "workflow_success_rate": 1.0,
+    "latency_p50_ms": 0.01,
+    "latency_p95_ms": 0.04,
+    "latency_p99_ms": 0.04,
+    "total_tokens": 212,
+    "estimated_cost_usd": 0.0,
+    "overall_quality_score": 100.0
+  },
+  "cases": [
+    {
+      "case_id": "case_d6c06015",
+      "scenario_id": "routing.fast_classification.001",
+      "scenario_name": "Fast Intent Classification Routing",
+      "category": "routing",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 0.04,
+      "tokens_used": 48,
+      "cost_usd": 0.0,
+      "tool_calls": [],
+      "actual_output": {
+        "model_id": "openrouter/free",
+        "status": "routed"
+      },
+      "grading": {
+        "passed": true,
+        "score": 1.0,
+        "grader_name": "RoutingGrader",
+        "reason": "Model correctly routed.",
+        "details": {
+          "routed_model": "openrouter/free",
+          "expected_family": "openrouter/free"
+        },
+        "failures": []
+      },
+      "trace_sanitized": [
+        {
+          "event": "scenario_started",
+          "id": "routing.fast_classification.001",
+          "timestamp": "2026-09-09T06:56:54.518385+00:00"
+        },
+        {
+          "event": "router_selection",
+          "model_id": "openrouter/free"
+        }
+      ],
+      "flaky": false,
+      "error": null
+    },
+    {
+      "case_id": "case_12d2d724",
+      "scenario_id": "routing.fallback_resilience.001",
+      "scenario_name": "Primary Model Outage Fallback",
+      "category": "routing",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 0.02,
+      "tokens_used": 32,
+      "cost_usd": 0.0,
+      "tool_calls": [],
+      "actual_output": {
+        "model_id": "openrouter/free",
+        "status": "routed"
+      },
+      "grading": {
+        "passed": true,
+        "score": 1.0,
+        "grader_name": "RoutingGrader",
+        "reason": "Model correctly routed.",
+        "details": {
+          "routed_model": "openrouter/free",
+          "expected_family": "openrouter/free"
+        },
+        "failures": []
+      },
+      "trace_sanitized": [
+        {
+          "event": "scenario_started",
+          "id": "routing.fallback_resilience.001",
+          "timestamp": "2026-09-09T06:56:54.518811+00:00"
+        },
+        {
+          "event": "router_selection",
+          "model_id": "openrouter/free"
+        }
+      ],
+      "flaky": false,
+      "error": null
+    },
+    {
+      "case_id": "case_83227353",
+      "scenario_id": "routing.reasoning.001",
+      "scenario_name": "Complex Deductive Reasoning Routing",
+      "category": "routing",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 0.01,
+      "tokens_used": 68,
+      "cost_usd": 0.0,
+      "tool_calls": [],
+      "actual_output": {
+        "model_id": "openrouter/free",
+        "status": "routed"
+      },
+      "grading": {
+        "passed": true,
+        "score": 1.0,
+        "grader_name": "RoutingGrader",
+        "reason": "Model correctly routed.",
+        "details": {
+          "routed_model": "openrouter/free",
+          "expected_family": "openrouter/free"
+        },
+        "failures": []
+      },
+      "trace_sanitized": [
+        {
+          "event": "scenario_started",
+          "id": "routing.reasoning.001",
+          "timestamp": "2026-09-09T06:56:54.518964+00:00"
+        },
+        {
+          "event": "router_selection",
+          "model_id": "openrouter/free"
+        }
+      ],
+      "flaky": false,
+      "error": null
+    },
+    {
+      "case_id": "case_b975a5dd",
+      "scenario_id": "routing.coding.001",
+      "scenario_name": "Code Refactoring Model Routing",
+      "category": "routing",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 0.01,
+      "tokens_used": 64,
+      "cost_usd": 0.0,
+      "tool_calls": [],
+      "actual_output": {
+        "model_id": "openrouter/free",
+        "status": "routed"
+      },
+      "grading": {
+        "passed": true,
+        "score": 1.0,
+        "grader_name": "RoutingGrader",
+        "reason": "Model correctly routed.",
+        "details": {
+          "routed_model": "openrouter/free",
+          "expected_family": "openrouter/free"
+        },
+        "failures": []
+      },
+      "trace_sanitized": [
+        {
+          "event": "scenario_started",
+          "id": "routing.coding.001",
+          "timestamp": "2026-09-09T06:56:54.519083+00:00"
+        },
+        {
+          "event": "router_selection",
+          "model_id": "openrouter/free"
+        }
+      ],
+      "flaky": false,
+      "error": null
+    }
+  ],
+  "started_at": "2026-09-09T06:56:54.518191Z",
+  "completed_at": "2026-09-09T06:56:54.519255Z",
+  "duration_ms": 1.04,
+  "security_gate_passed": true,
+  "release_blocked": false,
+  "block_reasons": []
+}

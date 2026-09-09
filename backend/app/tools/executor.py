@@ -85,6 +85,45 @@ class ToolExecutor:
                 approval_required=True,
             )
 
+        # 2b. Policy & Governance Engine defense-in-depth check (Task 36, Spec 99)
+        from app.policy.engine import policy_engine
+        from app.policy.schemas import PolicyDecisionType
+        policy_dec = await policy_engine.check_tool_execution(
+            tool_name=tool.name,
+            arguments=tool_call.arguments,
+            user_id=user_id,
+            session_id=session_id,
+            environment="development",
+        )
+        if policy_dec.decision == PolicyDecisionType.DENY:
+            logger.warning("Policy Engine DENIED tool '%s': %s", tool.name, policy_dec.safe_explanation)
+            return ToolResult(
+                success=False,
+                tool_name=tool.name,
+                tool_call_id=tool_call.id,
+                error=policy_dec.safe_explanation or f"Action '{tool.name}' is denied by governance policy.",
+                verification_status="denied",
+                approval_required=False,
+            )
+        if policy_dec.decision == PolicyDecisionType.REQUIRE_APPROVAL:
+            return ToolResult(
+                success=False,
+                tool_name=tool.name,
+                tool_call_id=tool_call.id,
+                error=policy_dec.safe_explanation or f"Action '{tool.name}' requires formal human approval.",
+                verification_status="denied",
+                approval_required=True,
+            )
+        if policy_dec.decision == PolicyDecisionType.REQUIRE_STEP_UP_AUTH:
+            return ToolResult(
+                success=False,
+                tool_name=tool.name,
+                tool_call_id=tool_call.id,
+                error=policy_dec.safe_explanation or f"Action '{tool.name}' requires step-up authentication.",
+                verification_status="denied",
+                approval_required=False,
+            )
+
         # 3. Check legacy permission manager for backward compatibility with custom test policies
         try:
             self.permission_manager.check_permission(tool.name, tool.permission_level)
@@ -118,26 +157,45 @@ class ToolExecutor:
                 verification_status="failed",
             )
 
+        # 3b. Resilience & Circuit Breaker Check (Task 37)
+        from app.resilience import resilience_manager
+        from app.resilience.failures import ErrorSanitizer
+        circuit_id = f"tool:{tool.name}"
+        cb = resilience_manager.circuit_registry.get_or_create(circuit_id)
+        if not cb.is_call_permitted():
+            logger.warning("ToolExecutor: Circuit breaker for '%s' is OPEN. Failing fast.", tool.name)
+            return ToolResult(
+                success=False,
+                tool_name=tool.name,
+                tool_call_id=tool_call.id,
+                error=f"Circuit breaker for tool '{tool.name}' is OPEN (fail-fast active).",
+                verification_status="failed",
+            )
+
         # 4. Execute tool logic
         try:
             raw_result = await tool.execute(**validated_args.model_dump())
+            cb.record_success()
         except ValueError as exc:
+            cb.record_failure()
             logger.info("Tool '%s' returned value error: %s", tool.name, exc)
             return ToolResult(
                 success=False,
                 tool_name=tool.name,
                 tool_call_id=tool_call.id,
-                error=str(exc),
+                error=ErrorSanitizer.sanitize_text(str(exc)),
                 verification_status="failed",
             )
         except Exception as exc:
-            # Never expose internal Python stack traces to model/user
+            cb.record_failure()
+            # Never expose internal Python stack traces or secrets to model/user
             logger.exception("Unexpected exception executing tool '%s'", tool.name)
+            clean_err = ErrorSanitizer.sanitize_text(f"An error occurred while executing tool '{tool.name}': {type(exc).__name__}")
             return ToolResult(
                 success=False,
                 tool_name=tool.name,
                 tool_call_id=tool_call.id,
-                error=f"An error occurred while executing tool '{tool.name}': {type(exc).__name__}",
+                error=clean_err,
                 verification_status="failed",
             )
 
@@ -166,3 +224,29 @@ class ToolExecutor:
             error=None,
             verification_status="verified",
         )
+
+    async def execute_tool(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        user_id: str = "default_user",
+        project_id: str | None = None,
+        session_id: str | None = None,
+        db_session: Any = None,
+    ) -> ToolResult:
+        """Convenience method to execute a tool by name and argument dict."""
+        import uuid
+        call = ToolCall(id=f"call_{uuid.uuid4().hex[:8]}", name=name, arguments=arguments)
+        return await self.execute(call, user_id=user_id, session_id=session_id, db_session=db_session)
+
+
+_global_tool_executor: ToolExecutor | None = None
+
+
+def get_tool_executor() -> ToolExecutor:
+    """Return canonical global ToolExecutor singleton."""
+    global _global_tool_executor
+    if _global_tool_executor is None:
+        from app.tools.registry import create_default_tool_registry
+        _global_tool_executor = ToolExecutor(registry=create_default_tool_registry())
+    return _global_tool_executor

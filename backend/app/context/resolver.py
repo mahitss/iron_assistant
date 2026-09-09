@@ -257,6 +257,53 @@ class ContextResolver:
             except Exception as exc:
                 logger.debug("Knowledge Fabric retrieval error in context resolver: %s", exc)
 
+        # 6.6. Relevant Long-Term Experience and Preference Retrieval (Task 29)
+        if q_clean:
+            try:
+                from app.experience.retrieval import ExperienceRetriever
+
+                exp_retriever = ExperienceRetriever()
+                experiences, preferences = await exp_retriever.retrieve_relevant_experiences(
+                    user_id=user_id,
+                    query=q_clean,
+                    project_id=active_project.id if active_project else None,
+                    db_session=db_session,
+                )
+
+                for pref in preferences:
+                    scope_str = pref.scope.value if hasattr(pref.scope, "value") else str(pref.scope)
+                    candidate_items.append(
+                        ContextItem(
+                            source_type=ContextType.EXPERIENCE_CONTEXT,
+                            source_id=f"pref_{pref.id}",
+                            title=f"User Preference ({scope_str}): {pref.key}",
+                            content=f"USER PREFERENCE [{scope_str}]: {pref.key} = {pref.value}",
+                            relevance_score=0.90,
+                            confidence=1.0 if getattr(pref.confidence, "value", str(pref.confidence)) == "HIGH" else 0.8,
+                            timestamp=pref.updated_at,
+                            provenance="user_preference",
+                            reason="Active user preference.",
+                        )
+                    )
+
+                for exp in experiences:
+                    exp_type_str = exp.type.value if hasattr(exp.type, "value") else str(exp.type)
+                    candidate_items.append(
+                        ContextItem(
+                            source_type=ContextType.EXPERIENCE_CONTEXT,
+                            source_id=f"exp_{exp.id}",
+                            title=f"Experience ({exp_type_str}): {exp.summary[:50]}",
+                            content=f"EXPERIENCE [{exp_type_str}]: {exp.summary}",
+                            relevance_score=0.85,
+                            confidence=0.9 if getattr(exp.confidence, "value", str(exp.confidence)) == "HIGH" else 0.7,
+                            timestamp=exp.updated_at,
+                            provenance=exp.source.value if hasattr(exp.source, "value") else str(exp.source),
+                            reason="Relevant past experience.",
+                        )
+                    )
+            except Exception as exc:
+                logger.debug("Experience retrieval error in context resolver: %s", exc)
+
         # 7. Rescore candidates with multi-factor ranker
         active_pid = active_project.id if active_project else None
         for idx, it in enumerate(candidate_items):

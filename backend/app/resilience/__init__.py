@@ -1,0 +1,46 @@
+"""Kairo Resilience, Fault-Tolerance, Recovery, and Graceful Degradation Engine (Task 37)."""
+
+from app.resilience.manager import ResilienceManager, resilience_manager
+from app.resilience.schemas import (
+    CircuitBreakerConfig,
+    CircuitBreakerStatus,
+    CircuitState,
+    DependencyHealth,
+    DependencyHealthReport,
+    Failure,
+    FailureCategory,
+    FailureSeverity,
+    IdempotencyRecord,
+    OutcomeState,
+    QuarantineRecord,
+    RecoveryState,
+    RetryBudget,
+    RetryPolicy,
+    SideEffectType,
+    SystemReliabilityDashboard,
+    TaskCheckpoint,
+    TaskLease,
+)
+
+__all__ = [
+    "ResilienceManager",
+    "resilience_manager",
+    "Failure",
+    "FailureCategory",
+    "FailureSeverity",
+    "CircuitState",
+    "RecoveryState",
+    "DependencyHealth",
+    "SideEffectType",
+    "OutcomeState",
+    "RetryPolicy",
+    "RetryBudget",
+    "IdempotencyRecord",
+    "TaskLease",
+    "TaskCheckpoint",
+    "CircuitBreakerConfig",
+    "CircuitBreakerStatus",
+    "QuarantineRecord",
+    "DependencyHealthReport",
+    "SystemReliabilityDashboard",
+]

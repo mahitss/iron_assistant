@@ -97,6 +97,41 @@ class DeviceModel(Base):
         comment="Strict filesystem allowlist directory paths for this device",
     )
 
+    # Task 33: Device Trust, Pairing & Declared Capabilities
+    trust_status: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="UNTRUSTED",
+        comment="Explicit device trust: UNTRUSTED, PENDING, TRUSTED, REVOKED",
+    )
+    client_type: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        default="LOCAL_COMPANION",
+        comment="Client interface type: DESKTOP, MOBILE, LOCAL_COMPANION, etc.",
+    )
+    pairing_code_hash: Mapped[str | None] = mapped_column(
+        String(128),
+        nullable=True,
+        comment="Hashed single-use pairing code",
+    )
+    pairing_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Expiration timestamp for pending pairing code",
+    )
+    trust_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Expiration timestamp for trusted device status",
+    )
+    capabilities: Mapped[list[str]] = mapped_column(
+        JSON,
+        default=list,
+        nullable=False,
+        comment="Declared hardware capabilities: SCREEN, MICROPHONE, CAMERA, KEYBOARD, MOUSE, etc.",
+    )
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -114,7 +149,10 @@ class DeviceModel(Base):
         comment="Timestamp when device was revoked",
     )
 
-    __table_args__ = (Index("ix_devices_user_id_status", "user_id", "status"),)
+    __table_args__ = (
+        Index("ix_devices_user_id_status", "user_id", "status"),
+        Index("ix_devices_trust_status", "trust_status"),
+    )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert model to safe dictionary representation."""
@@ -122,18 +160,22 @@ class DeviceModel(Base):
             "device_id": self.id,
             "user_id": self.user_id,
             "device_name": self.device_name,
+            "client_type": self.client_type,
             "os_name": self.os_name,
             "os_version": self.os_version,
             "companion_version": self.companion_version,
             "status": self.status,
+            "trust_status": self.trust_status,
             "capabilities": {
                 "computer_control": self.computer_control_enabled,
                 "voice": self.voice_enabled,
                 "camera": self.camera_enabled,
                 "filesystem": self.filesystem_enabled,
             },
+            "declared_capabilities": self.capabilities,
             "allowed_paths": self.allowed_paths,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "last_seen_at": self.last_seen_at.isoformat() if self.last_seen_at else None,
+            "trust_expires_at": self.trust_expires_at.isoformat() if self.trust_expires_at else None,
             "revoked_at": self.revoked_at.isoformat() if self.revoked_at else None,
         }

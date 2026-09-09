@@ -111,6 +111,11 @@ export class AppShell {
                 <span class="nav-icon">⚡</span>
                 <span class="nav-text">Automations</span>
               </button>
+              <button class="nav-item ${state.currentView === 'tasks' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('tasks')">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-text">Tasks</span>
+                ${state.activeTasksCount > 0 ? `<span class="pending-pill">${state.activeTasksCount}</span>` : ''}
+              </button>
               <button class="nav-item ${state.currentView === 'activity' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('activity')">
                 <span class="nav-icon">⏱️</span>
                 <span class="nav-text">Activity</span>
@@ -123,6 +128,10 @@ export class AppShell {
               <button class="nav-item ${state.currentView === 'knowledge' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('knowledge')">
                 <span class="nav-icon">🌐</span>
                 <span class="nav-text">Knowledge</span>
+              </button>
+              <button class="nav-item ${state.currentView === 'environment' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('environment')">
+                <span class="nav-icon">🌍</span>
+                <span class="nav-text">Environment</span>
               </button>
             </div>
 
@@ -139,6 +148,10 @@ export class AppShell {
               <button class="nav-item ${state.currentView === 'status' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('status')">
                 <span class="nav-icon">📈</span>
                 <span class="nav-text">System Status</span>
+              </button>
+              <button class="nav-item ${state.currentView === 'evaluation' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('evaluation')">
+                <span class="nav-icon">🧪</span>
+                <span class="nav-text">Evaluation</span>
               </button>
               <button class="nav-item ${state.currentView === 'settings' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('settings')">
                 <span class="nav-icon">⚙️</span>

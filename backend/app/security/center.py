@@ -410,6 +410,10 @@ class SecurityCenter:
         except Exception:
             return False
 
+    def is_emergency_stopped(self, user_id: str = "default_user") -> bool:
+        """Check whether emergency stop is active for user."""
+        return self.emergency_stop.is_stopped(user_id)
+
 
 # Global singleton instance
 _global_security_center: SecurityCenter | None = None

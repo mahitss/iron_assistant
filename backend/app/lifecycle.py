@@ -52,6 +52,22 @@ async def startup_lifecycle() -> None:
     settings.KAIRO_COMPUTER_ENABLED = False
     logger.info("Computer control initialized to disabled state on startup.")
 
+    # 4. Initialize Unified Event Bus and Outbox Processor
+    try:
+        from app.events import event_bus, outbox_processor, register_default_handlers
+
+        register_default_handlers(event_bus)
+
+        # Register Experience and Learning Event Subscribers
+        from app.experience.events_integration import register_experience_subscribers
+        register_experience_subscribers(event_bus)
+
+        await event_bus.start(worker_count=2)
+        await outbox_processor.start()
+        logger.info("Kairo Unified Event Bus and Outbox Processor initialized successfully.")
+    except Exception as exc:
+        logger.warning("Event Bus startup initialization warning: %s", exc)
+
     logger.info("Kairo startup lifecycle completed successfully.")
 
 
@@ -59,7 +75,17 @@ async def shutdown_lifecycle() -> None:
     """Gracefully terminate background workers, active sessions, and database connections."""
     logger.info("Initiating graceful shutdown for Kairo...")
 
-    # 1. Close active browser sessions and Playwright child processes
+    # 1. Drain and terminate Event Bus and Outbox Processor
+    try:
+        from app.events import event_bus, outbox_processor
+
+        await outbox_processor.stop()
+        await event_bus.stop(drain=True)
+        logger.info("Kairo Unified Event Bus and Outbox Processor stopped.")
+    except Exception as exc:
+        logger.debug("Event Bus shutdown skipped: %s", exc)
+
+    # 2. Close active browser sessions and Playwright child processes
     try:
         from app.tools.browser.manager import get_browser_manager
 
@@ -69,7 +95,7 @@ async def shutdown_lifecycle() -> None:
     except Exception as exc:
         logger.debug("Browser manager shutdown skipped or already closed: %s", exc)
 
-    # 2. Close active voice streaming sessions
+    # 3. Close active voice streaming sessions
     try:
         from app.voice.session import VoiceSessionManager
 
@@ -78,7 +104,7 @@ async def shutdown_lifecycle() -> None:
     except Exception as exc:
         logger.debug("Voice session cleanup skipped: %s", exc)
 
-    # 3. Dispose database connection pool
+    # 4. Dispose database connection pool
     try:
         engine = get_engine()
         if engine is not None:
@@ -88,3 +114,4 @@ async def shutdown_lifecycle() -> None:
         logger.debug("Database engine disposal skipped: %s", exc)
 
     logger.info("Kairo graceful shutdown finished.")
+

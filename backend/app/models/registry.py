@@ -17,6 +17,13 @@ class ModelCapability(str, Enum):
     TOOL_CALLING = "tool_calling"
     STRUCTURED_OUTPUT = "structured_output"
 
+    # Multimodal capabilities (Task 30)
+    TEXT = "text"
+    IMAGE = "image"
+    AUDIO = "audio"
+    VIDEO = "video"
+    DOCUMENT = "document"
+
     @classmethod
     def from_str(cls, value: Union[str, "ModelCapability"]) -> "ModelCapability":
         """Convert string to ModelCapability safely."""
@@ -157,6 +164,10 @@ def create_default_registry(default_model_id: str = "openrouter/free") -> ModelR
                 ModelCapability.GENERAL,
                 ModelCapability.FAST,
                 ModelCapability.VISION,
+                ModelCapability.IMAGE,
+                ModelCapability.AUDIO,
+                ModelCapability.DOCUMENT,
+                ModelCapability.TEXT,
                 ModelCapability.TOOL_CALLING,
                 ModelCapability.STRUCTURED_OUTPUT,
             },

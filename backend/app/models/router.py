@@ -65,3 +65,15 @@ class ModelRouter:
             )
 
         return fallback
+
+
+_global_model_router: ModelRouter | None = None
+
+
+def get_model_router() -> ModelRouter:
+    """Return canonical global ModelRouter singleton."""
+    global _global_model_router
+    if _global_model_router is None:
+        from app.models.registry import create_default_registry
+        _global_model_router = ModelRouter(registry=create_default_registry())
+    return _global_model_router

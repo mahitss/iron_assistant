@@ -16,8 +16,13 @@ import app.automation.models  # noqa: F401
 import app.context.models  # noqa: F401
 
 # Import all models to register them on Base.metadata for migrations
+import app.identity.models  # noqa: F401
+import app.intent.models  # noqa: F401
 import app.memory.models  # noqa: F401
+import app.notifications.models  # noqa: F401
+import app.policy.models  # noqa: F401
 import app.proactive.models  # noqa: F401
+import app.resilience.models  # noqa: F401
 import app.security.models  # noqa: F401
 from app.core.config import get_settings
 from app.db.session import Base

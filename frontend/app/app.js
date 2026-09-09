@@ -19,6 +19,9 @@ import { NotificationsView } from '../components/notifications/notificationsView
 import { StatusView } from '../components/status/statusView.js';
 import { SettingsView } from '../components/settings/settingsView.js';
 import { KnowledgeView } from '../components/knowledge/knowledgeView.js';
+import { EvaluationView } from '../components/evaluation/evaluationView.js';
+import { TasksView } from '../components/tasks/tasksView.js';
+import { EnvironmentView } from '../components/environment/environmentView.js';
 import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
@@ -151,6 +154,9 @@ export class KairoApp {
       case 'automations':
         this.currentViewInstance = new AutomationsView(viewport);
         break;
+      case 'tasks':
+        this.currentViewInstance = new TasksView(viewport);
+        break;
       case 'activity':
         this.currentViewInstance = new ActivityView(viewport);
         break;
@@ -172,6 +178,13 @@ export class KairoApp {
       case 'knowledge':
         this.currentViewInstance = new KnowledgeView(viewport);
         break;
+      case 'environment':
+        this.currentViewInstance = new EnvironmentView({ container: viewport, api: Endpoints });
+        break;
+      case 'evaluation':
+        this.currentViewInstance = new EvaluationView({ container: viewport });
+        await this.currentViewInstance.init();
+        return;
       default:
         this.currentViewInstance = new HomeView(viewport);
     }
@@ -278,6 +291,57 @@ export class KairoApp {
 
   openBrowserModal(details) {
     new BrowserStatusModal().open(details);
+  }
+
+  async rateMessage(messageId, feedbackType) {
+    try {
+      await Endpoints.submitFeedback({
+        feedback_type: feedbackType,
+        message_id: messageId,
+        rating: feedbackType === 'POSITIVE' ? 5 : 1,
+      });
+      const el = document.getElementById(`fb-row-${messageId}`);
+      if (el) el.innerHTML = `<span style="color: #10b981; font-size: 0.75rem;">✓ Feedback saved</span>`;
+    } catch (e) {
+      console.warn('Feedback submission error:', e);
+    }
+  }
+
+  async promptNegativeFeedback(messageId) {
+    const comment = prompt('What went wrong? (Optional details to help evaluate response):');
+    if (comment === null) return;
+    try {
+      await Endpoints.submitFeedback({
+        feedback_type: 'NEGATIVE',
+        message_id: messageId,
+        rating: 1,
+        comment: comment || 'User flagged response as unhelpful',
+      });
+      const el = document.getElementById(`fb-row-${messageId}`);
+      if (el) el.innerHTML = `<span style="color: #f59e0b; font-size: 0.75rem;">✓ Feedback recorded</span>`;
+    } catch (e) {
+      alert('Failed to record feedback: ' + e.message);
+    }
+  }
+
+  async promptCorrection(messageId) {
+    const correction = prompt('What is the correct behavior or setting? (e.g. "We use SQLite for this project"):');
+    if (!correction) return;
+    const activeProject = store.getState().activeProject;
+    const scopeConfirm = confirm(`Save correction for current project (${activeProject ? (activeProject.name || activeProject.id || activeProject) : 'Active Project'})?\n\nClick OK for "This project", Cancel for "Global"`);
+    const finalScope = scopeConfirm ? 'PROJECT' : 'GLOBAL';
+    try {
+      await Endpoints.recordCorrection({
+        summary: correction.slice(0, 100),
+        correction: correction,
+        project_id: activeProject ? (activeProject.id || activeProject) : null,
+        scope: finalScope,
+      });
+      const el = document.getElementById(`fb-row-${messageId}`);
+      if (el) el.innerHTML = `<span style="color: #38bdf8; font-size: 0.75rem;">✓ Correction saved (${finalScope})</span>`;
+    } catch (e) {
+      alert('Failed to save correction: ' + e.message);
+    }
   }
 }
 

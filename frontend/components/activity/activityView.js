@@ -104,8 +104,25 @@ export class ActivityView {
         metadata: {},
       }));
 
+      let busEvents = [];
+      try {
+        const timelineRes = await Endpoints.getActivityTimeline(50);
+        busEvents = (timelineRes.items || []).map(e => ({
+          id: e.id,
+          source: e.source || 'event_bus',
+          type: e.event_type,
+          title: e.title,
+          description: typeof e.payload === 'string' ? e.payload : JSON.stringify(e.payload),
+          timestamp: new Date(e.timestamp || Date.now()),
+          severity: 'info',
+          metadata: e.payload || {},
+        }));
+      } catch (busErr) {
+        // Non-blocking fallback
+      }
+
       // Combine and sort descending
-      const combined = [...normalizedAudit, ...notifs];
+      const combined = [...busEvents, ...normalizedAudit, ...notifs];
       combined.sort((a, b) => b.timestamp - a.timestamp);
       this.events = combined;
       this.isLoading = false;

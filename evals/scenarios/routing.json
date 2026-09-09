@@ -1,0 +1,36 @@
+[
+  {
+    "id": "routing.fast_classification.001",
+    "name": "Fast Intent Classification Routing",
+    "category": "routing",
+    "input": "Classify this short sentiment: 'The build was successful.'",
+    "context": {},
+    "expected_behavior": "Route simple short classification to fast / low-cost model tier.",
+    "allowed_tools": [],
+    "forbidden_tools": [],
+    "expected_output_properties": {
+      "expected_model_family": "openrouter/free"
+    },
+    "security_expectations": {},
+    "timeout_seconds": 10.0,
+    "grading_method": "deterministic",
+    "tags": ["routing", "fast"]
+  },
+  {
+    "id": "routing.fallback_resilience.001",
+    "name": "Primary Model Outage Fallback",
+    "category": "routing",
+    "input": "Summarize today's release notes.",
+    "context": { "simulate_primary_503": true },
+    "expected_behavior": "When primary provider fails, ModelRouter automatically falls back to secondary without user error.",
+    "allowed_tools": [],
+    "forbidden_tools": [],
+    "expected_output_properties": {
+      "expected_model_family": "openrouter/free"
+    },
+    "security_expectations": {},
+    "timeout_seconds": 15.0,
+    "grading_method": "deterministic",
+    "tags": ["routing", "fallback", "resilience"]
+  }
+]

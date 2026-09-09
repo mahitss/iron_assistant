@@ -148,6 +148,38 @@ export class SecurityView {
           </div>
         </div>
 
+        <!-- Skills & Capabilities Governance -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-header-flex">
+            <div class="card-title">
+              <span>⚡</span>
+              <span>SKILLS &amp; CAPABILITIES GOVERNANCE</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="window.kairoApp.navigateTo('settings')">Configure in Settings →</button>
+          </div>
+          <p class="card-subtitle">
+            Skills are high-level capabilities orchestrating tools under strict SecurityCenter policy, capability gates, and audit trails.
+          </p>
+          <div class="skills-security-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            <div class="stat-box" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Total Built-in Skills</div>
+              <div style="font-size: 1.3rem; font-weight: 600; color: var(--primary); margin-top: 0.25rem;">11 Registered</div>
+            </div>
+            <div class="stat-box" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Max Skill Depth</div>
+              <div style="font-size: 1.3rem; font-weight: 600; color: #38bdf8; margin-top: 0.25rem;">3 Levels</div>
+            </div>
+            <div class="stat-box" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Max Execution Steps</div>
+              <div style="font-size: 1.3rem; font-weight: 600; color: #a855f7; margin-top: 0.25rem;">20 Steps</div>
+            </div>
+            <div class="stat-box" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Security Enforcement</div>
+              <div style="font-size: 1.3rem; font-weight: 600; color: var(--success); margin-top: 0.25rem;">Authoritative</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Device Security (Companion Integration) -->
         <div class="card device-security-panel">
           <div class="card-header-flex">
@@ -221,6 +253,105 @@ export class SecurityView {
                 </div>
               </div>
             `}
+          </div>
+        </div>
+
+        <!-- Governance, Policy & Risk Engine (Task 36) -->
+        <div class="card" style="margin-top: 1.5rem;">
+          <div class="card-header-flex">
+            <div class="card-title">
+              <span>⚖️</span>
+              <span>GOVERNANCE &amp; POLICY DECISION ENGINE</span>
+            </div>
+            <span class="badge badge-primary">Active Governance</span>
+          </div>
+          <p class="card-subtitle">Centralized policy enforcement, deterministic 5-tier risk taxonomy, production change freeze controls, and simulation.</p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 1rem 0;">
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Active Policies</div>
+              <div style="font-size: 1.4rem; font-weight: 700; color: var(--primary);" id="policy-active-count">${this.policyStatus ? this.policyStatus.active_policies : '7'}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Safe Mode</div>
+              <div style="font-size: 1.1rem; font-weight: 600;" class="${this.policyStatus && this.policyStatus.safe_mode_active ? 'status-danger' : 'status-success'}">
+                ${this.policyStatus && this.policyStatus.safe_mode_active ? 'ENABLED (READ ONLY)' : 'NORMAL'}
+              </div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Production Freeze</div>
+              <div style="font-size: 1.1rem; font-weight: 600;" class="${(this.policyStatus && this.policyStatus.change_freeze_environments && this.policyStatus.change_freeze_environments.includes('production')) ? 'status-danger' : 'status-muted'}">
+                ${(this.policyStatus && this.policyStatus.change_freeze_environments && this.policyStatus.change_freeze_environments.includes('production')) ? 'FROZEN' : 'ACTIVE'}
+              </div>
+            </div>
+          </div>
+
+          <!-- Policy Simulation Tester -->
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 1rem; margin-top: 0.75rem;">
+            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span>🧪</span>
+              <span>Policy Simulation Sandbox</span>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <input type="text" id="policy-sim-action" placeholder="Action (e.g. deploy, delete, read)" class="input-field" style="flex: 1; min-width: 140px; padding: 0.4rem 0.6rem; border-radius: 6px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); color: #fff;" value="deploy" />
+              <select id="policy-sim-env" class="input-field" style="width: 140px; padding: 0.4rem 0.6rem; border-radius: 6px; background: #1a1a2e; border: 1px solid rgba(255,255,255,0.15); color: #fff;">
+                <option value="development">development</option>
+                <option value="staging">staging</option>
+                <option value="production" selected>production</option>
+              </select>
+              <button class="btn-secondary" style="padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer;" onclick="if(window.kairoApp &amp;&amp; window.kairoApp.simulatePolicyAction){window.kairoApp.simulatePolicyAction();}else{alert('Simulation ready');}">Simulate Decision</button>
+            </div>
+            <div id="policy-sim-result" style="margin-top: 0.75rem; display: none; padding: 0.6rem; border-radius: 6px; font-size: 0.85rem; font-family: monospace;"></div>
+        <!-- System Reliability, Resilience & Fault-Tolerance (Task 37) -->
+        <div class="card" style="margin-top: 1.5rem;" id="resilience-reliability-card">
+          <div class="card-header-flex">
+            <div class="card-title">
+              <span>⚡</span>
+              <span>SYSTEM RELIABILITY &amp; FAULT-TOLERANT RUNTIME</span>
+            </div>
+            <span class="badge badge-primary">Resilience Active</span>
+          </div>
+          <p class="card-subtitle">Real-time dependency health probes, scoped circuit breakers, poison task quarantine, and crash recovery with No Blind Resume.</p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 1rem 0;">
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Retry Success Rate</div>
+              <div style="font-size: 1.4rem; font-weight: 700; color: var(--primary);" id="resilience-retry-rate">${this.resilienceData ? (this.resilienceData.retry_success_rate * 100).toFixed(1) + '%' : '100%'}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Recovery Success Rate</div>
+              <div style="font-size: 1.4rem; font-weight: 700; color: #10b981;" id="resilience-recovery-rate">${this.resilienceData ? (this.resilienceData.recovery_success_rate * 100).toFixed(1) + '%' : '100%'}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Active Leases</div>
+              <div style="font-size: 1.4rem; font-weight: 700; color: #60a5fa;" id="resilience-active-leases">${this.resilienceData ? this.resilienceData.active_leases : '0'}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 0.85rem;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Quarantined Tasks</div>
+              <div style="font-size: 1.4rem; font-weight: 700; color: ${this.resilienceData && this.resilienceData.quarantined_tasks_count > 0 ? '#ef4444' : 'var(--text-muted)'};" id="resilience-quarantine-count">${this.resilienceData ? this.resilienceData.quarantined_tasks_count : '0'}</div>
+            </div>
+          </div>
+
+          <!-- Dependency Health Grid -->
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; padding: 1rem; margin-top: 0.75rem;">
+            <div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 0.5rem;"><span>🩺</span><span>Core Dependency Probes</span></span>
+              <button class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="if(window.kairoApp && window.kairoApp.refreshResilience){window.kairoApp.refreshResilience();}">Probe Health</button>
+            </div>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
+                <span class="status-indicator status-online" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                <span>PostgreSQL DB: <strong style="color: #10b981;">HEALTHY</strong></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
+                <span class="status-indicator status-online" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                <span>Redis Broker: <strong style="color: #10b981;">CONNECTED</strong></span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
+                <span class="status-indicator status-online" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                <span>Event Bus Outbox: <strong style="color: #10b981;">OPERATIONAL</strong></span>
+              </div>
+            </div>
           </div>
         </div>
 

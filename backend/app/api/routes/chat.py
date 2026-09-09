@@ -98,11 +98,44 @@ async def chat(
     capability = resolve_requested_capability(request.capability)
 
     try:
+        # Emit chat.message.created event
+        try:
+            from app.events import event_bus
+            await event_bus.publish(
+                event_bus.publisher.create_event(
+                    event_type="chat.message.created",
+                    source="chat_router",
+                    payload={"message": request.message, "role": "user", "session_id": request.session_id},
+                    user_id=None,
+                )
+            )
+        except Exception:
+            pass
+
         response = await agent.process_message(
             request.message,
             session_id=request.session_id,
             capability=capability,
         )
+
+        # Emit chat.response.completed event
+        try:
+            from app.events import event_bus
+            await event_bus.publish(
+                event_bus.publisher.create_event(
+                    event_type="chat.response.completed",
+                    source="chat_router",
+                    payload={
+                        "response_length": len(response.message),
+                        "model": response.model,
+                        "session_id": response.session_id,
+                    },
+                    user_id=None,
+                )
+            )
+        except Exception:
+            pass
+
         tools_meta = (
             [
                 ToolActivitySchema(

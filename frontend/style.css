@@ -2166,4 +2166,300 @@ button, input, select, textarea {
   }
 }
 
+/* ==========================================================================
+   KAIRO SKILLS & CAPABILITY SYSTEM
+   ========================================================================== */
 
+.skills-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.skills-header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 1rem;
+}
+
+.skills-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.skills-search-bar {
+  position: relative;
+  width: 100%;
+}
+
+.skills-search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.95rem;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.skills-search-input {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 1rem 0.65rem 2.6rem;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.skills-search-input:focus {
+  border-color: var(--primary);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.skills-category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.skills-category-filters .filter-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.skills-category-filters .filter-btn:hover {
+  border-color: var(--primary);
+  color: var(--text-main);
+}
+
+.skills-category-filters .filter-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #07090e;
+  font-weight: 600;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.skill-card {
+  background: var(--bg-surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-normal);
+  position: relative;
+}
+
+.skill-card:hover {
+  border-color: var(--border-glass);
+  box-shadow: 0 4px 20px rgba(6, 182, 212, 0.08);
+  transform: translateY(-2px);
+}
+
+.skill-card.disabled {
+  opacity: 0.65;
+  border-style: dashed;
+}
+
+.skill-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.85rem;
+}
+
+.skill-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.skill-icon-badge {
+  font-size: 1.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.skill-title-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.skill-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.skill-id {
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.skill-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.skill-desc {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.skill-meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.badge-risk-read-only {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.badge-risk-low-risk {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.badge-risk-medium-risk {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.badge-risk-high-risk {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+}
+
+.badge-risk-critical,
+.badge-risk-destructive {
+  background: rgba(225, 29, 72, 0.18);
+  color: #fb7185;
+  border: 1px solid rgba(225, 29, 72, 0.35);
+}
+
+.badge-health-healthy {
+  color: #10b981;
+}
+
+.badge-health-degraded {
+  color: #f59e0b;
+}
+
+.badge-health-unavailable {
+  color: #ef4444;
+}
+
+.skill-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.skill-tools-count {
+  font-size: 0.78rem;
+  color: var(--text-subtle);
+}
+
+.skill-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Modal styles for Skill Details */
+.skill-detail-modal {
+  position: relative;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 1.75rem;
+  max-width: 680px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.modal-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.modal-close-btn:hover {
+  color: var(--text-main);
+}
+
+/* Evaluation & Benchmarking Dashboard Styles (Task 27) */
+.evaluation-view {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.metric-card-secure {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 70%), var(--bg-surface-card) !important;
+}
+
+.metric-card-danger {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  background: radial-gradient(circle at top right, rgba(239, 68, 68, 0.12), transparent 70%), var(--bg-surface-card) !important;
+}
+
+.eval-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.eval-trace-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  max-height: 280px;
+  overflow-y: auto;
+}

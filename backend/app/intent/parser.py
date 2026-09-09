@@ -299,3 +299,11 @@ class IntentParser:
         )
 
         return command_schema, intent_schema
+
+    @classmethod
+    def split_multi_intents(cls, text: str) -> list[str]:
+        """Enforce Spec 5: Split compound multi-intent sentences into discrete actionable components."""
+        # Handles clauses like: "Check the deployment, fix the issue, and tell me when it's ready"
+        parts = re.split(r",\s*(?:and\s+)?|\s+and\s+|\s+then\s+", text.strip(), flags=re.IGNORECASE)
+        return [p.strip() for p in parts if p.strip()]
+

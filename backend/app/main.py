@@ -35,7 +35,7 @@ from app.api.routes.world import router as world_router
 from app.api.routes.memory import memory_api_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.memory import user_router as user_memory_router
-from app.intent import commands_router
+from app.intent import commands_router, intent_router
 from app.notifications import notifications_router
 from app.policy import admin_policy_router, policy_router
 from app.observability.router import router as observability_router
@@ -141,6 +141,7 @@ def create_app() -> FastAPI:
     app.include_router(world_router, prefix=settings.API_V1_STR)
     app.include_router(identity_router, prefix=settings.API_V1_STR)
     app.include_router(commands_router, prefix=settings.API_V1_STR)
+    app.include_router(intent_router, prefix=settings.API_V1_STR)
     app.include_router(policy_router, prefix=settings.API_V1_STR)
     app.include_router(admin_policy_router, prefix=settings.API_V1_STR)
     app.include_router(resilience_router, prefix=settings.API_V1_STR)

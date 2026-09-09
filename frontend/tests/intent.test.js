@@ -82,4 +82,31 @@ test('Kairo Unified Command & Intent Layer Frontend Tests (Task 35)', async (t) 
     assert.ok(itemHtml.includes('intent-preview-banner'), 'Intent preview banner must be rendered');
     assert.ok(itemHtml.includes("I'll investigate Kairo's failed CI run"), 'Preview text must be displayed');
   });
+
+  await t.test('Endpoints defines Task 48 Intent & Motivation methods', () => {
+    assert.strictEqual(typeof Endpoints.parseIntent, 'function');
+    assert.strictEqual(typeof Endpoints.listIntents, 'function');
+    assert.strictEqual(typeof Endpoints.getIntent, 'function');
+    assert.strictEqual(typeof Endpoints.createGoal, 'function');
+    assert.strictEqual(typeof Endpoints.listGoals, 'function');
+    assert.strictEqual(typeof Endpoints.answerClarification, 'function');
+    assert.strictEqual(typeof Endpoints.applyUserCorrection, 'function');
+    assert.strictEqual(typeof Endpoints.revokeIntent, 'function');
+    assert.strictEqual(typeof Endpoints.getIntentGraph, 'function');
+    assert.strictEqual(typeof Endpoints.analyzeTradeoffs, 'function');
+    assert.strictEqual(typeof Endpoints.getIntentHealth, 'function');
+  });
+
+  await t.test('IntentView initializes and renders header and navigation tabs', async () => {
+    const { IntentView } = await import('../components/intent/intentView.js');
+    const container = {
+      innerHTML: '',
+      querySelector: (sel) => null,
+      querySelectorAll: (sel) => [],
+    };
+    const view = new IntentView(container);
+    assert.strictEqual(view.activeTab, 'intents');
+    assert.strictEqual(typeof view.render, 'function');
+  });
 });
+

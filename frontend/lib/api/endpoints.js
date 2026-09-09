@@ -1411,8 +1411,69 @@ export const Endpoints = {
   async getPredictionHealth() {
     return api.get('/api/v1/prediction/health');
   },
+
+  // Task 48: Intent Understanding, Goal Extraction & Safe Motivation
+  async parseIntent(payload) {
+    return api.post('/api/v1/intent/parse', payload);
+  },
+
+  async listIntents() {
+    return api.get('/api/v1/intent/intents');
+  },
+
+  async getIntent(intentId) {
+    return api.get(`/api/v1/intent/intents/${encodeURIComponent(intentId)}`);
+  },
+
+  async createGoal(payload) {
+    return api.post('/api/v1/intent/goals', payload);
+  },
+
+  async listGoals(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/intent/goals${qs ? `?${qs}` : ''}`);
+  },
+
+  async answerClarification(payload) {
+    return api.post('/api/v1/intent/clarify', payload);
+  },
+
+  async applyUserCorrection(payload) {
+    return api.post('/api/v1/intent/correct', payload);
+  },
+
+  async revokeIntent(payload) {
+    return api.post('/api/v1/intent/revoke', payload);
+  },
+
+  async getIntentGraph(intentId) {
+    return api.get(`/api/v1/intent/graph/${encodeURIComponent(intentId)}`);
+  },
+
+  async analyzeTradeoffs(payload) {
+    return api.post('/api/v1/intent/tradeoffs', payload);
+  },
+
+  async getIntentHealth() {
+    return api.get('/api/v1/intent/health');
+  },
+};
+
+export const intentApi = {
+  parseIntent: (payload) => Endpoints.parseIntent(payload),
+  listIntents: () => Endpoints.listIntents(),
+  getIntent: (id) => Endpoints.getIntent(id),
+  createGoal: (payload) => Endpoints.createGoal(payload),
+  listGoals: (params) => Endpoints.listGoals(params),
+  answerClarification: (payload) => Endpoints.answerClarification(payload),
+  applyUserCorrection: (payload) => Endpoints.applyUserCorrection(payload),
+  revokeIntent: (payload) => Endpoints.revokeIntent(payload),
+  getIntentGraph: (id) => Endpoints.getIntentGraph(id),
+  analyzeTradeoffs: (payload) => Endpoints.analyzeTradeoffs(payload),
+  getIntentHealth: () => Endpoints.getIntentHealth(),
 };
 
 export const endpoints = Endpoints;
+
 
 

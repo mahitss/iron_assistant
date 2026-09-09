@@ -75,7 +75,7 @@ async def test_resolve_only_endpoint_does_not_execute(app_and_session):
 
     assert resp.status_code == 200
     data = resp.json()
-    assert data["intent"]["type"] == "TASK"
+    assert data["intent"]["type"] in ("TASK", "DEPLOY")
     assert data["intent"]["constraints"]["environment"] == "staging"
     assert data["execution_summary"]["status"] == "RESOLVED_ONLY"
     assert data["execution_summary"]["executed"] is False

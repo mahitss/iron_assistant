@@ -1,7 +1,12 @@
-"""Ambiguity analysis, candidate evaluation, and interactive clarification builder (Spec 39-47, 159)."""
+"""Ambiguity Analysis, Candidate Evaluation, and Interactive Clarification Builder (Tasks 35 & 48)."""
 
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 import logging
-from typing import Any
+from typing import Any, Dict, List, Optional
+import uuid
 
 from app.intent.schemas import (
     AmbiguityLevel,
@@ -12,6 +17,45 @@ from app.intent.schemas import (
 )
 
 logger = logging.getLogger("kairo.intent.ambiguity")
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+@dataclass
+class Ambiguity:
+    """Explicit ambiguity model tracking candidate interpretations and resolution (Spec 55-57)."""
+
+    subject: str
+    candidates: List[Any] = field(default_factory=list)
+    impact: str = "MEDIUM"  # LOW, MEDIUM, HIGH, CRITICAL
+    level: AmbiguityLevel = AmbiguityLevel.MEDIUM
+    confidence: float = 0.5
+    resolution: Optional[Dict[str, Any]] = None
+    ambiguity_id: str = field(default_factory=lambda: f"amb_{uuid.uuid4().hex[:8]}")
+    created_at: datetime = field(default_factory=utc_now)
+
+    def resolve(self, selected_candidate: Any, method: str = "USER_CLARIFICATION") -> None:
+        self.resolution = {
+            "selected_candidate": selected_candidate,
+            "method": method,
+            "resolved_at": utc_now().isoformat(),
+        }
+        self.level = AmbiguityLevel.NONE
+        logger.info("Resolved ambiguity %s on '%s' to %s", self.ambiguity_id, self.subject, selected_candidate)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ambiguity_id": self.ambiguity_id,
+            "subject": self.subject,
+            "candidates": self.candidates,
+            "impact": self.impact,
+            "level": self.level.value if hasattr(self.level, "value") else str(self.level),
+            "confidence": round(self.confidence, 3),
+            "resolution": self.resolution,
+            "created_at": self.created_at.isoformat(),
+        }
 
 
 class AmbiguityAnalyzer:
@@ -29,13 +73,15 @@ class AmbiguityAnalyzer:
         target: dict[str, Any] | None = None,
         clarification_attempts: int = 0,
     ) -> AmbiguityReport:
-        """
-        Evaluates whether an intent contains ambiguity that requires clarification.
-        Enforces: NEVER guess for high-risk or destructive actions (Spec 43, 44).
+        """Evaluates whether an intent contains ambiguity that requires clarification (Spec 55-57).
+        
+        CRITICAL INVARIANT (Spec 57, 111):
+        Low-risk ambiguity may be resolved contextually.
+        High-risk and destructive ambiguity strictly REQUIRES clarification. Never guess!
         """
         missing_params = missing_params or []
 
-        # Check loop threshold (Spec 159)
+        # Check loop threshold
         if clarification_attempts >= cls.MAX_CLARIFICATION_ATTEMPTS:
             return AmbiguityReport(
                 ambiguous=True,
@@ -45,10 +91,11 @@ class AmbiguityAnalyzer:
                 resolution_options=[],
             )
 
-        # 1. Critical ambiguity check: High-risk action without a clearly resolved target
+        # 1. Critical ambiguity check: High-risk action or destructive action without a clearly resolved target
         is_high_impact = risk_level in (IntentRiskLevel.HIGH, IntentRiskLevel.CRITICAL) or intent_type in (
             IntentType.DELETE,
             IntentType.CONTROL,
+            IntentType.DEPLOY,
         )
 
         if is_high_impact and (ambiguous_candidates or not target or missing_params):
@@ -90,7 +137,7 @@ class AmbiguityAnalyzer:
                 resolution_options=options,
             )
 
-        # 3. Missing required parameter (e.g. "remind me" without time or content, "update config" without file)
+        # 3. Missing required parameter
         if missing_params:
             return AmbiguityReport(
                 ambiguous=True,
@@ -104,7 +151,7 @@ class AmbiguityAnalyzer:
         # 4. Unambiguous
         return AmbiguityReport(
             ambiguous=False,
-            level=AmbiguityLevel.LOW,
+            level=AmbiguityLevel.NONE,
             candidates=[],
             missing_information=[],
             reason=None,

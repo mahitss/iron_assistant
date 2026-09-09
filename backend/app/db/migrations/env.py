@@ -33,6 +33,7 @@ import app.learning.models  # noqa: F401
 import app.autonomy.models  # noqa: F401
 import app.perception.models  # noqa: F401
 import app.prediction.models  # noqa: F401
+import app.intent.models  # noqa: F401
 from app.core.config import get_settings
 from app.db.session import Base
 

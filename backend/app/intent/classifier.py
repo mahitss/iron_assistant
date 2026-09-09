@@ -111,11 +111,77 @@ class CommandClassifier:
                 re.compile(r"^(open|navigate\s+to|go\s+to|view|show\s+me)\b.*?\b(page|tab|dashboard|settings|view|repo|commit|pr|pull\s+request)\b", re.IGNORECASE),
             ],
         ),
-        # MUTATIONS: DELETE / UPDATE / CREATE
+        # MUTATIONS: DELETE / UPDATE / CREATE / MODIFY / CODE / DEPLOY
         (
             IntentType.DELETE,
             [
                 re.compile(r"^(delete|remove|erase|destroy|drop|wipe|purge)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.DEPLOY,
+            [
+                re.compile(r"^(deploy|ship|release|rollout|push\s+to\s+production|push\s+to\s+staging)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.CODE,
+            [
+                re.compile(r"^(write\s+code|code|implement|refactor|scaffold|program)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.DEBUG,
+            [
+                re.compile(r"^(debug|troubleshoot|trace\s+bug|fix\s+bug|find\s+error)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.COMMUNICATE,
+            [
+                re.compile(r"^(message|email|send\s+message|slack|dm|chat)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.NOTIFY,
+            [
+                re.compile(r"^(notify|alert|ping\s+me|tell\s+me\s+when)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.MONITOR,
+            [
+                re.compile(r"^(monitor|watch|track|keep\s+an\s+eye\s+on)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.SCHEDULE,
+            [
+                re.compile(r"^(schedule|set\s+schedule|run\s+at)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.TRANSACT,
+            [
+                re.compile(r"^(buy|pay|purchase|transact|transfer\s+funds)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.RESEARCH,
+            [
+                re.compile(r"^(research|deep\s+dive|investigate\s+topic)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.PLAN,
+            [
+                re.compile(r"^(plan|draft\s+plan|create\s+plan|plan\s+out)\b", re.IGNORECASE),
+            ],
+        ),
+        (
+            IntentType.MODIFY,
+            [
+                re.compile(r"^(modify|tweak|adjust|change|alter)\b", re.IGNORECASE),
             ],
         ),
         (
@@ -171,3 +237,9 @@ class CommandClassifier:
             return IntentType.QUESTION
 
         return IntentType.REQUEST
+
+    @classmethod
+    def classify_deterministic(cls, text: str) -> IntentType:
+        """Deterministic classification entrypoint for multi-intent clause parsing."""
+        return cls.classify(text)
+

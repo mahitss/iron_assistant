@@ -1257,6 +1257,54 @@ export const Endpoints = {
   async getCollaborationProvenance(sessionId) {
     return api.get(`/api/v1/collaboration/provenance/${encodeURIComponent(sessionId)}`);
   },
+
+  // ==================================================
+  // Task 45 Autonomous Execution & Long-Horizon Agency Engine
+  // ==================================================
+
+  async createAutonomousGoal(payload) {
+    return api.post('/api/v1/autonomy/goals', payload);
+  },
+
+  async getAutonomousGoal(goalId) {
+    return api.get(`/api/v1/autonomy/goals/${encodeURIComponent(goalId)}`);
+  },
+
+  async createAutonomousRun(payload) {
+    return api.post('/api/v1/autonomy/runs', payload);
+  },
+
+  async getAutonomousRun(runId) {
+    return api.get(`/api/v1/autonomy/runs/${encodeURIComponent(runId)}`);
+  },
+
+  async controlAutonomousRun(runId, payload) {
+    return api.post(`/api/v1/autonomy/runs/${encodeURIComponent(runId)}/control`, payload);
+  },
+
+  async executeAutonomousStep(runId, payload = {}) {
+    return api.post(`/api/v1/autonomy/runs/${encodeURIComponent(runId)}/step`, payload);
+  },
+
+  async getAutonomousProgress(runId) {
+    return api.get(`/api/v1/autonomy/runs/${encodeURIComponent(runId)}/progress`);
+  },
+
+  async getAutonomousCheckpoints(runId) {
+    return api.get(`/api/v1/autonomy/runs/${encodeURIComponent(runId)}/checkpoints`);
+  },
+
+  async getAutonomousCompletion(runId) {
+    return api.get(`/api/v1/autonomy/runs/${encodeURIComponent(runId)}/completion`);
+  },
+
+  async getAutonomousWatchdog(runId) {
+    return api.get(`/api/v1/autonomy/runs/${encodeURIComponent(runId)}/watchdog`);
+  },
+
+  async postAutonomousEvent(runId, payload) {
+    return api.post(`/api/v1/autonomy/runs/${encodeURIComponent(runId)}/events`, payload);
+  },
 };
 
 export const endpoints = Endpoints;

@@ -1994,7 +1994,53 @@ export const Endpoints = {
   async getSimulationCalibrationReport(metricName) {
     return api.get(`/api/v1/simulation/calibrations/report?metric_name=${encodeURIComponent(metricName)}`);
   },
+
+  // --- Executive Decision Engine (Task 57) ---
+  async analyzeDecision(payload) {
+    return api.post('/api/v1/decision/analyze', payload);
+  },
+
+  async listDecisions(limit = 50) {
+    return api.get(`/api/v1/decision?limit=${limit}`);
+  },
+
+  async getDecision(decisionId) {
+    return api.get(`/api/v1/decision/${encodeURIComponent(decisionId)}`);
+  },
+
+  async selectDecisionOption(decisionId, payload) {
+    return api.post(`/api/v1/decision/${encodeURIComponent(decisionId)}/select`, payload);
+  },
+
+  async approveDecision(decisionId, payload) {
+    return api.post(`/api/v1/decision/${encodeURIComponent(decisionId)}/approve`, payload);
+  },
+
+  async revalidateDecision(decisionId) {
+    return api.post(`/api/v1/decision/${encodeURIComponent(decisionId)}/revalidate`, {});
+  },
+
+  async recordDecisionOutcome(decisionId, payload) {
+    return api.post(`/api/v1/decision/${encodeURIComponent(decisionId)}/outcome`, payload);
+  },
+
+  async getDecisionOutcome(decisionId) {
+    return api.get(`/api/v1/decision/${encodeURIComponent(decisionId)}/outcome`);
+  },
+
+  async getDecisionExplanation(decisionId, query = 'why this option') {
+    return api.get(`/api/v1/decision/${encodeURIComponent(decisionId)}/explanation?query=${encodeURIComponent(query)}`);
+  },
+
+  async getDecisionAsOf(decisionId) {
+    return api.get(`/api/v1/decision/${encodeURIComponent(decisionId)}/as-of`);
+  },
+
+  async getDecisionCalibrationAnalytics() {
+    return api.get('/api/v1/decision/analytics/calibration');
+  },
 };
+
 
 export const intentApi = {
   parseIntent: (payload) => Endpoints.parseIntent(payload),
@@ -2154,6 +2200,20 @@ export const simulationApi = {
   evaluateGate: (payload) => Endpoints.evaluateExecutionGate(payload),
   calibrate: (payload) => Endpoints.recordSimulationCalibration(payload),
   getCalibrationReport: (metricName) => Endpoints.getSimulationCalibrationReport(metricName),
+};
+
+export const decisionApi = {
+  analyze: (payload) => Endpoints.analyzeDecision(payload),
+  list: (limit) => Endpoints.listDecisions(limit),
+  get: (decisionId) => Endpoints.getDecision(decisionId),
+  select: (decisionId, payload) => Endpoints.selectDecisionOption(decisionId, payload),
+  approve: (decisionId, payload) => Endpoints.approveDecision(decisionId, payload),
+  revalidate: (decisionId) => Endpoints.revalidateDecision(decisionId),
+  recordOutcome: (decisionId, payload) => Endpoints.recordDecisionOutcome(decisionId, payload),
+  getOutcome: (decisionId) => Endpoints.getDecisionOutcome(decisionId),
+  explain: (decisionId, query) => Endpoints.getDecisionExplanation(decisionId, query),
+  reconstructAsOf: (decisionId) => Endpoints.getDecisionAsOf(decisionId),
+  getAnalytics: () => Endpoints.getDecisionCalibrationAnalytics(),
 };
 
 export const endpoints = Endpoints;

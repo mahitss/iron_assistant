@@ -1585,6 +1585,54 @@ export const Endpoints = {
   async getKnowledgeGraphHealth() {
     return api.get('/api/v1/knowledge-graph/health');
   },
+
+  // Task 51: Self-Modeling & Metacognition
+  async getSelfModel(userId = 'default_user') {
+    return api.get(`/api/v1/metacognition/self-model?user_id=${encodeURIComponent(userId)}`);
+  },
+
+  async getSelfModelProjection(userId = 'default_user') {
+    return api.get(`/api/v1/metacognition/self-model/projection?user_id=${encodeURIComponent(userId)}`);
+  },
+
+  async listCapabilities(state = null) {
+    return api.get(`/api/v1/metacognition/capabilities${state ? `?state=${encodeURIComponent(state)}` : ''}`);
+  },
+
+  async listLimitations(category = null) {
+    return api.get(`/api/v1/metacognition/limitations${category ? `?category=${encodeURIComponent(category)}` : ''}`);
+  },
+
+  async registerLimitation(payload) {
+    return api.post('/api/v1/metacognition/limitations', payload);
+  },
+
+  async checkActionReadiness(payload) {
+    return api.post('/api/v1/metacognition/readiness', payload);
+  },
+
+  async introspect(questionType, subjectOrAction = null) {
+    return api.post('/api/v1/metacognition/introspect', {
+      question_type: questionType,
+      subject_or_action: subjectOrAction,
+    });
+  },
+
+  async recordReflection(payload) {
+    return api.post('/api/v1/metacognition/reflection', payload);
+  },
+
+  async getMetacognitiveMetrics() {
+    return api.get('/api/v1/metacognition/metrics');
+  },
+
+  async reconcileSelfModel(payload = {}) {
+    return api.post('/api/v1/metacognition/reconcile', payload);
+  },
+
+  async getMetacognitionHealth() {
+    return api.get('/api/v1/metacognition/health');
+  },
 };
 
 export const intentApi = {
@@ -1634,6 +1682,20 @@ export const knowledgeGraphApi = {
   forgetEntity: (payload) => Endpoints.forgetKnowledgeEntity(payload),
   getMetrics: () => Endpoints.getKnowledgeGraphMetrics(),
   getHealth: () => Endpoints.getKnowledgeGraphHealth(),
+};
+
+export const metacognitionApi = {
+  getSelfModel: (userId) => Endpoints.getSelfModel(userId),
+  getProjection: (userId) => Endpoints.getSelfModelProjection(userId),
+  listCapabilities: (state) => Endpoints.listCapabilities(state),
+  listLimitations: (category) => Endpoints.listLimitations(category),
+  registerLimitation: (payload) => Endpoints.registerLimitation(payload),
+  checkReadiness: (payload) => Endpoints.checkActionReadiness(payload),
+  introspect: (type, subj) => Endpoints.introspect(type, subj),
+  recordReflection: (payload) => Endpoints.recordReflection(payload),
+  getMetrics: () => Endpoints.getMetacognitiveMetrics(),
+  reconcile: (payload) => Endpoints.reconcileSelfModel(payload),
+  getHealth: () => Endpoints.getMetacognitionHealth(),
 };
 
 export const endpoints = Endpoints;

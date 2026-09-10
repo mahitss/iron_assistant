@@ -2292,6 +2292,91 @@ export const Endpoints = {
     if (incidentId) q += `&incident_id=${encodeURIComponent(incidentId)}`;
     return api.get(`/api/v1/incidents/audit/trail${q}`);
   },
+
+  // --- Task 62: Continuous Self-Optimization & Adaptive Control Engine ---
+  async evaluateOptimization(payload) {
+    return api.post('/api/v1/optimization/evaluate', payload);
+  },
+
+  async listOptimizationRecommendations() {
+    return api.get('/api/v1/optimization/recommendations');
+  },
+
+  async getOptimizationRecommendation(recommendationId) {
+    return api.get(`/api/v1/optimization/recommendations/${encodeURIComponent(recommendationId)}`);
+  },
+
+  async approveOptimizationRecommendation(recommendationId, payload) {
+    return api.post(`/api/v1/optimization/recommendations/${encodeURIComponent(recommendationId)}/approve`, payload);
+  },
+
+  async listOptimizationExperiments(status = null) {
+    let q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return api.get(`/api/v1/optimization/experiments${q}`);
+  },
+
+  async createOptimizationExperiment(payload) {
+    return api.post('/api/v1/optimization/experiments', payload);
+  },
+
+  async getOptimizationExperiment(experimentId) {
+    return api.get(`/api/v1/optimization/experiments/${encodeURIComponent(experimentId)}`);
+  },
+
+  async approveOptimizationExperiment(experimentId, approver = 'ADMIN') {
+    return api.post(`/api/v1/optimization/experiments/${encodeURIComponent(experimentId)}/approve?approver=${encodeURIComponent(approver)}`);
+  },
+
+  async startOptimizationExperiment(experimentId) {
+    return api.post(`/api/v1/optimization/experiments/${encodeURIComponent(experimentId)}/start`);
+  },
+
+  async deployOptimizationCanary(payload) {
+    return api.post('/api/v1/optimization/canary/deploy', payload);
+  },
+
+  async verifyOptimizationCanary(canaryId, isVerified = true, advanceToFull = true) {
+    return api.post(`/api/v1/optimization/canary/${encodeURIComponent(canaryId)}/verify?is_verified=${isVerified}&advance_to_full=${advanceToFull}`);
+  },
+
+  async rollbackOptimizationCanary(canaryId, reason = 'Rollback requested', actor = 'OPERATOR') {
+    return api.post(`/api/v1/optimization/canary/${encodeURIComponent(canaryId)}/rollback?reason=${encodeURIComponent(reason)}&actor=${encodeURIComponent(actor)}`);
+  },
+
+  async listOptimizationChangeSets() {
+    return api.get('/api/v1/optimization/change-sets');
+  },
+
+  async ingestOptimizationMeasurement(payload) {
+    return api.post('/api/v1/optimization/metrics/measurements', payload);
+  },
+
+  async getOptimizationMetrics() {
+    return api.get('/api/v1/optimization/metrics');
+  },
+
+  async listOptimizationBaselines() {
+    return api.get('/api/v1/optimization/baselines');
+  },
+
+  async listOptimizationDrift() {
+    return api.get('/api/v1/optimization/drift');
+  },
+
+  async listOptimizationCalibration() {
+    return api.get('/api/v1/optimization/calibration');
+  },
+
+  async getOptimizationAudit(changeSetId = null, experimentId = null, limit = 100) {
+    let q = [`limit=${limit}`];
+    if (changeSetId) q.push(`change_set_id=${encodeURIComponent(changeSetId)}`);
+    if (experimentId) q.push(`experiment_id=${encodeURIComponent(experimentId)}`);
+    return api.get(`/api/v1/optimization/audit/trail?${q.join('&')}`);
+  },
+
+  async toggleOptimizationKillSwitch(payload) {
+    return api.post('/api/v1/optimization/kill-switch', payload);
+  },
 };
 
 
@@ -2535,6 +2620,29 @@ export const incidentsApi = {
   reopen: (id, payload) => Endpoints.reopenIncident(id, payload),
   getPostmortem: (id) => Endpoints.getIncidentPostmortem(id),
   getAudit: (id, limit) => Endpoints.getIncidentAudit(id, limit),
+};
+
+export const optimizationApi = {
+  evaluate: (payload) => Endpoints.evaluateOptimization(payload),
+  listRecommendations: () => Endpoints.listOptimizationRecommendations(),
+  getRecommendation: (id) => Endpoints.getOptimizationRecommendation(id),
+  approveRecommendation: (id, payload) => Endpoints.approveOptimizationRecommendation(id, payload),
+  listExperiments: (status) => Endpoints.listOptimizationExperiments(status),
+  createExperiment: (payload) => Endpoints.createOptimizationExperiment(payload),
+  getExperiment: (id) => Endpoints.getOptimizationExperiment(id),
+  approveExperiment: (id, approver) => Endpoints.approveOptimizationExperiment(id, approver),
+  startExperiment: (id) => Endpoints.startOptimizationExperiment(id),
+  deployCanary: (payload) => Endpoints.deployOptimizationCanary(payload),
+  verifyCanary: (id, isVerified, advanceToFull) => Endpoints.verifyOptimizationCanary(id, isVerified, advanceToFull),
+  rollbackCanary: (id, reason, actor) => Endpoints.rollbackOptimizationCanary(id, reason, actor),
+  listChangeSets: () => Endpoints.listOptimizationChangeSets(),
+  ingestMeasurement: (payload) => Endpoints.ingestOptimizationMeasurement(payload),
+  getMetrics: () => Endpoints.getOptimizationMetrics(),
+  listBaselines: () => Endpoints.listOptimizationBaselines(),
+  listDrift: () => Endpoints.listOptimizationDrift(),
+  listCalibration: () => Endpoints.listOptimizationCalibration(),
+  getAudit: (csId, expId, limit) => Endpoints.getOptimizationAudit(csId, expId, limit),
+  toggleKillSwitch: (payload) => Endpoints.toggleOptimizationKillSwitch(payload),
 };
 
 export const endpoints = Endpoints;

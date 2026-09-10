@@ -379,3 +379,227 @@ def get_stats(
         tool_reliabilities=stats["tool_reliabilities"],
         provider_reliabilities=stats["provider_reliabilities"],
     )
+
+
+# =============================================================================
+# TASK 52 CONTINUOUS LEARNING REST APIS
+# =============================================================================
+
+from pydantic import BaseModel, Field
+from datetime import datetime
+from app.learning.schemas import (
+    ExperienceSchema,
+    GeneralizationScope,
+    HeuristicSchema,
+    LearningOutcomeSchema,
+    LessonSchema,
+    LessonType,
+    ReplayEvaluationSchema,
+    WorkflowPatternSchema,
+)
+
+
+class ExtractLessonRequest(BaseModel):
+    statement: str
+    lesson_type: LessonType = LessonType.SUCCESS_PATTERN
+    source_experiences: list[str] = Field(default_factory=list)
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
+    confidence: float = 0.8
+    scope: GeneralizationScope = GeneralizationScope.PROJECT
+    is_explicit_user_directive: bool = False
+
+
+class ConsolidateLessonsRequest(BaseModel):
+    target_lesson_id: str
+    candidate_lesson_id: str
+
+
+class ReplayExperienceRequest(BaseModel):
+    experience_id: str
+    simulation_context: dict[str, Any] = Field(default_factory=dict)
+    temporal_cutoff: datetime
+
+
+class RegisterWorkflowRequest(BaseModel):
+    name: str
+    steps: list[dict[str, Any]]
+    preconditions: list[dict[str, Any]] = Field(default_factory=list)
+    expected_outcome: dict[str, Any] = Field(default_factory=dict)
+    verification: dict[str, Any] = Field(default_factory=dict)
+    failure_modes: list[str] = Field(default_factory=list)
+
+
+class RegisterHeuristicRequest(BaseModel):
+    condition: str
+    recommendation: str
+    evidence: list[dict[str, Any]] = Field(default_factory=list)
+    confidence: float = 0.7
+    scope: GeneralizationScope = GeneralizationScope.TASK
+    priority: int = 1
+
+
+class UserCorrectionRequest(BaseModel):
+    target_action: str
+    user_directive: str
+    scope_hint: str | None = None
+
+
+class EvaluateOutcomeRequest(BaseModel):
+    expected: dict[str, Any]
+    actual: dict[str, Any]
+    verification_telemetry: dict[str, Any] | None = None
+    task_id: str | None = None
+
+
+@router.get("/continuous/metrics")
+def get_continuous_metrics(
+    service: LearningService = Depends(get_learning_service),
+) -> dict[str, Any]:
+    return service.get_continuous_metrics()
+
+
+@router.post("/continuous/outcomes")
+def evaluate_outcome(
+    req: EvaluateOutcomeRequest,
+    service: LearningService = Depends(get_learning_service),
+) -> dict[str, Any]:
+    outcome = service.evaluate_task_outcome(
+        expected=req.expected,
+        actual=req.actual,
+        verification_telemetry=req.verification_telemetry,
+        task_id=req.task_id,
+    )
+    return outcome.model_dump()
+
+
+@router.post("/continuous/lessons")
+def extract_lesson(
+    req: ExtractLessonRequest,
+    service: LearningService = Depends(get_learning_service),
+) -> dict[str, Any]:
+    try:
+        lesson = service.extract_lesson(
+            statement=req.statement,
+            lesson_type=req.lesson_type,
+            source_experiences=req.source_experiences,
+            evidence=req.evidence,
+            confidence=req.confidence,
+            scope=req.scope,
+            is_explicit_user_directive=req.is_explicit_user_directive,
+        )
+        return lesson.model_dump()
+    except Exception as ex:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ex))
+
+
+@router.get("/continuous/lessons")
+def list_lessons(
+    lesson_type: LessonType | None = Query(None),
+    scope: GeneralizationScope | None = Query(None),
+    service: LearningService = Depends(get_learning_service),
+) -> list[dict[str, Any]]:
+    lessons = service.lesson_extractor.list_lessons(lesson_type=lesson_type, scope=scope)
+    return [l.model_dump() for l in lessons]
+
+
+@router.post("/continuous/lessons/consolidate")
+def consolidate_lessons(
+    req: ConsolidateLessonsRequest,
+    service: LearningService = Depends(get_learning_service),
+) -> dict[str, Any]:
+    try:
+        res = service.consolidate_lessons(req.target_lesson_id, req.candidate_lesson_id)
+        return res.model_dump()
+    except Exception as ex:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ex))
+
+
+@router.post("/continuous/replays")
+def replay_experience(
+    req: ReplayExperienceRequest,
+    service: LearningService = Depends(get_learning_service),
+) -> dict[str, Any]:
+    try:
+        replay = service.replay_experience(
+            experience_id=req.experience_id,
+            simulation_context=req.simulation_context,
+            temporal_cutoff=req.temporal_cutoff,
+        )
+        return replay.model_dump()
+    except Exception as ex:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ex))
+
+
+@router.post("/continuous/workflows")
+def register_workflow(
+    req: RegisterWorkflowRequest,
+    service: LearningService = Depends(get_learning_service),
+) -> dict[str, Any]:
+    wf = service.register_workflow(
+        name=req.name,
+        steps=req.steps,
+        preconditions=req.preconditions,
+        expected_outcome=req.expected_outcome,
+        verification=req.verification,
+        failure_modes=req.failure_modes,
+    )
+    return wf.model_dump()
+
+
+@router.get("/continuous/workflows")
+def list_workflows(
+    status: str | None = Query(None),
+    service: LearningService = Depends(get_learning_service),
+) -> list[dict[str, Any]]:
+    wfs = service.workflow_mgr.list_workflows(status=status)
+    return [w.model_dump() for w in wfs]
+
+
+@router.post("/continuous/heuristics")
+def register_heuristic(
+    req: RegisterHeuristicRequest,
+    service: LearningService = Depends(get_learning_service),
+) -> dict[str, Any]:
+    try:
+        h = service.register_heuristic(
+            condition=req.condition,
+            recommendation=req.recommendation,
+            evidence=req.evidence,
+            confidence=req.confidence,
+            scope=req.scope,
+            priority=req.priority,
+        )
+        return h.model_dump()
+    except Exception as ex:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ex))
+
+
+@router.get("/continuous/heuristics")
+def list_heuristics(
+    scope: GeneralizationScope | None = Query(None),
+    status: str | None = Query(None),
+    service: LearningService = Depends(get_learning_service),
+) -> list[dict[str, Any]]:
+    heurs = service.heuristic_mgr.list_heuristics(scope=scope, status=status)
+    return [h.model_dump() for h in heurs]
+
+
+@router.post("/continuous/corrections")
+def handle_user_correction(
+    req: UserCorrectionRequest,
+    service: LearningService = Depends(get_learning_service),
+) -> dict[str, Any]:
+    res = service.handle_user_correction(
+        target_action=req.target_action,
+        user_directive=req.user_directive,
+        scope_hint=req.scope_hint,
+    )
+    return res.model_dump()
+
+
+@router.get("/continuous/governance")
+def get_governance_policy(
+    service: LearningService = Depends(get_learning_service),
+) -> dict[str, Any]:
+    return service.governance_engine.policy.model_dump()
+

@@ -6,6 +6,7 @@ from typing import Any
 
 from sqlalchemy import (
     JSON,
+    Boolean,
     DateTime,
     Float,
     Index,
@@ -144,3 +145,114 @@ class LearningPromotionRecord(Base):
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     approved_by: Mapped[str] = mapped_column(String(128), nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+# =============================================================================
+# TASK 52 CONTINUOUS LEARNING DATABASE MODELS
+# =============================================================================
+
+class LessonRecordModel(Base):
+    """Stores extracted lessons with evidence links, scope, validity, and confidence."""
+
+    __tablename__ = "learning_lessons"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    lesson_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    lesson_type: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    source_experiences: Mapped[list[Any]] = mapped_column(JSON, default=list, nullable=False)
+    evidence: Mapped[list[Any]] = mapped_column(JSON, default=list, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=0.8, nullable=False)
+    scope: Mapped[str] = mapped_column(String(64), index=True, default="PROJECT", nullable=False)
+    validity: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), index=True, default="CANDIDATE", nullable=False)
+    reinforcement_count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    decay_score: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class LearningOutcomeRecordModel(Base):
+    """Tracks expected vs actual task outcomes and verification evidence."""
+
+    __tablename__ = "learning_outcomes"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    outcome_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    task_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    expected: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    actual: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    deviation: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    verified: Mapped[bool] = mapped_column(Boolean, default=False, index=True, nullable=False)
+    evidence_refs: Mapped[list[Any]] = mapped_column(JSON, default=list, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class WorkflowPatternModel(Base):
+    """Reusable multi-step workflows extracted from validated successes."""
+
+    __tablename__ = "learning_workflows"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    workflow_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    version: Mapped[str] = mapped_column(String(32), default="1.0.0", nullable=False)
+    preconditions: Mapped[list[Any]] = mapped_column(JSON, default=list, nullable=False)
+    steps: Mapped[list[Any]] = mapped_column(JSON, default=list, nullable=False)
+    expected_outcome: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    verification: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    failure_modes: Mapped[list[Any]] = mapped_column(JSON, default=list, nullable=False)
+    success_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    failure_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="CANDIDATE", index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class HeuristicRecordModel(Base):
+    """Operational heuristics for planning, routing, and tool selection."""
+
+    __tablename__ = "learning_heuristics"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    heuristic_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    condition: Mapped[str] = mapped_column(Text, nullable=False)
+    recommendation: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence: Mapped[list[Any]] = mapped_column(JSON, default=list, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=0.7, nullable=False)
+    scope: Mapped[str] = mapped_column(String(64), default="TASK", index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="CANDIDATE", index=True, nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class ReplayRecordModel(Base):
+    """Records offline simulation replays and temporal leakage checks."""
+
+    __tablename__ = "learning_replays"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    replay_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    experience_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    simulated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    evaluation_result: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    temporal_cutoff: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    leakage_detected: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class LearningPolicyModel(Base):
+    """Governed policies controlling what learning is permitted to adapt."""
+
+    __tablename__ = "learning_policies"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: str(uuid.uuid4()))
+    policy_id: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    scope: Mapped[str] = mapped_column(String(64), default="GLOBAL", index=True, nullable=False)
+    allowed_adaptations: Mapped[list[Any]] = mapped_column(JSON, default=list, nullable=False)
+    approval_required: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    retention_days: Mapped[int] = mapped_column(Integer, default=90, nullable=False)
+    rollback_policy: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+

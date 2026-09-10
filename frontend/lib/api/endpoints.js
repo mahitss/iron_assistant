@@ -1181,6 +1181,58 @@ export const Endpoints = {
     return api.get('/api/v1/learning/stats');
   },
 
+  // --- Continuous Learning & Experience Consolidation Engine (Task 52) ---
+  async getContinuousLearningMetrics() {
+    return api.get('/api/v1/learning/continuous/metrics');
+  },
+
+  async evaluateLearningOutcome(payload) {
+    return api.post('/api/v1/learning/continuous/outcomes', payload);
+  },
+
+  async extractLearningLesson(payload) {
+    return api.post('/api/v1/learning/continuous/lessons', payload);
+  },
+
+  async listLearningLessons(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/learning/continuous/lessons${qs ? `?${qs}` : ''}`);
+  },
+
+  async consolidateLearningLessons(payload) {
+    return api.post('/api/v1/learning/continuous/lessons/consolidate', payload);
+  },
+
+  async runLearningReplay(payload) {
+    return api.post('/api/v1/learning/continuous/replays', payload);
+  },
+
+  async registerLearningWorkflow(payload) {
+    return api.post('/api/v1/learning/continuous/workflows', payload);
+  },
+
+  async listLearningWorkflows(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/learning/continuous/workflows${qs ? `?${qs}` : ''}`);
+  },
+
+  async registerLearningHeuristic(payload) {
+    return api.post('/api/v1/learning/continuous/heuristics', payload);
+  },
+
+  async listLearningHeuristics(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/learning/continuous/heuristics${qs ? `?${qs}` : ''}`);
+  },
+
+  async submitLearningCorrection(payload) {
+    return api.post('/api/v1/learning/continuous/corrections', payload);
+  },
+
+  async getLearningGovernancePolicy() {
+    return api.get('/api/v1/learning/continuous/governance');
+  },
+
   // ==================================================
   // Task 44 Multi-Agent Collaboration & Collective Intelligence
   // ==================================================
@@ -1696,6 +1748,21 @@ export const metacognitionApi = {
   getMetrics: () => Endpoints.getMetacognitiveMetrics(),
   reconcile: (payload) => Endpoints.reconcileSelfModel(payload),
   getHealth: () => Endpoints.getMetacognitionHealth(),
+};
+
+export const continuousLearningApi = {
+  getMetrics: () => Endpoints.getContinuousLearningMetrics(),
+  evaluateOutcome: (payload) => Endpoints.evaluateLearningOutcome(payload),
+  extractLesson: (payload) => Endpoints.extractLearningLesson(payload),
+  listLessons: (params) => Endpoints.listLearningLessons(params),
+  consolidateLessons: (payload) => Endpoints.consolidateLearningLessons(payload),
+  runReplay: (payload) => Endpoints.runLearningReplay(payload),
+  registerWorkflow: (payload) => Endpoints.registerLearningWorkflow(payload),
+  listWorkflows: (params) => Endpoints.listLearningWorkflows(params),
+  registerHeuristic: (payload) => Endpoints.registerLearningHeuristic(payload),
+  listHeuristics: (params) => Endpoints.listLearningHeuristics(params),
+  submitCorrection: (payload) => Endpoints.submitLearningCorrection(payload),
+  getGovernancePolicy: () => Endpoints.getLearningGovernancePolicy(),
 };
 
 export const endpoints = Endpoints;

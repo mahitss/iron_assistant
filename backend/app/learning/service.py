@@ -7,23 +7,45 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+from app.learning.adaptation import BehaviorAdaptationEngine
+from app.learning.consolidation import ExperienceConsolidator
+from app.learning.corrections import CorrectionHandler
 from app.learning.decay import EnvironmentalDecayManager
+from app.learning.evaluation import ContinuousLearningEvaluator
 from app.learning.evaluator import StrategyEvaluator
-from app.learning.experiences import Experience, ExperienceType
+from app.learning.experiences import Experience, ExperienceManager, ExperienceType
 from app.learning.experimentation import Experiment, ExperimentStatus
 from app.learning.failures import FailureManager, PreFlightWarning
-from app.learning.feedback import FeedbackIngestor, FeedbackItem
+from app.learning.feedback import FeedbackIngestor, FeedbackItem, FeedbackProcessor
+from app.learning.generalization import GeneralizationGuard
+from app.learning.governance import LearningGovernanceEngine
+from app.learning.heuristics import HeuristicManager
+from app.learning.lessons import LessonExtractor
 from app.learning.optimizer import RankedStrategy, StrategyOptimizer
+from app.learning.outcomes import LearningOutcome, OutcomeEvaluator
 from app.learning.patterns import FailurePattern
 from app.learning.personalization import PersonalizationManager, UserPreferenceProfile
 from app.learning.promotion import PromotionRecord, StrategyPromoter
 from app.learning.provenance import StrategyProvenanceRecord
+from app.learning.ranking import AdaptiveRankingEngine
 from app.learning.reliability import ReliabilityTracker
+from app.learning.replay import ExperienceReplayEngine
+from app.learning.retention import LearningRetentionManager
+from app.learning.retrieval import AdaptiveRetrievalEngine
 from app.learning.rollback import RollbackRecord, StrategyRollbacker
 from app.learning.safety import LearningSafetyGuard
+from app.learning.schemas import (
+    AdaptationType,
+    FeedbackType,
+    GeneralizationScope,
+    LessonStatus,
+    LessonType,
+)
 from app.learning.signals import LearningSignal, SignalSource, SignalType
+from app.learning.skills import SkillImprovementEngine
 from app.learning.strategies import Strategy, StrategyStatus
 from app.learning.strategy_store import StrategyStore
+from app.learning.workflows import WorkflowManager
 
 logger = logging.getLogger("kairo.learning.service")
 
@@ -36,7 +58,7 @@ class LearningService:
     """Enterprise coordinator for continuous learning, strategy optimization, and governed promotion."""
 
     def __init__(self) -> None:
-        # Core Subsystems
+        # Core Subsystems (Task 43)
         self.strategy_store = StrategyStore()
         self.optimizer = StrategyOptimizer()
         self.evaluator = StrategyEvaluator()
@@ -47,6 +69,25 @@ class LearningService:
         self.feedback_ingestor = FeedbackIngestor()
         self.decay_manager = EnvironmentalDecayManager()
         self.personalization = PersonalizationManager()
+
+        # Task 52 Continuous Learning Subsystems
+        self.experience_mgr = ExperienceManager()
+        self.outcome_evaluator = OutcomeEvaluator()
+        self.lesson_extractor = LessonExtractor()
+        self.generalization_guard = GeneralizationGuard()
+        self.consolidator = ExperienceConsolidator()
+        self.replay_engine = ExperienceReplayEngine()
+        self.continuous_evaluator = ContinuousLearningEvaluator()
+        self.adaptation_engine = BehaviorAdaptationEngine()
+        self.skill_improver = SkillImprovementEngine()
+        self.workflow_mgr = WorkflowManager()
+        self.heuristic_mgr = HeuristicManager()
+        self.retrieval_engine = AdaptiveRetrievalEngine()
+        self.ranking_engine = AdaptiveRankingEngine()
+        self.feedback_processor = FeedbackProcessor()
+        self.correction_handler = CorrectionHandler()
+        self.retention_mgr = LearningRetentionManager()
+        self.governance_engine = LearningGovernanceEngine()
 
         # In-memory primary registries
         self._experiences: dict[str, Experience] = {}
@@ -430,3 +471,169 @@ class LearningService:
             "tool_reliabilities": self.reliability.get_all_tool_reliability(),
             "provider_reliabilities": self.reliability.get_all_provider_reliability(),
         }
+
+    # =========================================================================
+    # TASK 52 CONTINUOUS LEARNING PIPELINE
+    # =========================================================================
+
+    def capture_continuous_experience(self, exp: Experience) -> Experience:
+        """INVARIANTS 2-4: Ingests an experience into the continuous learning registry."""
+        stored = self.experience_mgr.capture_experience(exp)
+        self._experiences[stored.experience_id] = stored
+        self.continuous_evaluator.metrics.total_experiences = len(self._experiences)
+        return stored
+
+    def evaluate_task_outcome(
+        self,
+        expected: dict[str, Any],
+        actual: dict[str, Any],
+        verification_telemetry: dict[str, Any] | None = None,
+        task_id: str | None = None,
+    ) -> LearningOutcome:
+        """INVARIANTS 5-10: Evaluates task outcomes and compares expected vs actual."""
+        outcome = self.outcome_evaluator.evaluate_outcome(
+            expected=expected,
+            actual=actual,
+            verification_telemetry=verification_telemetry,
+            task_id=task_id,
+        )
+        self.continuous_evaluator.record_execution(
+            was_successful=outcome.deviation == 0.0,
+            was_verified=outcome.verified,
+        )
+        return outcome
+
+    def extract_lesson(
+        self,
+        statement: str,
+        lesson_type: LessonType,
+        source_experiences: list[str],
+        evidence: list[dict[str, Any]],
+        confidence: float = 0.8,
+        scope: GeneralizationScope = GeneralizationScope.PROJECT,
+        is_explicit_user_directive: bool = False,
+    ) -> Any:
+        """INVARIANTS 11-19: Extracts a structured lesson with empirical evidence and scope validation."""
+        # INVARIANT 14-19: Validate scope bounds
+        self.generalization_guard.validate_generalization(
+            target_scope=scope,
+            experience_count=len(source_experiences),
+            is_explicit_user_directive=is_explicit_user_directive,
+            is_verified_pattern=len(evidence) >= 2,
+        )
+
+        lesson = self.lesson_extractor.extract_lesson(
+            statement=statement,
+            lesson_type=lesson_type,
+            source_experiences=source_experiences,
+            evidence=evidence,
+            confidence=confidence,
+            scope=scope,
+            status=LessonStatus.CANDIDATE,
+        )
+        self.continuous_evaluator.metrics.total_lessons = len(self.lesson_extractor.list_lessons())
+        return lesson
+
+    def consolidate_lessons(self, target_lesson_id: str, candidate_lesson_id: str) -> Any:
+        """INVARIANT 105 & 106: Consolidates candidate lesson into target lesson safely."""
+        target = self.lesson_extractor.get_lesson(target_lesson_id)
+        if not target:
+            raise ValueError(f"Target lesson '{target_lesson_id}' not found.")
+        cand = self.lesson_extractor.get_lesson(candidate_lesson_id)
+        if not cand:
+            raise ValueError(f"Candidate lesson '{candidate_lesson_id}' not found.")
+
+        return self.consolidator.consolidate_lessons(target, cand)
+
+    def replay_experience(
+        self,
+        experience_id: str,
+        simulation_context: dict[str, Any],
+        temporal_cutoff: datetime,
+    ) -> Any:
+        """INVARIANTS 30-35: Replays past experience in simulation with anti-leakage checks."""
+        exp = self.experience_mgr.get_experience(experience_id)
+        if not exp:
+            raise ValueError(f"Experience '{experience_id}' not found.")
+
+        return self.replay_engine.replay_experience(
+            experience=exp,
+            simulation_context=simulation_context,
+            temporal_cutoff=temporal_cutoff,
+        )
+
+    def register_workflow(
+        self,
+        name: str,
+        steps: list[dict[str, Any]],
+        preconditions: list[dict[str, Any]] | None = None,
+        expected_outcome: dict[str, Any] | None = None,
+        verification: dict[str, Any] | None = None,
+        failure_modes: list[str] | None = None,
+    ) -> Any:
+        """INVARIANTS 62 & 63: Registers a reusable workflow pattern."""
+        wf = self.workflow_mgr.register_workflow(
+            name=name,
+            steps=steps,
+            preconditions=preconditions,
+            expected_outcome=expected_outcome,
+            verification=verification,
+            failure_modes=failure_modes,
+        )
+        self.continuous_evaluator.metrics.promoted_workflows = len(self.workflow_mgr.list_workflows())
+        return wf
+
+    def register_heuristic(
+        self,
+        condition: str,
+        recommendation: str,
+        evidence: list[dict[str, Any]],
+        confidence: float = 0.7,
+        scope: GeneralizationScope = GeneralizationScope.TASK,
+        priority: int = 1,
+    ) -> Any:
+        """INVARIANTS 68-73: Registers an operational planning/routing heuristic."""
+        h = self.heuristic_mgr.register_heuristic(
+            condition=condition,
+            recommendation=recommendation,
+            evidence=evidence,
+            confidence=confidence,
+            scope=scope,
+            priority=priority,
+        )
+        self.continuous_evaluator.metrics.active_heuristics = len(self.heuristic_mgr.list_heuristics())
+        return h
+
+    def apply_behavior_adaptation(
+        self,
+        adaptation_type: AdaptationType,
+        target_component: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        """INVARIANTS 80 & 81: Applies bounded behavioral adaptation without modifying model weights."""
+        if not self.governance_engine.is_adaptation_permitted(adaptation_type.value):
+            raise PermissionError(f"Adaptation '{adaptation_type.value}' is prohibited by LearningPolicy.")
+
+        return self.adaptation_engine.apply_adaptation(
+            adaptation_type=adaptation_type,
+            target_component=target_component,
+            adaptation_payload=payload,
+        )
+
+    def handle_user_correction(
+        self,
+        target_action: str,
+        user_directive: str,
+        scope_hint: str | None = None,
+    ) -> Any:
+        """INVARIANTS 22-24, 121: Processes explicit user corrections."""
+        return self.correction_handler.handle_correction(
+            target_action=target_action,
+            user_directive=user_directive,
+            scope_hint=scope_hint,
+        )
+
+    def get_continuous_metrics(self) -> dict[str, Any]:
+        """INVARIANT 151 & 152: Returns multi-dimensional continuous learning metrics."""
+        return self.continuous_evaluator.get_metrics_report()
+

@@ -77,5 +77,20 @@ Learning proposes improvements; Governance decides whether those improvements ar
    - Scoped user and project preferences with strict cross-tenant isolation.
    - Anti-reward-hacking guards prevent optimizations that sacrifice verification coverage for speed.
 
-9. **REST API & Operator UI (`router.py`, `schemas.py`)**:
-   - Mounted under `/api/v1/learning`.
+9. **Continuous Learning & Experience Consolidation (`lessons.py`, `generalization.py`, `replay.py`, `workflows.py`, `heuristics.py`)**:
+   - Continuous experience capture, status lifecycle (`RAW`, `EVALUATED`, `VALIDATED`, `CONSOLIDATED`, `REJECTED`, `EXPIRED`).
+   - Expected vs Actual outcome evaluation (`outcomes.py`) with deviation calculation.
+   - Empirical lesson extraction (`lessons.py`) requiring source experiences and evidence.
+   - Anti-overgeneralization guards (`generalization.py`) enforcing scope hierarchy (`TASK` → `SESSION` → `PROJECT` → `REPOSITORY` → `ENVIRONMENT` → `USER` → `GLOBAL`).
+   - Contradiction-safe experience and lesson consolidation (`consolidation.py`).
+   - Offline simulation replay (`replay.py`) with strict temporal anti-leakage guards.
+   - Reusable workflow pattern management (`workflows.py`) with policy re-checks before execution.
+   - Operational heuristic learning (`heuristics.py`) with explicit priority resolution.
+   - Bounded behavioral adaptation (`adaptation.py`) strictly prohibiting runtime model weight modifications.
+   - User correction handling (`corrections.py`) with explicit scope disambiguation.
+   - Governed learning policy (`governance.py`) supporting shadow mode and canary rollback.
+
+10. **REST API & Operator UI (`router.py`, `schemas.py`)**:
+    - Mounted under `/api/v1/learning`.
+    - Endpoints for strategies, experiences, outcomes, lessons, workflows, heuristics, replays, corrections, and governance.
+

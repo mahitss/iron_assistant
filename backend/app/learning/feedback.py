@@ -87,3 +87,73 @@ class FeedbackIngestor:
         if target_id:
             return [f for f in self._history if f.target_id == target_id]
         return list(self._history)
+
+
+# =============================================================================
+# TASK 52 FEEDBACK PROCESSOR & WEIGHTING
+# =============================================================================
+
+from app.learning.schemas import FeedbackType
+
+
+class FeedbackProcessor:
+    """Processes explicit feedback, user draft edits, and user override enforcement (INVARIANTS 25-29, 121-122)."""
+
+    def __init__(self) -> None:
+        self._feedback_records: list[dict[str, Any]] = []
+        # user_id -> dict of recurring edit patterns
+        self._user_edit_patterns: dict[str, dict[str, int]] = {}
+
+    def process_feedback(
+        self,
+        target_id: str,
+        feedback_type: FeedbackType,
+        user_id: str,
+        comment: str | None = None,
+        edit_diff: dict[str, Any] | None = None,
+        is_explicit: bool = True,
+    ) -> dict[str, Any]:
+        """INVARIANT 26: Explicit feedback receives full weight (1.0). Passive observation gets low weight (0.1)."""
+        # INVARIANT 27: Do not assume "User didn't complain" means "User approved"
+        weight = 1.0 if is_explicit else 0.1
+        if feedback_type in (FeedbackType.CORRECT, FeedbackType.REJECT):
+            weight = 1.0  # Corrections always carry authoritative weight
+
+        record = {
+            "target_id": target_id,
+            "feedback_type": feedback_type.value if hasattr(feedback_type, "value") else str(feedback_type),
+            "user_id": user_id,
+            "comment": comment,
+            "edit_diff": edit_diff or {},
+            "is_explicit": is_explicit,
+            "weight": weight,
+            "timestamp": datetime.now(UTC),
+        }
+        self._feedback_records.append(record)
+
+        # INVARIANT 28: User edit tracking
+        if feedback_type == FeedbackType.EDIT and edit_diff:
+            self._track_edit_pattern(user_id, edit_diff)
+
+        return record
+
+    def _track_edit_pattern(self, user_id: str, edit_diff: dict[str, Any]) -> None:
+        patterns = self._user_edit_patterns.setdefault(user_id, {})
+        edit_key = str(sorted(edit_diff.items()))
+        patterns[edit_key] = patterns.get(edit_key, 0) + 1
+
+    def get_candidate_preference_from_edits(self, user_id: str, min_repetitions: int = 3) -> list[str]:
+        """INVARIANT 28: Repeated consistent edits create candidate preferences."""
+        patterns = self._user_edit_patterns.get(user_id, {})
+        return [k for k, count in patterns.items() if count >= min_repetitions]
+
+    def enforce_user_override(
+        self,
+        learned_preference: Any,
+        current_explicit_instruction: str,
+    ) -> tuple[bool, str]:
+        """INVARIANT 29 & 122: Current explicit instruction strictly overrides learned preference."""
+        if current_explicit_instruction and current_explicit_instruction.strip():
+            return True, f"Learned preference overridden by current explicit instruction: '{current_explicit_instruction}'"
+        return False, "Using learned preference"
+

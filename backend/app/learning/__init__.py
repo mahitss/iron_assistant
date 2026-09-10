@@ -27,6 +27,47 @@ from app.learning.signals import (
 from app.learning.strategies import Strategy, StrategyStatus
 from app.learning.strategy_store import StrategyStore
 
+from app.learning.adaptation import BehaviorAdaptationEngine, ModelWeightModificationError
+from app.learning.consolidation import ContradictoryConsolidationError, ExperienceConsolidator
+from app.learning.corrections import CorrectionHandler
+from app.learning.evaluation import ContinuousLearningEvaluator
+from app.learning.experiences import ExperienceManager
+from app.learning.generalization import GeneralizationGuard, OvergeneralizationError
+from app.learning.governance import LearningGovernanceEngine
+from app.learning.heuristics import HeuristicManager, HeuristicPolicyInferenceError
+from app.learning.lessons import LessonExtractor
+from app.learning.outcomes import LearningOutcome, OutcomeEvaluator
+from app.learning.ranking import AdaptiveRankingEngine
+from app.learning.replay import ExperienceReplayEngine, TemporalLeakageError
+from app.learning.retention import LearningRetentionManager
+from app.learning.retrieval import AdaptiveRetrievalEngine
+from app.learning.safety import (
+    DataPoisoningError,
+    PolicyModificationAttemptError,
+    SafetyBoundaryViolationError,
+)
+from app.learning.schemas import (
+    AdaptationType,
+    ContinuousLearningMetricsSchema,
+    CorrectionRecordSchema,
+    ExperienceSchema,
+    ExperienceSource,
+    ExperienceStatus,
+    FeedbackRecordSchema,
+    FeedbackType,
+    GeneralizationScope,
+    HeuristicSchema,
+    LearningOutcomeSchema,
+    LearningPolicySchema,
+    LessonSchema,
+    LessonStatus,
+    LessonType,
+    ReplayEvaluationSchema,
+    WorkflowPatternSchema,
+)
+from app.learning.skills import SkillImprovementEngine
+from app.learning.workflows import WorkflowManager, WorkflowPolicyViolationError
+
 __all__ = [
     "Experience",
     "ExperienceType",
@@ -65,4 +106,48 @@ __all__ = [
     "StrategyProvenanceRecord",
     "LearningService",
     "learning_router",
+    "ExperienceManager",
+    "LearningOutcome",
+    "OutcomeEvaluator",
+    "LessonExtractor",
+    "GeneralizationGuard",
+    "OvergeneralizationError",
+    "ExperienceConsolidator",
+    "ContradictoryConsolidationError",
+    "ExperienceReplayEngine",
+    "TemporalLeakageError",
+    "ContinuousLearningEvaluator",
+    "BehaviorAdaptationEngine",
+    "ModelWeightModificationError",
+    "SkillImprovementEngine",
+    "WorkflowManager",
+    "WorkflowPolicyViolationError",
+    "HeuristicManager",
+    "HeuristicPolicyInferenceError",
+    "AdaptiveRetrievalEngine",
+    "AdaptiveRankingEngine",
+    "FeedbackProcessor",
+    "CorrectionHandler",
+    "LearningRetentionManager",
+    "LearningGovernanceEngine",
+    "SafetyBoundaryViolationError",
+    "PolicyModificationAttemptError",
+    "DataPoisoningError",
+    "ExperienceStatus",
+    "ExperienceSource",
+    "LessonType",
+    "LessonStatus",
+    "GeneralizationScope",
+    "FeedbackType",
+    "AdaptationType",
+    "ExperienceSchema",
+    "LearningOutcomeSchema",
+    "LessonSchema",
+    "WorkflowPatternSchema",
+    "HeuristicSchema",
+    "ReplayEvaluationSchema",
+    "LearningPolicySchema",
+    "ContinuousLearningMetricsSchema",
+    "FeedbackRecordSchema",
+    "CorrectionRecordSchema",
 ]

@@ -2039,6 +2039,79 @@ export const Endpoints = {
   async getDecisionCalibrationAnalytics() {
     return api.get('/api/v1/decision/analytics/calibration');
   },
+
+  // --- Task 58: Strategic Planning Engine ---
+  async createPlan(payload) {
+    return api.post('/api/v1/planning/plans', payload);
+  },
+
+  async listPlans() {
+    return api.get('/api/v1/planning/plans');
+  },
+
+  async getPlan(planId) {
+    return api.get(`/api/v1/planning/plans/${encodeURIComponent(planId)}`);
+  },
+
+  async validatePlan(planId, payload = {}) {
+    return api.post(`/api/v1/planning/plans/${encodeURIComponent(planId)}/validate`, payload);
+  },
+
+  async analyzePlan(planId) {
+    return api.post(`/api/v1/planning/plans/${encodeURIComponent(planId)}/analyze`);
+  },
+
+  async startPlan(planId, payload = {}) {
+    return api.post(`/api/v1/planning/plans/${encodeURIComponent(planId)}/start`, payload);
+  },
+
+  async pausePlan(planId, payload = {}) {
+    return api.post(`/api/v1/planning/plans/${encodeURIComponent(planId)}/pause`, payload);
+  },
+
+  async resumePlan(planId, payload = {}) {
+    return api.post(`/api/v1/planning/plans/${encodeURIComponent(planId)}/resume`, payload);
+  },
+
+  async cancelPlan(planId, payload = {}) {
+    return api.post(`/api/v1/planning/plans/${encodeURIComponent(planId)}/cancel`, payload);
+  },
+
+  async replan(planId, payload) {
+    return api.post(`/api/v1/planning/plans/${encodeURIComponent(planId)}/replan`, payload);
+  },
+
+  async getPlanProgress(planId) {
+    return api.get(`/api/v1/planning/plans/${encodeURIComponent(planId)}/progress`);
+  },
+
+  async getPlanTimeline(planId) {
+    return api.get(`/api/v1/planning/plans/${encodeURIComponent(planId)}/timeline`);
+  },
+
+  async getPlanDependencies(planId) {
+    return api.get(`/api/v1/planning/plans/${encodeURIComponent(planId)}/dependencies`);
+  },
+
+  async getPlanRisks(planId) {
+    return api.get(`/api/v1/planning/plans/${encodeURIComponent(planId)}/risks`);
+  },
+
+  async getPlanOutcomes(planId) {
+    return api.get(`/api/v1/planning/plans/${encodeURIComponent(planId)}/outcomes`);
+  },
+
+  async recordPlanOutcome(planId, payload) {
+    return api.post(`/api/v1/planning/plans/${encodeURIComponent(planId)}/outcomes`, payload);
+  },
+
+  async getExecutionProposal(planId) {
+    return api.get(`/api/v1/planning/plans/${encodeURIComponent(planId)}/proposal`);
+  },
+
+  async getPlanAudit(planId) {
+    return api.get(`/api/v1/planning/plans/${encodeURIComponent(planId)}/audit`);
+  },
 };
 
 
@@ -2214,6 +2287,27 @@ export const decisionApi = {
   explain: (decisionId, query) => Endpoints.getDecisionExplanation(decisionId, query),
   reconstructAsOf: (decisionId) => Endpoints.getDecisionAsOf(decisionId),
   getAnalytics: () => Endpoints.getDecisionCalibrationAnalytics(),
+};
+
+export const planningApi = {
+  create: (payload) => Endpoints.createPlan(payload),
+  list: () => Endpoints.listPlans(),
+  get: (planId) => Endpoints.getPlan(planId),
+  validate: (planId, payload) => Endpoints.validatePlan(planId, payload),
+  analyze: (planId) => Endpoints.analyzePlan(planId),
+  start: (planId, payload) => Endpoints.startPlan(planId, payload),
+  pause: (planId, payload) => Endpoints.pausePlan(planId, payload),
+  resume: (planId, payload) => Endpoints.resumePlan(planId, payload),
+  cancel: (planId, payload) => Endpoints.cancelPlan(planId, payload),
+  replan: (planId, payload) => Endpoints.replan(planId, payload),
+  getProgress: (planId) => Endpoints.getPlanProgress(planId),
+  getTimeline: (planId) => Endpoints.getPlanTimeline(planId),
+  getDependencies: (planId) => Endpoints.getPlanDependencies(planId),
+  getRisks: (planId) => Endpoints.getPlanRisks(planId),
+  getOutcomes: (planId) => Endpoints.getPlanOutcomes(planId),
+  recordOutcome: (planId, payload) => Endpoints.recordPlanOutcome(planId, payload),
+  getProposal: (planId) => Endpoints.getExecutionProposal(planId),
+  getAudit: (planId) => Endpoints.getPlanAudit(planId),
 };
 
 export const endpoints = Endpoints;

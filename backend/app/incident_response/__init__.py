@@ -1,0 +1,63 @@
+"""Kairo Incident Response & Recovery Autonomy Engine (Task 61)."""
+
+from app.incident_response.engine import IncidentResponseEngine, incident_response_engine
+from app.incident_response.safety import (
+    IncidentResponseExecutionBoundaryError,
+    IncidentResponseSafetyError,
+    block_direct_incident_action,
+    sanitize_incident_directive,
+    scrub_incident_secrets,
+)
+from app.incident_response.schemas import (
+    ActionState,
+    AutomationLevel,
+    CausalHypothesisItem,
+    DiagnosticTask,
+    EvidenceItem,
+    HypothesisStatus,
+    IncidentActionItem,
+    IncidentResponse,
+    IncidentSeverity,
+    IncidentStatus,
+    IncidentUrgency,
+    InvestigationPlan,
+    PostmortemReport,
+    RecoveryCheckpoint,
+    RecoveryPlan,
+    RecoveryState,
+    RecoveryStep,
+    ResponderRole,
+    ResponseOptionItem,
+)
+from app.incident_response.service import IncidentResponseService, incident_response_service
+
+__all__ = [
+    "IncidentResponseEngine",
+    "incident_response_engine",
+    "IncidentResponseService",
+    "incident_response_service",
+    "IncidentResponseSafetyError",
+    "IncidentResponseExecutionBoundaryError",
+    "block_direct_incident_action",
+    "sanitize_incident_directive",
+    "scrub_incident_secrets",
+    "IncidentResponse",
+    "IncidentStatus",
+    "IncidentSeverity",
+    "IncidentUrgency",
+    "HypothesisStatus",
+    "ActionState",
+    "RecoveryState",
+    "AutomationLevel",
+    "ResponderRole",
+    "EvidenceItem",
+    "CausalHypothesisItem",
+    "DiagnosticTask",
+    "InvestigationPlan",
+    "ResponseOptionItem",
+    "RecoveryStep",
+    "RecoveryCheckpoint",
+    "RecoveryPlan",
+    "IncidentActionItem",
+    "PostmortemReport",
+]

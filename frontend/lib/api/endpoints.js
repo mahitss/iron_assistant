@@ -2237,6 +2237,61 @@ export const Endpoints = {
     if (situationId) q += `&situation_id=${encodeURIComponent(situationId)}`;
     return api.get(`/api/v1/situations/audit/trail${q}`);
   },
+
+  // --- Task 61: Incident Response & Recovery Autonomy Engine ---
+  async createIncidentFromSituation(payload) {
+    return api.post('/api/v1/incidents/from-situation', payload);
+  },
+
+  async listIncidents(environment = null, status = null) {
+    let q = [];
+    if (environment) q.push(`environment=${encodeURIComponent(environment)}`);
+    if (status) q.push(`status=${encodeURIComponent(status)}`);
+    const qs = q.length ? `?${q.join('&')}` : '';
+    return api.get(`/api/v1/incidents${qs}`);
+  },
+
+  async getIncident(incidentId) {
+    return api.get(`/api/v1/incidents/${encodeURIComponent(incidentId)}`);
+  },
+
+  async triageIncident(incidentId, payload) {
+    return api.post(`/api/v1/incidents/${encodeURIComponent(incidentId)}/triage`, payload);
+  },
+
+  async addIncidentEvidence(incidentId, payload) {
+    return api.post(`/api/v1/incidents/${encodeURIComponent(incidentId)}/evidence`, payload);
+  },
+
+  async selectIncidentOption(incidentId, optionId, payload = {}) {
+    return api.post(`/api/v1/incidents/${encodeURIComponent(incidentId)}/options/${encodeURIComponent(optionId)}/select`, payload);
+  },
+
+  async approveIncidentAction(incidentId, payload) {
+    return api.post(`/api/v1/incidents/${encodeURIComponent(incidentId)}/actions/approve`, payload);
+  },
+
+  async verifyRecoveryCheckpoint(incidentId, payload) {
+    return api.post(`/api/v1/incidents/${encodeURIComponent(incidentId)}/checkpoints/verify`, payload);
+  },
+
+  async resolveIncident(incidentId, payload) {
+    return api.post(`/api/v1/incidents/${encodeURIComponent(incidentId)}/resolve`, payload);
+  },
+
+  async reopenIncident(incidentId, payload) {
+    return api.post(`/api/v1/incidents/${encodeURIComponent(incidentId)}/reopen`, payload);
+  },
+
+  async getIncidentPostmortem(incidentId) {
+    return api.get(`/api/v1/incidents/${encodeURIComponent(incidentId)}/postmortem`);
+  },
+
+  async getIncidentAudit(incidentId = null, limit = 100) {
+    let q = `?limit=${limit}`;
+    if (incidentId) q += `&incident_id=${encodeURIComponent(incidentId)}`;
+    return api.get(`/api/v1/incidents/audit/trail${q}`);
+  },
 };
 
 
@@ -2465,6 +2520,21 @@ export const situationsApi = {
   getAttentionFeed: () => Endpoints.getAttentionFeed(),
   getBaselines: (env) => Endpoints.listSignalBaselines(env),
   getAudit: (id, limit) => Endpoints.getSituationAudit(id, limit),
+};
+
+export const incidentsApi = {
+  createFromSituation: (payload) => Endpoints.createIncidentFromSituation(payload),
+  list: (env, status) => Endpoints.listIncidents(env, status),
+  get: (id) => Endpoints.getIncident(id),
+  triage: (id, payload) => Endpoints.triageIncident(id, payload),
+  addEvidence: (id, payload) => Endpoints.addIncidentEvidence(id, payload),
+  selectOption: (id, optId, payload) => Endpoints.selectIncidentOption(id, optId, payload),
+  approveAction: (id, payload) => Endpoints.approveIncidentAction(id, payload),
+  verifyCheckpoint: (id, payload) => Endpoints.verifyRecoveryCheckpoint(id, payload),
+  resolve: (id, payload) => Endpoints.resolveIncident(id, payload),
+  reopen: (id, payload) => Endpoints.reopenIncident(id, payload),
+  getPostmortem: (id) => Endpoints.getIncidentPostmortem(id),
+  getAudit: (id, limit) => Endpoints.getIncidentAudit(id, limit),
 };
 
 export const endpoints = Endpoints;

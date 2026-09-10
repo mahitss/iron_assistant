@@ -2377,6 +2377,83 @@ export const Endpoints = {
   async toggleOptimizationKillSwitch(payload) {
     return api.post('/api/v1/optimization/kill-switch', payload);
   },
+
+  // --- Knowledge Synthesis & Research Intelligence (Task 63) ---
+  async startResearch(payload) {
+    return api.post('/api/v1/research', payload);
+  },
+
+  async listResearchSessions(limit = 50) {
+    return api.get(`/api/v1/research?limit=${limit}`);
+  },
+
+  async getResearch(sessionId) {
+    return api.get(`/api/v1/research/${encodeURIComponent(sessionId)}`);
+  },
+
+  async getResearchSources(sessionId) {
+    return api.get(`/api/v1/research/${encodeURIComponent(sessionId)}/sources`);
+  },
+
+  async getResearchClaims(sessionId) {
+    return api.get(`/api/v1/research/${encodeURIComponent(sessionId)}/claims`);
+  },
+
+  async getResearchEvidence(sessionId) {
+    return api.get(`/api/v1/research/${encodeURIComponent(sessionId)}/evidence`);
+  },
+
+  async getResearchConflicts(sessionId) {
+    return api.get(`/api/v1/research/${encodeURIComponent(sessionId)}/conflicts`);
+  },
+
+  async getResearchGaps(sessionId) {
+    return api.get(`/api/v1/research/${encodeURIComponent(sessionId)}/gaps`);
+  },
+
+  async getResearchTimeline(sessionId) {
+    return api.get(`/api/v1/research/${encodeURIComponent(sessionId)}/timeline`);
+  },
+
+  async continueResearch(sessionId, followUpQuestion) {
+    return api.post(`/api/v1/research/${encodeURIComponent(sessionId)}/continue?follow_up_question=${encodeURIComponent(followUpQuestion)}`);
+  },
+
+  async verifyResearchClaim(sessionId, payload) {
+    return api.post(`/api/v1/research/${encodeURIComponent(sessionId)}/verify`, payload);
+  },
+
+  async ingestResearchDocument(payload) {
+    return api.post('/api/v1/research/documents', payload);
+  },
+
+  async getResearchClaim(claimId) {
+    return api.get(`/api/v1/research/claims/${encodeURIComponent(claimId)}`);
+  },
+
+  async getResearchSource(sourceId) {
+    return api.get(`/api/v1/research/sources/${encodeURIComponent(sourceId)}`);
+  },
+
+  async retractResearchSource(sourceId, reason = 'Retracted by publisher') {
+    return api.post(`/api/v1/research/sources/${encodeURIComponent(sourceId)}/retract?reason=${encodeURIComponent(reason)}`);
+  },
+
+  async getResearchDecisionPackage(sessionId) {
+    return api.get(`/api/v1/research/${encodeURIComponent(sessionId)}/decision-package`);
+  },
+
+  async getResearchKnowledgeChanges(limit = 100) {
+    return api.get(`/api/v1/research/knowledge/changes?limit=${limit}`);
+  },
+
+  async getResearchAudit(sessionId = null, sourceId = null, claimId = null, limit = 100) {
+    let q = [`limit=${limit}`];
+    if (sessionId) q.push(`session_id=${encodeURIComponent(sessionId)}`);
+    if (sourceId) q.push(`source_id=${encodeURIComponent(sourceId)}`);
+    if (claimId) q.push(`claim_id=${encodeURIComponent(claimId)}`);
+    return api.get(`/api/v1/research/audit/trail?${q.join('&')}`);
+  },
 };
 
 
@@ -2643,6 +2720,27 @@ export const optimizationApi = {
   listCalibration: () => Endpoints.listOptimizationCalibration(),
   getAudit: (csId, expId, limit) => Endpoints.getOptimizationAudit(csId, expId, limit),
   toggleKillSwitch: (payload) => Endpoints.toggleOptimizationKillSwitch(payload),
+};
+
+export const researchApi = {
+  start: (payload) => Endpoints.startResearch(payload),
+  list: (limit) => Endpoints.listResearchSessions(limit),
+  get: (id) => Endpoints.getResearch(id),
+  getSources: (id) => Endpoints.getResearchSources(id),
+  getClaims: (id) => Endpoints.getResearchClaims(id),
+  getEvidence: (id) => Endpoints.getResearchEvidence(id),
+  getConflicts: (id) => Endpoints.getResearchConflicts(id),
+  getGaps: (id) => Endpoints.getResearchGaps(id),
+  getTimeline: (id) => Endpoints.getResearchTimeline(id),
+  continue: (id, q) => Endpoints.continueResearch(id, q),
+  verifyClaim: (id, payload) => Endpoints.verifyResearchClaim(id, payload),
+  ingestDocument: (payload) => Endpoints.ingestResearchDocument(payload),
+  getClaim: (id) => Endpoints.getResearchClaim(id),
+  getSource: (id) => Endpoints.getResearchSource(id),
+  retractSource: (id, reason) => Endpoints.retractResearchSource(id, reason),
+  getDecisionPackage: (id) => Endpoints.getResearchDecisionPackage(id),
+  getChanges: (limit) => Endpoints.getResearchKnowledgeChanges(limit),
+  getAudit: (sessionId, sourceId, claimId, limit) => Endpoints.getResearchAudit(sessionId, sourceId, claimId, limit),
 };
 
 export const endpoints = Endpoints;

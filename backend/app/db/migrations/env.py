@@ -17,6 +17,7 @@ import app.autonomy.models  # noqa: F401
 import app.cognition.models  # noqa: F401
 import app.communication.models  # noqa: F401
 import app.context.models  # noqa: F401
+import app.causal.models  # noqa: F401
 import app.environment.models  # noqa: F401
 import app.executive_memory.models  # noqa: F401
 

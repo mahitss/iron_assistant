@@ -1873,6 +1873,55 @@ export const Endpoints = {
   async getEnvironmentProduction() {
     return api.get('/api/v1/environment/topology/production');
   },
+
+  // --- Causal Reasoning & Causal Graph (Task 55) ---
+  async getCausalGraph(graphId = 'system_default') {
+    return api.get(`/api/v1/causal/graph?graph_id=${encodeURIComponent(graphId)}`);
+  },
+
+  async addCausalNode(payload) {
+    return api.post('/api/v1/causal/nodes', payload);
+  },
+
+  async addCausalEdge(payload) {
+    return api.post('/api/v1/causal/edges', payload);
+  },
+
+  async analyzeCausalRootCause(payload) {
+    return api.post('/api/v1/causal/analyze', payload);
+  },
+
+  async getCausalAnalysis(incidentId) {
+    return api.get(`/api/v1/causal/analysis/${encodeURIComponent(incidentId)}`);
+  },
+
+  async getCausalExplanation(incidentId) {
+    return api.get(`/api/v1/causal/explanation/${encodeURIComponent(incidentId)}`);
+  },
+
+  async askCausalQuestion(payload) {
+    return api.post('/api/v1/causal/question', payload);
+  },
+
+  async proposeCausalIntervention(payload) {
+    return api.post('/api/v1/causal/interventions/propose', payload);
+  },
+
+  async evaluateCausalIntervention(interventionId, payload) {
+    return api.post(`/api/v1/causal/interventions/${encodeURIComponent(interventionId)}/evaluate`, payload);
+  },
+
+  async evaluateCausalCounterfactual(payload) {
+    return api.post('/api/v1/causal/counterfactuals/evaluate', payload);
+  },
+
+  async detectCausalFallacies(payload) {
+    return api.post('/api/v1/causal/fallacies/detect', payload);
+  },
+
+  async getCausalBlastRadius(serviceName) {
+    return api.get(`/api/v1/causal/blast-radius/${encodeURIComponent(serviceName)}`);
+  },
 };
 
 export const intentApi = {
@@ -2000,7 +2049,23 @@ export const digitalTwinApi = {
   getProduction: () => Endpoints.getEnvironmentProduction(),
 };
 
+export const causalApi = {
+  getGraph: (graphId) => Endpoints.getCausalGraph(graphId),
+  addNode: (payload) => Endpoints.addCausalNode(payload),
+  addEdge: (payload) => Endpoints.addCausalEdge(payload),
+  analyzeRootCause: (payload) => Endpoints.analyzeCausalRootCause(payload),
+  getAnalysis: (incidentId) => Endpoints.getCausalAnalysis(incidentId),
+  getExplanation: (incidentId) => Endpoints.getCausalExplanation(incidentId),
+  askQuestion: (payload) => Endpoints.askCausalQuestion(payload),
+  proposeIntervention: (payload) => Endpoints.proposeCausalIntervention(payload),
+  evaluateIntervention: (interventionId, payload) => Endpoints.evaluateCausalIntervention(interventionId, payload),
+  evaluateCounterfactual: (payload) => Endpoints.evaluateCausalCounterfactual(payload),
+  detectFallacies: (payload) => Endpoints.detectCausalFallacies(payload),
+  getBlastRadius: (serviceName) => Endpoints.getCausalBlastRadius(serviceName),
+};
+
 export const endpoints = Endpoints;
+
 
 
 

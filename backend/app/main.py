@@ -46,6 +46,7 @@ from app.autonomy.router import router as autonomy_router
 from app.cognition.router import router as cognition_router
 from app.communication import communication_router
 from app.config.settings import get_settings
+from app.causal.router import router as causal_router
 from app.environment.router import router as environment_router
 from app.executive_memory.router import router as executive_memory_router
 from app.intent import commands_router, intent_router
@@ -164,6 +165,7 @@ def create_app() -> FastAPI:
     app.include_router(metacognition_router, prefix=settings.API_V1_STR)
     app.include_router(executive_memory_router)
     app.include_router(environment_router)
+    app.include_router(causal_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

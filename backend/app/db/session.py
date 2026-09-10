@@ -99,6 +99,10 @@ async def get_db_session() -> AsyncGenerator[AsyncSession | None, None]:
             raise
 
 
+# Common alias for FastAPI Depends(get_db)
+get_db = get_db_session
+
+
 def reset_db_engine() -> None:
     """Reset global engine and sessionmaker (used for testing)."""
     global _engine, _sessionmaker

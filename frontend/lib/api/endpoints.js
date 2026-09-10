@@ -2454,6 +2454,77 @@ export const Endpoints = {
     if (claimId) q.push(`claim_id=${encodeURIComponent(claimId)}`);
     return api.get(`/api/v1/research/audit/trail?${q.join('&')}`);
   },
+
+  // --- Task 64 Collective Intelligence & Swarm Reasoning ---
+  async createSwarmSession(payload) {
+    return api.post('/api/v1/swarm/', payload);
+  },
+
+  async listSwarmSessions(limit = 20) {
+    return api.get(`/api/v1/swarm/?limit=${limit}`);
+  },
+
+  async getSwarmSession(swarmId) {
+    return api.get(`/api/v1/swarm/${encodeURIComponent(swarmId)}`);
+  },
+
+  async getSwarmAgents(swarmId) {
+    return api.get(`/api/v1/swarm/${encodeURIComponent(swarmId)}/agents`);
+  },
+
+  async getSwarmTasks(swarmId) {
+    return api.get(`/api/v1/swarm/${encodeURIComponent(swarmId)}/tasks`);
+  },
+
+  async getSwarmResults(swarmId) {
+    return api.get(`/api/v1/swarm/${encodeURIComponent(swarmId)}/results`);
+  },
+
+  async getSwarmReviews(swarmId) {
+    return api.get(`/api/v1/swarm/${encodeURIComponent(swarmId)}/reviews`);
+  },
+
+  async getSwarmDisagreements(swarmId) {
+    return api.get(`/api/v1/swarm/${encodeURIComponent(swarmId)}/disagreements`);
+  },
+
+  async getSwarmMinorities(swarmId) {
+    return api.get(`/api/v1/swarm/${encodeURIComponent(swarmId)}/minorities`);
+  },
+
+  async getSwarmTimeline(swarmId) {
+    return api.get(`/api/v1/swarm/${encodeURIComponent(swarmId)}/timeline`);
+  },
+
+  async pauseSwarm(swarmId) {
+    return api.post(`/api/v1/swarm/${encodeURIComponent(swarmId)}/pause`, {});
+  },
+
+  async resumeSwarm(swarmId) {
+    return api.post(`/api/v1/swarm/${encodeURIComponent(swarmId)}/resume`, {});
+  },
+
+  async cancelSwarm(swarmId, payload = {}) {
+    return api.post(`/api/v1/swarm/${encodeURIComponent(swarmId)}/cancel`, payload);
+  },
+
+  async synthesizeSwarm(swarmId) {
+    return api.post(`/api/v1/swarm/${encodeURIComponent(swarmId)}/synthesize`, {});
+  },
+
+  async verifySwarm(swarmId, notes = null) {
+    const q = notes ? `?notes=${encodeURIComponent(notes)}` : '';
+    return api.post(`/api/v1/swarm/${encodeURIComponent(swarmId)}/verify${q}`, {});
+  },
+
+  async getSwarmAudit(swarmId = null, limit = 50) {
+    const q = swarmId ? `?swarm_id=${encodeURIComponent(swarmId)}&limit=${limit}` : `?limit=${limit}`;
+    return api.get(`/api/v1/swarm/audit/trail${q}`);
+  },
+
+  async getSwarmHealth() {
+    return api.get('/api/v1/swarm/health');
+  },
 };
 
 
@@ -2741,6 +2812,30 @@ export const researchApi = {
   getDecisionPackage: (id) => Endpoints.getResearchDecisionPackage(id),
   getChanges: (limit) => Endpoints.getResearchKnowledgeChanges(limit),
   getAudit: (sessionId, sourceId, claimId, limit) => Endpoints.getResearchAudit(sessionId, sourceId, claimId, limit),
+};
+
+export const swarmApi = {
+  create: (payload) => Endpoints.createSwarmSession(payload),
+  createSession: (payload) => Endpoints.createSwarmSession(payload),
+  list: (limit) => Endpoints.listSwarmSessions(limit),
+  listSessions: (limit) => Endpoints.listSwarmSessions(limit),
+  get: (id) => Endpoints.getSwarmSession(id),
+  getSession: (id) => Endpoints.getSwarmSession(id),
+  getAgents: (id) => Endpoints.getSwarmAgents(id),
+  getTasks: (id) => Endpoints.getSwarmTasks(id),
+  getResults: (id) => Endpoints.getSwarmResults(id),
+  getReviews: (id) => Endpoints.getSwarmReviews(id),
+  getDisagreements: (id) => Endpoints.getSwarmDisagreements(id),
+  getMinorities: (id) => Endpoints.getSwarmMinorities(id),
+  getMinorityReports: (id) => Endpoints.getSwarmMinorities(id),
+  getTimeline: (id) => Endpoints.getSwarmTimeline(id),
+  pause: (id) => Endpoints.pauseSwarm(id),
+  resume: (id) => Endpoints.resumeSwarm(id),
+  cancel: (id, payload) => Endpoints.cancelSwarm(id, payload),
+  synthesize: (id) => Endpoints.synthesizeSwarm(id),
+  verify: (id, notes) => Endpoints.verifySwarm(id, notes),
+  getAudit: (id, limit) => Endpoints.getSwarmAudit(id, limit),
+  getHealth: () => Endpoints.getSwarmHealth(),
 };
 
 export const endpoints = Endpoints;

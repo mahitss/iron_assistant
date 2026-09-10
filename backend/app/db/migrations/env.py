@@ -39,6 +39,7 @@ import app.situational_awareness.models  # noqa: F401
 import app.incident_response.models  # noqa: F401
 import app.optimization.models  # noqa: F401
 import app.research.models  # noqa: F401
+import app.swarm.models  # noqa: F401
 import app.policy.models  # noqa: F401
 import app.prediction.models  # noqa: F401
 import app.proactive.models  # noqa: F401

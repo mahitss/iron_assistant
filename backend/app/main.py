@@ -70,6 +70,7 @@ from app.situational_awareness.router import router as situations_router
 from app.incident_response.router import router as incidents_router
 from app.optimization.router import router as optimization_router
 from app.research.router import router as research_router
+from app.swarm.router import router as swarm_router
 from app.state.router import router as state_router
 from app.verification.router import router as verification_router
 
@@ -182,6 +183,7 @@ def create_app() -> FastAPI:
     app.include_router(incidents_router)
     app.include_router(optimization_router)
     app.include_router(research_router)
+    app.include_router(swarm_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

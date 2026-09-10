@@ -2185,6 +2185,58 @@ export const Endpoints = {
     if (orchestrationId) q += `&orchestration_id=${encodeURIComponent(orchestrationId)}`;
     return api.get(`/api/v1/orchestration/audit/trail${q}`);
   },
+
+  // --- Task 60: Real-Time Situational Awareness & Event Correlation Engine ---
+  async ingestSituationEvent(payload) {
+    return api.post('/api/v1/situations/events', payload);
+  },
+
+  async listSituations(environment = null, status = null) {
+    let q = [];
+    if (environment) q.push(`environment=${encodeURIComponent(environment)}`);
+    if (status) q.push(`status=${encodeURIComponent(status)}`);
+    const qs = q.length ? `?${q.join('&')}` : '';
+    return api.get(`/api/v1/situations${qs}`);
+  },
+
+  async getSituation(situationId) {
+    return api.get(`/api/v1/situations/${encodeURIComponent(situationId)}`);
+  },
+
+  async getSituationTimeline(situationId) {
+    return api.get(`/api/v1/situations/${encodeURIComponent(situationId)}/timeline`);
+  },
+
+  async getSituationImpact(situationId) {
+    return api.get(`/api/v1/situations/${encodeURIComponent(situationId)}/impact`);
+  },
+
+  async getSituationHypotheses(situationId) {
+    return api.get(`/api/v1/situations/${encodeURIComponent(situationId)}/hypotheses`);
+  },
+
+  async resolveSituation(situationId, payload) {
+    return api.post(`/api/v1/situations/${encodeURIComponent(situationId)}/resolve`, payload);
+  },
+
+  async escalateSituation(situationId, payload) {
+    return api.post(`/api/v1/situations/${encodeURIComponent(situationId)}/escalate`, payload);
+  },
+
+  async getAttentionFeed() {
+    return api.get('/api/v1/situations/attention/feed');
+  },
+
+  async listSignalBaselines(environment = null) {
+    let q = environment ? `?environment=${encodeURIComponent(environment)}` : '';
+    return api.get(`/api/v1/situations/baselines/catalog${q}`);
+  },
+
+  async getSituationAudit(situationId = null, limit = 100) {
+    let q = `?limit=${limit}`;
+    if (situationId) q += `&situation_id=${encodeURIComponent(situationId)}`;
+    return api.get(`/api/v1/situations/audit/trail${q}`);
+  },
 };
 
 
@@ -2399,6 +2451,20 @@ export const orchestrationApi = {
   getHealth: (id) => Endpoints.getOrchestrationHealth(id),
   explain: (taskId) => Endpoints.explainOrchestrationTask(taskId),
   getAudit: (id, limit) => Endpoints.getOrchestrationAudit(id, limit),
+};
+
+export const situationsApi = {
+  ingest: (payload) => Endpoints.ingestSituationEvent(payload),
+  list: (env, status) => Endpoints.listSituations(env, status),
+  get: (id) => Endpoints.getSituation(id),
+  getTimeline: (id) => Endpoints.getSituationTimeline(id),
+  getImpact: (id) => Endpoints.getSituationImpact(id),
+  getHypotheses: (id) => Endpoints.getSituationHypotheses(id),
+  resolve: (id, payload) => Endpoints.resolveSituation(id, payload),
+  escalate: (id, payload) => Endpoints.escalateSituation(id, payload),
+  getAttentionFeed: () => Endpoints.getAttentionFeed(),
+  getBaselines: (env) => Endpoints.listSignalBaselines(env),
+  getAudit: (id, limit) => Endpoints.getSituationAudit(id, limit),
 };
 
 export const endpoints = Endpoints;

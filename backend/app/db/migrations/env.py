@@ -35,6 +35,7 @@ import app.observability.models  # noqa: F401
 import app.perception.models  # noqa: F401
 import app.planning.models  # noqa: F401
 import app.orchestration.models  # noqa: F401
+import app.situational_awareness.models  # noqa: F401
 import app.policy.models  # noqa: F401
 import app.prediction.models  # noqa: F401
 import app.proactive.models  # noqa: F401

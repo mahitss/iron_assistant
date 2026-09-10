@@ -66,6 +66,7 @@ from app.simulation.router import router as simulation_router
 from app.decision.router import router as decision_router
 from app.planning.router import router as planning_router
 from app.orchestration.router import router as orchestration_router
+from app.situational_awareness.router import router as situations_router
 from app.state.router import router as state_router
 from app.verification.router import router as verification_router
 
@@ -174,6 +175,7 @@ def create_app() -> FastAPI:
     app.include_router(decision_router)
     app.include_router(planning_router)
     app.include_router(orchestration_router)
+    app.include_router(situations_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

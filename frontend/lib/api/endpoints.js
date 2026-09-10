@@ -2112,6 +2112,79 @@ export const Endpoints = {
   async getPlanAudit(planId) {
     return api.get(`/api/v1/planning/plans/${encodeURIComponent(planId)}/audit`);
   },
+
+  // --- Task 59: Resource & Capability Orchestration Engine ---
+  async analyzeOrchestration(payload) {
+    return api.post('/api/v1/orchestration/analyze', payload);
+  },
+
+  async createOrchestration(payload) {
+    return api.post('/api/v1/orchestration', payload);
+  },
+
+  async listCapabilities(environment = null, status = null) {
+    let q = [];
+    if (environment) q.push(`environment=${encodeURIComponent(environment)}`);
+    if (status) q.push(`status=${encodeURIComponent(status)}`);
+    const qs = q.length ? `?${q.join('&')}` : '';
+    return api.get(`/api/v1/orchestration/catalog/capabilities${qs}`);
+  },
+
+  async listResources(environment = null, resourceType = null) {
+    let q = [];
+    if (environment) q.push(`environment=${encodeURIComponent(environment)}`);
+    if (resourceType) q.push(`resource_type=${encodeURIComponent(resourceType)}`);
+    const qs = q.length ? `?${q.join('&')}` : '';
+    return api.get(`/api/v1/orchestration/catalog/resources${qs}`);
+  },
+
+  async reserveResource(payload) {
+    return api.post('/api/v1/orchestration/resources/reserve', payload);
+  },
+
+  async releaseReservation(reservationId) {
+    return api.post('/api/v1/orchestration/resources/release', { reservation_id: reservationId });
+  },
+
+  async listOrchestrations(status = null, limit = 50) {
+    let q = `?limit=${limit}`;
+    if (status) q += `&status=${encodeURIComponent(status)}`;
+    return api.get(`/api/v1/orchestration/list${q}`);
+  },
+
+  async getOrchestration(orchestrationId) {
+    return api.get(`/api/v1/orchestration/${encodeURIComponent(orchestrationId)}`);
+  },
+
+  async getOrchestrationAssignments(orchestrationId) {
+    return api.get(`/api/v1/orchestration/${encodeURIComponent(orchestrationId)}/assignments`);
+  },
+
+  async getOrchestrationTopology(orchestrationId) {
+    return api.get(`/api/v1/orchestration/${encodeURIComponent(orchestrationId)}/topology`);
+  },
+
+  async revalidateOrchestration(orchestrationId, payload = {}) {
+    return api.post(`/api/v1/orchestration/${encodeURIComponent(orchestrationId)}/revalidate`, payload);
+  },
+
+  async failoverOrchestration(orchestrationId, payload) {
+    return api.post(`/api/v1/orchestration/${encodeURIComponent(orchestrationId)}/failover`, payload);
+  },
+
+  async getOrchestrationHealth(orchestrationId) {
+    return api.get(`/api/v1/orchestration/${encodeURIComponent(orchestrationId)}/health`);
+  },
+
+  async explainOrchestrationTask(taskId) {
+    return api.get(`/api/v1/orchestration/explain/${encodeURIComponent(taskId)}`);
+  },
+
+  async getOrchestrationAudit(orchestrationId = null, limit = 100) {
+    let q = `?limit=${limit}`;
+    if (orchestrationId) q += `&orchestration_id=${encodeURIComponent(orchestrationId)}`;
+    return api.get(`/api/v1/orchestration/audit/trail${q}`);
+  },
 };
 
 
@@ -2308,6 +2381,24 @@ export const planningApi = {
   recordOutcome: (planId, payload) => Endpoints.recordPlanOutcome(planId, payload),
   getProposal: (planId) => Endpoints.getExecutionProposal(planId),
   getAudit: (planId) => Endpoints.getPlanAudit(planId),
+};
+
+export const orchestrationApi = {
+  analyze: (payload) => Endpoints.analyzeOrchestration(payload),
+  create: (payload) => Endpoints.createOrchestration(payload),
+  listCapabilities: (env, status) => Endpoints.listCapabilities(env, status),
+  listResources: (env, type) => Endpoints.listResources(env, type),
+  reserveResource: (payload) => Endpoints.reserveResource(payload),
+  releaseReservation: (id) => Endpoints.releaseReservation(id),
+  list: (status, limit) => Endpoints.listOrchestrations(status, limit),
+  get: (id) => Endpoints.getOrchestration(id),
+  getAssignments: (id) => Endpoints.getOrchestrationAssignments(id),
+  getTopology: (id) => Endpoints.getOrchestrationTopology(id),
+  revalidate: (id, payload) => Endpoints.revalidateOrchestration(id, payload),
+  failover: (id, payload) => Endpoints.failoverOrchestration(id, payload),
+  getHealth: (id) => Endpoints.getOrchestrationHealth(id),
+  explain: (taskId) => Endpoints.explainOrchestrationTask(taskId),
+  getAudit: (id, limit) => Endpoints.getOrchestrationAudit(id, limit),
 };
 
 export const endpoints = Endpoints;

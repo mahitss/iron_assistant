@@ -1,0 +1,67 @@
+"""Kairo Simulation, Digital World Model, Counterfactual Planning & Verified Real-World Transition Engine (Task 56)."""
+
+from app.simulation.engine import SimulationEngine
+from app.simulation.execution_gate import RealWorldTransitionEngine, transition_engine
+from app.simulation.safety import (
+    ProductionMutationBlockedError,
+    SimulationIsolationError,
+    SimulationResourceBudgetExceededError,
+    SimulationSafetyError,
+    SimulationSideEffectError,
+    StaleSimulationError,
+    UnverifiedExecutionError,
+)
+from app.simulation.schemas import (
+    AssumptionImpact,
+    AssumptionType,
+    EffectType,
+    ExecutionGate,
+    ExecutionGateStatus,
+    ObjectiveType,
+    RiskCategory,
+    Scenario,
+    ScenarioAssumption,
+    ScenarioComparison,
+    ScenarioType,
+    SimulatedEffect,
+    SimulatedIntervention,
+    Simulation,
+    SimulationObjective,
+    SimulationRisk,
+    SimulationSnapshot,
+    SimulationStatus,
+)
+from app.simulation.service import SimulationService, simulation_service
+
+__all__ = [
+    "AssumptionImpact",
+    "AssumptionType",
+    "EffectType",
+    "ExecutionGate",
+    "ExecutionGateStatus",
+    "ObjectiveType",
+    "ProductionMutationBlockedError",
+    "RealWorldTransitionEngine",
+    "RiskCategory",
+    "Scenario",
+    "ScenarioAssumption",
+    "ScenarioComparison",
+    "ScenarioType",
+    "SimulatedEffect",
+    "SimulatedIntervention",
+    "Simulation",
+    "SimulationEngine",
+    "SimulationIsolationError",
+    "SimulationObjective",
+    "SimulationResourceBudgetExceededError",
+    "SimulationRisk",
+    "SimulationSafetyError",
+    "SimulationService",
+    "SimulationSideEffectError",
+    "SimulationSnapshot",
+    "SimulationStatus",
+    "StaleSimulationError",
+    "UnverifiedExecutionError",
+    "simulation_service",
+    "transition_engine",
+]

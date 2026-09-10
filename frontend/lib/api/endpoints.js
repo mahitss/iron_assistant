@@ -1922,6 +1922,78 @@ export const Endpoints = {
   async getCausalBlastRadius(serviceName) {
     return api.get(`/api/v1/causal/blast-radius/${encodeURIComponent(serviceName)}`);
   },
+
+  // --- Simulation & Counterfactual Planning (Task 56) ---
+  async captureSimulationSnapshot(payload = {}) {
+    return api.post('/api/v1/simulation/snapshots', payload);
+  },
+
+  async listSimulationSnapshots() {
+    return api.get('/api/v1/simulation/snapshots');
+  },
+
+  async getSimulationSnapshot(snapshotId) {
+    return api.get(`/api/v1/simulation/snapshots/${encodeURIComponent(snapshotId)}`);
+  },
+
+  async createSimulationScenario(payload) {
+    return api.post('/api/v1/simulation/scenarios', payload);
+  },
+
+  async listSimulationScenarios(baselineSnapshotId = null) {
+    const url = baselineSnapshotId
+      ? `/api/v1/simulation/scenarios?baseline_snapshot_id=${encodeURIComponent(baselineSnapshotId)}`
+      : '/api/v1/simulation/scenarios';
+    return api.get(url);
+  },
+
+  async getSimulationScenario(scenarioId) {
+    return api.get(`/api/v1/simulation/scenarios/${encodeURIComponent(scenarioId)}`);
+  },
+
+  async runSimulation(payload) {
+    return api.post('/api/v1/simulation/run', payload);
+  },
+
+  async listSimulationRuns() {
+    return api.get('/api/v1/simulation/runs');
+  },
+
+  async getSimulationRun(simulationId) {
+    return api.get(`/api/v1/simulation/runs/${encodeURIComponent(simulationId)}`);
+  },
+
+  async compareSimulations(payload) {
+    return api.post('/api/v1/simulation/compare', payload);
+  },
+
+  async rankSimulations(payload) {
+    return api.post('/api/v1/simulation/rank', payload);
+  },
+
+  async exploreCounterfactual(payload) {
+    return api.post('/api/v1/simulation/counterfactual', payload);
+  },
+
+  async runMonteCarlo(payload) {
+    return api.post('/api/v1/simulation/monte-carlo', payload);
+  },
+
+  async replaySimulation(payload) {
+    return api.post('/api/v1/simulation/replay', payload);
+  },
+
+  async evaluateExecutionGate(payload) {
+    return api.post('/api/v1/simulation/gates/evaluate', payload);
+  },
+
+  async recordSimulationCalibration(payload) {
+    return api.post('/api/v1/simulation/calibrate', payload);
+  },
+
+  async getSimulationCalibrationReport(metricName) {
+    return api.get(`/api/v1/simulation/calibrations/report?metric_name=${encodeURIComponent(metricName)}`);
+  },
 };
 
 export const intentApi = {
@@ -2062,6 +2134,26 @@ export const causalApi = {
   evaluateCounterfactual: (payload) => Endpoints.evaluateCausalCounterfactual(payload),
   detectFallacies: (payload) => Endpoints.detectCausalFallacies(payload),
   getBlastRadius: (serviceName) => Endpoints.getCausalBlastRadius(serviceName),
+};
+
+export const simulationApi = {
+  captureSnapshot: (payload) => Endpoints.captureSimulationSnapshot(payload),
+  listSnapshots: () => Endpoints.listSimulationSnapshots(),
+  getSnapshot: (snapshotId) => Endpoints.getSimulationSnapshot(snapshotId),
+  createScenario: (payload) => Endpoints.createSimulationScenario(payload),
+  listScenarios: (baselineSnapshotId) => Endpoints.listSimulationScenarios(baselineSnapshotId),
+  getScenario: (scenarioId) => Endpoints.getSimulationScenario(scenarioId),
+  runSimulation: (payload) => Endpoints.runSimulation(payload),
+  listRuns: () => Endpoints.listSimulationRuns(),
+  getRun: (simulationId) => Endpoints.getSimulationRun(simulationId),
+  compareSimulations: (payload) => Endpoints.compareSimulations(payload),
+  rankSimulations: (payload) => Endpoints.rankSimulations(payload),
+  exploreCounterfactual: (payload) => Endpoints.exploreCounterfactual(payload),
+  runMonteCarlo: (payload) => Endpoints.runMonteCarlo(payload),
+  replay: (payload) => Endpoints.replaySimulation(payload),
+  evaluateGate: (payload) => Endpoints.evaluateExecutionGate(payload),
+  calibrate: (payload) => Endpoints.recordSimulationCalibration(payload),
+  getCalibrationReport: (metricName) => Endpoints.getSimulationCalibrationReport(metricName),
 };
 
 export const endpoints = Endpoints;

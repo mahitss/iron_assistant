@@ -43,10 +43,10 @@ from app.api.routes.web_monitors import router as web_monitors_router
 from app.api.routes.world import router as world_router
 from app.auth.middleware import AuthContextMiddleware
 from app.autonomy.router import router as autonomy_router
+from app.causal.router import router as causal_router
 from app.cognition.router import router as cognition_router
 from app.communication import communication_router
 from app.config.settings import get_settings
-from app.causal.router import router as causal_router
 from app.environment.router import router as environment_router
 from app.executive_memory.router import router as executive_memory_router
 from app.intent import commands_router, intent_router
@@ -62,6 +62,7 @@ from app.perception.router import router as perception_router
 from app.policy import admin_policy_router, policy_router
 from app.prediction.router import router as prediction_router
 from app.resilience.router import router as resilience_router
+from app.simulation.router import router as simulation_router
 from app.state.router import router as state_router
 from app.verification.router import router as verification_router
 
@@ -166,6 +167,7 @@ def create_app() -> FastAPI:
     app.include_router(executive_memory_router)
     app.include_router(environment_router)
     app.include_router(causal_router)
+    app.include_router(simulation_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

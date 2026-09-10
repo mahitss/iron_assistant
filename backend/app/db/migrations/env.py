@@ -14,10 +14,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 import app.agents.models  # noqa: F401
 import app.automation.models  # noqa: F401
 import app.autonomy.models  # noqa: F401
+import app.causal.models  # noqa: F401
 import app.cognition.models  # noqa: F401
 import app.communication.models  # noqa: F401
 import app.context.models  # noqa: F401
-import app.causal.models  # noqa: F401
 import app.environment.models  # noqa: F401
 import app.executive_memory.models  # noqa: F401
 
@@ -37,6 +37,7 @@ import app.prediction.models  # noqa: F401
 import app.proactive.models  # noqa: F401
 import app.resilience.models  # noqa: F401
 import app.security.models  # noqa: F401
+import app.simulation.models  # noqa: F401
 import app.state.models  # noqa: F401
 import app.verification.models  # noqa: F401
 from app.core.config import get_settings

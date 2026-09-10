@@ -51,6 +51,7 @@ from app.prediction.router import router as prediction_router
 from app.communication import communication_router
 from app.knowledge_graph import knowledge_graph_router
 from app.metacognition import metacognition_router
+from app.executive_memory.router import router as executive_memory_router
 from app.api.routes.proactive import router as proactive_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.security import router as security_router
@@ -160,6 +161,7 @@ def create_app() -> FastAPI:
     app.include_router(communication_router, prefix=settings.API_V1_STR)
     app.include_router(knowledge_graph_router, prefix=settings.API_V1_STR)
     app.include_router(metacognition_router, prefix=settings.API_V1_STR)
+    app.include_router(executive_memory_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

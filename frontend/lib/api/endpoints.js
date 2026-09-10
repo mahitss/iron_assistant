@@ -1685,6 +1685,115 @@ export const Endpoints = {
   async getMetacognitionHealth() {
     return api.get('/api/v1/metacognition/health');
   },
+
+  // --- Continuous Learning ---
+  async getContinuousLearningMetrics() {
+    return api.get('/api/v1/learning/metrics');
+  },
+  async evaluateLearningOutcome(payload = {}) {
+    return api.post('/api/v1/learning/evaluate', payload);
+  },
+  async extractLearningLesson(payload = {}) {
+    return api.post('/api/v1/learning/lessons/extract', payload);
+  },
+  async listLearningLessons(params = {}) {
+    return api.get('/api/v1/learning/lessons', params);
+  },
+  async consolidateLearningLessons(payload = {}) {
+    return api.post('/api/v1/learning/lessons/consolidate', payload);
+  },
+  async runLearningReplay(payload = {}) {
+    return api.post('/api/v1/learning/replay', payload);
+  },
+  async registerLearningWorkflow(payload = {}) {
+    return api.post('/api/v1/learning/workflows', payload);
+  },
+  async listLearningWorkflows(params = {}) {
+    return api.get('/api/v1/learning/workflows', params);
+  },
+  async registerLearningHeuristic(payload = {}) {
+    return api.post('/api/v1/learning/heuristics', payload);
+  },
+  async listLearningHeuristics(params = {}) {
+    return api.get('/api/v1/learning/heuristics', params);
+  },
+  async submitLearningCorrection(payload = {}) {
+    return api.post('/api/v1/learning/feedback/correction', payload);
+  },
+  async getLearningGovernancePolicy() {
+    return api.get('/api/v1/learning/governance/policy');
+  },
+
+  // --- Executive Memory & Long-Horizon Context ---
+  async queryExecutiveContinuity(payload = {}) {
+    return api.post('/api/v1/executive-memory/query', payload);
+  },
+  async getExecutiveState() {
+    return api.get('/api/v1/executive-memory/state');
+  },
+  async synthesizeExecutiveState(payload = {}) {
+    return api.post('/api/v1/executive-memory/state/synthesize', payload);
+  },
+  async listExecutiveTimeline(params = {}) {
+    return api.get('/api/v1/executive-memory/timeline', params);
+  },
+  async recordExecutiveTimelineEvent(payload = {}) {
+    return api.post('/api/v1/executive-memory/timeline/events', payload);
+  },
+  async reconstructExecutiveAsOf(params = {}) {
+    return api.get('/api/v1/executive-memory/timeline/as-of', params);
+  },
+  async listExecutiveOpenLoops(params = {}) {
+    return api.get('/api/v1/executive-memory/open-loops', params);
+  },
+  async createExecutiveOpenLoop(payload = {}) {
+    return api.post('/api/v1/executive-memory/open-loops', payload);
+  },
+  async updateExecutiveOpenLoopStatus(loopId, payload = {}) {
+    return api.patch(`/api/v1/executive-memory/open-loops/${loopId}/status`, payload);
+  },
+  async closeExecutiveOpenLoop(loopId, payload = {}) {
+    return api.post(`/api/v1/executive-memory/open-loops/${loopId}/close`, payload);
+  },
+  async listExecutiveBlockers(params = {}) {
+    return api.get('/api/v1/executive-memory/blockers', params);
+  },
+  async createExecutiveBlocker(payload = {}) {
+    return api.post('/api/v1/executive-memory/blockers', payload);
+  },
+  async resolveExecutiveBlocker(blockerId, payload = {}) {
+    return api.post(`/api/v1/executive-memory/blockers/${blockerId}/resolve`, payload);
+  },
+  async listExecutiveMilestones(params = {}) {
+    return api.get('/api/v1/executive-memory/milestones', params);
+  },
+  async createExecutiveMilestone(payload = {}) {
+    return api.post('/api/v1/executive-memory/milestones', payload);
+  },
+  async achieveExecutiveMilestone(milestoneId, payload = {}) {
+    return api.post(`/api/v1/executive-memory/milestones/${milestoneId}/achieve`, payload);
+  },
+  async getExecutiveBrief(projectId) {
+    return api.get(`/api/v1/executive-memory/briefs/${projectId}`);
+  },
+  async generateExecutiveBrief(projectId, payload = {}) {
+    return api.post(`/api/v1/executive-memory/briefs/${projectId}`, payload);
+  },
+  async getExecutiveNextActions(params = {}) {
+    return api.get('/api/v1/executive-memory/next-actions', params);
+  },
+  async createExecutiveCheckpoint(payload = {}) {
+    return api.post('/api/v1/executive-memory/checkpoints', payload);
+  },
+  async resumeExecutiveCheckpoint(checkpointId, payload = {}) {
+    return api.post(`/api/v1/executive-memory/checkpoints/${checkpointId}/resume`, payload);
+  },
+  async reconcileExecutiveState(payload = {}) {
+    return api.post('/api/v1/executive-memory/reconcile', payload);
+  },
+  async getExecutiveMemoryMetrics() {
+    return api.get('/api/v1/executive-memory/metrics');
+  },
 };
 
 export const intentApi = {
@@ -1763,6 +1872,32 @@ export const continuousLearningApi = {
   listHeuristics: (params) => Endpoints.listLearningHeuristics(params),
   submitCorrection: (payload) => Endpoints.submitLearningCorrection(payload),
   getGovernancePolicy: () => Endpoints.getLearningGovernancePolicy(),
+};
+
+export const executiveMemoryApi = {
+  queryContinuity: (payload) => Endpoints.queryExecutiveContinuity(payload),
+  getState: () => Endpoints.getExecutiveState(),
+  synthesizeState: (payload) => Endpoints.synthesizeExecutiveState(payload),
+  listTimeline: (params) => Endpoints.listExecutiveTimeline(params),
+  recordEvent: (payload) => Endpoints.recordExecutiveTimelineEvent(payload),
+  reconstructAsOf: (params) => Endpoints.reconstructExecutiveAsOf(params),
+  listOpenLoops: (params) => Endpoints.listExecutiveOpenLoops(params),
+  createOpenLoop: (payload) => Endpoints.createExecutiveOpenLoop(payload),
+  updateOpenLoopStatus: (id, payload) => Endpoints.updateExecutiveOpenLoopStatus(id, payload),
+  closeOpenLoop: (id, payload) => Endpoints.closeExecutiveOpenLoop(id, payload),
+  listBlockers: (params) => Endpoints.listExecutiveBlockers(params),
+  createBlocker: (payload) => Endpoints.createExecutiveBlocker(payload),
+  resolveBlocker: (id, payload) => Endpoints.resolveExecutiveBlocker(id, payload),
+  listMilestones: (params) => Endpoints.listExecutiveMilestones(params),
+  createMilestone: (payload) => Endpoints.createExecutiveMilestone(payload),
+  achieveMilestone: (id, payload) => Endpoints.achieveExecutiveMilestone(id, payload),
+  getBrief: (projectId) => Endpoints.getExecutiveBrief(projectId),
+  generateBrief: (projectId, payload) => Endpoints.generateExecutiveBrief(projectId, payload),
+  getNextActions: (params) => Endpoints.getExecutiveNextActions(params),
+  createCheckpoint: (payload) => Endpoints.createExecutiveCheckpoint(payload),
+  resumeCheckpoint: (id, payload) => Endpoints.resumeExecutiveCheckpoint(id, payload),
+  reconcile: (payload) => Endpoints.reconcileExecutiveState(payload),
+  getMetrics: () => Endpoints.getExecutiveMemoryMetrics(),
 };
 
 export const endpoints = Endpoints;

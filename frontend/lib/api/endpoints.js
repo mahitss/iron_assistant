@@ -1794,6 +1794,85 @@ export const Endpoints = {
   async getExecutiveMemoryMetrics() {
     return api.get('/api/v1/executive-memory/metrics');
   },
+
+  // --- Environmental Intelligence & Digital Twin (Task 54) ---
+  async getDigitalTwin(scope = 'SYSTEM', scopeId = null) {
+    const params = new URLSearchParams({ scope });
+    if (scopeId) params.append('scope_id', scopeId);
+    return api.get(`/api/v1/environment/twin?${params.toString()}`);
+  },
+
+  async registerEnvironmentNode(payload) {
+    return api.post('/api/v1/environment/nodes', payload);
+  },
+
+  async registerEnvironmentEdge(payload) {
+    return api.post('/api/v1/environment/edges', payload);
+  },
+
+  async recordEnvironmentHealth(payload) {
+    return api.post('/api/v1/environment/health', payload);
+  },
+
+  async recordEnvironmentChange(payload) {
+    return api.post('/api/v1/environment/changes', payload);
+  },
+
+  async recordEnvironmentDrift(payload) {
+    return api.post('/api/v1/environment/drifts', payload);
+  },
+
+  async createEnvironmentSnapshot(scope = 'SYSTEM', scopeId = null) {
+    const params = new URLSearchParams({ scope });
+    if (scopeId) params.append('scope_id', scopeId);
+    return api.post(`/api/v1/environment/snapshots?${params.toString()}`);
+  },
+
+  async getEnvironmentStateAsOf(asOf, scope = 'SYSTEM', scopeId = null) {
+    const params = new URLSearchParams({ as_of: asOf, scope });
+    if (scopeId) params.append('scope_id', scopeId);
+    return api.get(`/api/v1/environment/as-of?${params.toString()}`);
+  },
+
+  async createEnvironmentIncident(payload) {
+    return api.post('/api/v1/environment/incidents', payload);
+  },
+
+  async simulateEnvironmentWhatIf(payload) {
+    return api.post('/api/v1/environment/what-if', payload);
+  },
+
+  async proposeRemediationPlan(payload) {
+    return api.post('/api/v1/environment/remediation/propose', payload);
+  },
+
+  async executeAutoHealing(payload) {
+    return api.post('/api/v1/environment/remediation/auto-heal', payload);
+  },
+
+  async getEnvironmentSummary(scope = 'SYSTEM') {
+    return api.get(`/api/v1/environment/summary?scope=${encodeURIComponent(scope)}`);
+  },
+
+  async getEnvironmentContext(query, scope = 'SYSTEM') {
+    return api.get(`/api/v1/environment/context?query=${encodeURIComponent(query)}&scope=${encodeURIComponent(scope)}`);
+  },
+
+  async getEnvironmentDependents(nodeId, scope = 'SYSTEM') {
+    return api.get(`/api/v1/environment/topology/dependents/${encodeURIComponent(nodeId)}?scope=${encodeURIComponent(scope)}`);
+  },
+
+  async getEnvironmentDependencies(nodeId, scope = 'SYSTEM') {
+    return api.get(`/api/v1/environment/topology/dependencies/${encodeURIComponent(nodeId)}?scope=${encodeURIComponent(scope)}`);
+  },
+
+  async getEnvironmentUnhealthy(scope = 'SYSTEM') {
+    return api.get(`/api/v1/environment/topology/unhealthy?scope=${encodeURIComponent(scope)}`);
+  },
+
+  async getEnvironmentProduction() {
+    return api.get('/api/v1/environment/topology/production');
+  },
 };
 
 export const intentApi = {
@@ -1898,6 +1977,27 @@ export const executiveMemoryApi = {
   resumeCheckpoint: (id, payload) => Endpoints.resumeExecutiveCheckpoint(id, payload),
   reconcile: (payload) => Endpoints.reconcileExecutiveState(payload),
   getMetrics: () => Endpoints.getExecutiveMemoryMetrics(),
+};
+
+export const digitalTwinApi = {
+  getTwin: (scope, scopeId) => Endpoints.getDigitalTwin(scope, scopeId),
+  registerNode: (payload) => Endpoints.registerEnvironmentNode(payload),
+  registerEdge: (payload) => Endpoints.registerEnvironmentEdge(payload),
+  recordHealth: (payload) => Endpoints.recordEnvironmentHealth(payload),
+  recordChange: (payload) => Endpoints.recordEnvironmentChange(payload),
+  recordDrift: (payload) => Endpoints.recordEnvironmentDrift(payload),
+  createSnapshot: (scope, scopeId) => Endpoints.createEnvironmentSnapshot(scope, scopeId),
+  getStateAsOf: (asOf, scope, scopeId) => Endpoints.getEnvironmentStateAsOf(asOf, scope, scopeId),
+  createIncident: (payload) => Endpoints.createEnvironmentIncident(payload),
+  simulateWhatIf: (payload) => Endpoints.simulateEnvironmentWhatIf(payload),
+  proposePlan: (payload) => Endpoints.proposeRemediationPlan(payload),
+  autoHeal: (payload) => Endpoints.executeAutoHealing(payload),
+  getSummary: (scope) => Endpoints.getEnvironmentSummary(scope),
+  getContext: (query, scope) => Endpoints.getEnvironmentContext(query, scope),
+  getDependents: (nodeId, scope) => Endpoints.getEnvironmentDependents(nodeId, scope),
+  getDependencies: (nodeId, scope) => Endpoints.getEnvironmentDependencies(nodeId, scope),
+  getUnhealthy: (scope) => Endpoints.getEnvironmentUnhealthy(scope),
+  getProduction: () => Endpoints.getEnvironmentProduction(),
 };
 
 export const endpoints = Endpoints;

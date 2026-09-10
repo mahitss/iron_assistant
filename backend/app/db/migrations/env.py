@@ -13,31 +13,31 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 import app.agents.models  # noqa: F401
 import app.automation.models  # noqa: F401
+import app.autonomy.models  # noqa: F401
 import app.cognition.models  # noqa: F401
+import app.communication.models  # noqa: F401
 import app.context.models  # noqa: F401
+import app.environment.models  # noqa: F401
+import app.executive_memory.models  # noqa: F401
 
 # Import all models to register them on Base.metadata for migrations
 import app.identity.models  # noqa: F401
-import app.intent.models  # noqa: F401
+import app.intent.models  # noqa: F401  # noqa: F401
 import app.knowledge.models  # noqa: F401
+import app.knowledge_graph.models  # noqa: F401
+import app.learning.models  # noqa: F401
 import app.memory.models  # noqa: F401
+import app.metacognition.models  # noqa: F401
 import app.notifications.models  # noqa: F401
-import app.policy.models  # noqa: F401
-import app.proactive.models  # noqa: F401
 import app.observability.models  # noqa: F401
+import app.perception.models  # noqa: F401
+import app.policy.models  # noqa: F401
+import app.prediction.models  # noqa: F401
+import app.proactive.models  # noqa: F401
 import app.resilience.models  # noqa: F401
 import app.security.models  # noqa: F401
 import app.state.models  # noqa: F401
 import app.verification.models  # noqa: F401
-import app.learning.models  # noqa: F401
-import app.autonomy.models  # noqa: F401
-import app.perception.models  # noqa: F401
-import app.prediction.models  # noqa: F401
-import app.intent.models  # noqa: F401
-import app.communication.models  # noqa: F401
-import app.knowledge_graph.models  # noqa: F401
-import app.metacognition.models  # noqa: F401
-import app.executive_memory.models  # noqa: F401
 from app.core.config import get_settings
 from app.db.session import Base
 

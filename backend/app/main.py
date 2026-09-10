@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
+from app.agents.router import router as collaboration_router
 from app.api.middleware import (
     BodySizeLimitMiddleware,
     RateLimitMiddleware,
@@ -22,46 +23,46 @@ from app.api.routes.automations import router as automations_router
 from app.api.routes.chat import router as chat_router
 from app.api.routes.context import router as context_router
 from app.api.routes.devices import router as devices_router
-from app.api.routes.identity import router as identity_router
-from app.api.routes.knowledge import router as knowledge_router
-from app.api.routes.skills import router as skills_router
 from app.api.routes.evaluation import router as evaluation_router
 from app.api.routes.events import router as events_router
 from app.api.routes.experience import router as experience_router
 from app.api.routes.feedback import router as feedback_router
-from app.api.routes.multimodal import router as multimodal_router
-from app.api.routes.tasks import router as tasks_router
-from app.api.routes.world import router as world_router
+from app.api.routes.identity import router as identity_router
+from app.api.routes.knowledge import router as knowledge_router
 from app.api.routes.memory import memory_api_router
 from app.api.routes.memory import router as memory_router
 from app.api.routes.memory import user_router as user_memory_router
-from app.intent import commands_router, intent_router
-from app.notifications import notifications_router
-from app.policy import admin_policy_router, policy_router
-from app.observability.router import router as observability_router
-from app.resilience.router import router as resilience_router
-from app.state.router import router as state_router
-from app.cognition.router import router as cognition_router
-from app.verification.router import router as verification_router
-from app.learning.router import router as learning_router
-from app.agents.router import router as collaboration_router
-from app.autonomy.router import router as autonomy_router
-from app.perception.router import router as perception_router
-from app.prediction.router import router as prediction_router
-from app.communication import communication_router
-from app.knowledge_graph import knowledge_graph_router
-from app.metacognition import metacognition_router
-from app.executive_memory.router import router as executive_memory_router
+from app.api.routes.multimodal import router as multimodal_router
 from app.api.routes.proactive import router as proactive_router
 from app.api.routes.projects import router as projects_router
 from app.api.routes.security import router as security_router
+from app.api.routes.skills import router as skills_router
+from app.api.routes.tasks import router as tasks_router
 from app.api.routes.voice import router as voice_router
 from app.api.routes.web_monitors import router as web_monitors_router
+from app.api.routes.world import router as world_router
 from app.auth.middleware import AuthContextMiddleware
+from app.autonomy.router import router as autonomy_router
+from app.cognition.router import router as cognition_router
+from app.communication import communication_router
 from app.config.settings import get_settings
+from app.environment.router import router as environment_router
+from app.executive_memory.router import router as executive_memory_router
+from app.intent import commands_router, intent_router
+from app.knowledge_graph import knowledge_graph_router
+from app.learning.router import router as learning_router
 from app.lifecycle import shutdown_lifecycle, startup_lifecycle
+from app.metacognition import metacognition_router
+from app.notifications import notifications_router
 from app.observability.health import router as health_router
 from app.observability.logging import configure_structured_logging
+from app.observability.router import router as observability_router
+from app.perception.router import router as perception_router
+from app.policy import admin_policy_router, policy_router
+from app.prediction.router import router as prediction_router
+from app.resilience.router import router as resilience_router
+from app.state.router import router as state_router
+from app.verification.router import router as verification_router
 
 logger = logging.getLogger("kairo.main")
 
@@ -162,6 +163,7 @@ def create_app() -> FastAPI:
     app.include_router(knowledge_graph_router, prefix=settings.API_V1_STR)
     app.include_router(metacognition_router, prefix=settings.API_V1_STR)
     app.include_router(executive_memory_router)
+    app.include_router(environment_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

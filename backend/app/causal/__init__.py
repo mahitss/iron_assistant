@@ -1,5 +1,30 @@
-"""Kairo Causal Reasoning and Causal Graph Engine (Task 55)."""
+"""Kairo Causal Reasoning and Autonomous Causal Discovery Engine (Task 55 & Task 73)."""
 
+from app.causal.discovery_schemas import (
+    CausalCandidateProposal,
+    CausalDriftReport,
+    CausalQualityMetrics,
+    CausalQuestionRequest,
+    CausalQuestionResponse,
+    CausalQuestionType,
+    CausalRelationship,
+    CausalRelationshipState,
+    CausalStrength,
+    ColliderAnalysis,
+    ConfounderAnalysis,
+    ConfounderItem,
+    EdgeRelationshipType,
+    EffectDirection,
+    EffectSize,
+    InterventionRecord,
+    MechanismStatus,
+    MediatorAnalysis,
+    TemporalValidationResult,
+    ThresholdSegment,
+)
+from app.causal.discovery_service import CausalDiscoveryService, discovery_service
+from app.causal.discovery_state_machine import CausalDiscoveryStateMachine, CausalStateTransitionError
+from app.causal.drift_detector import CausalDriftDetector
 from app.causal.safety import (
     CausalPoisoningError,
     CausalSafetyError,
@@ -35,8 +60,10 @@ from app.causal.schemas import (
     VerificationStatus,
 )
 from app.causal.service import CausalService, causal_service
+from app.causal.temporal_engine import TemporalCausalityEngine
 
 __all__ = [
+    # Task 55
     "CausalSafetyError",
     "CorrelationAsCausationError",
     "ModelOutputAsEvidenceError",
@@ -69,4 +96,31 @@ __all__ = [
     "CausalGraph",
     "CausalService",
     "causal_service",
+    # Task 73
+    "CausalRelationshipState",
+    "EdgeRelationshipType",
+    "EffectDirection",
+    "MechanismStatus",
+    "CausalStrength",
+    "ThresholdSegment",
+    "EffectSize",
+    "ConfounderItem",
+    "ConfounderAnalysis",
+    "MediatorAnalysis",
+    "ColliderAnalysis",
+    "TemporalValidationResult",
+    "CausalRelationship",
+    "InterventionRecord",
+    "CausalDriftReport",
+    "CausalCandidateProposal",
+    "CausalQuestionType",
+    "CausalQuestionRequest",
+    "CausalQuestionResponse",
+    "CausalQualityMetrics",
+    "CausalDiscoveryService",
+    "discovery_service",
+    "CausalDiscoveryStateMachine",
+    "CausalStateTransitionError",
+    "TemporalCausalityEngine",
+    "CausalDriftDetector",
 ]

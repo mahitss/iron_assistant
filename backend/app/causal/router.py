@@ -7,6 +7,19 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from app.causal.discovery_schemas import (
+    CausalCandidateProposal,
+    CausalDriftReport,
+    CausalQualityMetrics,
+    CausalQuestionResponse,
+    CausalRelationship,
+    CausalRelationshipState,
+    InterventionRecord,
+)
+from app.causal.discovery_schemas import (
+    CausalQuestionRequest as DiscoveryQuestionRequest,
+)
+from app.causal.discovery_service import discovery_service
 from app.causal.safety import (
     CorrelationAsCausationError,
     ModelOutputAsEvidenceError,
@@ -215,3 +228,238 @@ def detect_fallacies(req: DetectFallaciesRequest) -> FallacyDetectionResult:
 def get_blast_radius(service_name: str) -> dict[str, Any]:
     """Get topological blast radius distinguishing reachability from causality."""
     return causal_service.get_blast_radius(origin_service=service_name)
+
+
+# ==========================================
+# Task 73: Autonomous Causal Discovery Routes
+# ==========================================
+
+
+class InvalidateRelationshipRequest(BaseModel):
+    reason: str
+    actor: str = "SYSTEM"
+
+
+class VerifyRelationshipRequest(BaseModel):
+    verification_ref: str
+    reason: str = "Empirical verification passed"
+    actor: str = "SYSTEM"
+
+
+class RecordInterventionRequest(BaseModel):
+    target: str
+    previous_state: dict[str, Any] = Field(default_factory=dict)
+    new_state: dict[str, Any] = Field(default_factory=dict)
+    experiment_id: str | None = None
+    environment: str = "STAGING"
+    operator: str = "SYSTEM"
+    authorization: dict[str, Any] = Field(default_factory=dict)
+    rollback_plan: dict[str, Any] = Field(default_factory=dict)
+    observations: list[dict[str, Any]] = Field(default_factory=list)
+    outcome: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvaluateExperimentRequest(BaseModel):
+    relation_id: str
+    experiment_id: str
+    intervention_target: str
+    observed_delta: float
+    is_controlled: bool = True
+    verification_ref: str | None = None
+    actor: str = "SYSTEM"
+
+
+@router.get("/relationships", response_model=list[CausalRelationship])
+def get_causal_relationships(
+    status: CausalRelationshipState | None = None,
+    environment: str | None = None,
+    cause_entity: str | None = None,
+    effect_entity: str | None = None,
+) -> list[CausalRelationship]:
+    """List discovered or hypothesized causal relationships with filters."""
+    return discovery_service.get_relationships(
+        status=status,
+        environment=environment,
+        cause_entity=cause_entity,
+        effect_entity=effect_entity,
+    )
+
+
+@router.get("/relationships/{relation_id}", response_model=CausalRelationship)
+def get_causal_relationship(relation_id: str) -> CausalRelationship:
+    """Retrieve detailed metadata of a specific causal relationship."""
+    try:
+        return discovery_service.get_relationship(relation_id=relation_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/propose-candidate")
+def propose_causal_candidate(req: CausalCandidateProposal) -> dict[str, Any]:
+    """Ingest observational candidate correlation and run discovery pipeline."""
+    rel, findings = discovery_service.propose_candidate(proposal=req)
+    return {
+        "relationship": rel.model_dump(),
+        "findings": findings,
+    }
+
+
+@router.post("/hypotheses", response_model=CausalRelationship)
+def register_causal_hypothesis(req: CausalRelationship) -> CausalRelationship:
+    """Register an explicitly constructed causal hypothesis."""
+    return discovery_service.register_hypothesis(relationship=req)
+
+
+@router.get("/hypotheses", response_model=list[CausalRelationship])
+def list_causal_hypotheses() -> list[CausalRelationship]:
+    """List active causal hypotheses."""
+    return discovery_service.get_relationships(status=CausalRelationshipState.HYPOTHESIZED)
+
+
+@router.get("/relationships/{relation_id}/evidence")
+def get_relationship_evidence(relation_id: str) -> dict[str, Any]:
+    """Retrieve all linked evidence and experiment references for a relationship."""
+    try:
+        rel = discovery_service.get_relationship(relation_id=relation_id)
+        return {
+            "relation_id": rel.causal_relation_id,
+            "evidence_refs": rel.evidence_refs,
+            "experiment_refs": rel.experiment_refs,
+            "verification_refs": rel.verification_refs,
+            "contradiction_refs": rel.contradiction_refs,
+        }
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/relationships/{relation_id}/explanation")
+def get_relationship_explanation(relation_id: str) -> dict[str, Any]:
+    """Generate safe causal explanation without exposing private chain-of-thought (Spec 51)."""
+    try:
+        return discovery_service.get_explanation(relation_id=relation_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/relationships/{relation_id}/trace")
+def get_relationship_trace(relation_id: str) -> dict[str, Any]:
+    """Retrieve queryable causal trace: cause -> mechanism -> effect -> evidence -> experiment (Spec 52)."""
+    try:
+        return discovery_service.get_causal_trace(relation_id=relation_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/relationships/{relation_id}/provenance")
+def get_relationship_provenance(relation_id: str) -> dict[str, Any]:
+    """Retrieve full audit and lifecycle provenance for a relationship."""
+    try:
+        rel = discovery_service.get_relationship(relation_id=relation_id)
+        return {
+            "relation_id": rel.causal_relation_id,
+            "model_version": rel.model_version,
+            "created_at": rel.created_at.isoformat(),
+            "updated_at": rel.updated_at.isoformat(),
+            "provenance": rel.provenance,
+            "change_reason": rel.change_reason,
+        }
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/relationships/{relation_id}/invalidate", response_model=CausalRelationship)
+def invalidate_causal_relationship(relation_id: str, req: InvalidateRelationshipRequest) -> CausalRelationship:
+    """Explicitly invalidate a causal relationship with reason."""
+    try:
+        return discovery_service.invalidate_relationship(relation_id=relation_id, reason=req.reason, actor=req.actor)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/relationships/{relation_id}/verify", response_model=CausalRelationship)
+def verify_causal_relationship(relation_id: str, req: VerifyRelationshipRequest) -> CausalRelationship:
+    """Verify a causal relationship with formal verification ref from Task 42."""
+    try:
+        return discovery_service.verify_relationship(
+            relation_id=relation_id,
+            verification_ref=req.verification_ref,
+            reason=req.reason,
+            actor=req.actor,
+        )
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/conflicts")
+def get_causal_conflicts() -> list[dict[str, Any]]:
+    """Retrieve active competing causal models and agent dissents (Spec 44)."""
+    return discovery_service.get_conflicts()
+
+
+@router.get("/drift", response_model=list[CausalDriftReport])
+def get_causal_drift() -> list[CausalDriftReport]:
+    """Retrieve detected causal and world-model drift reports (Spec 47, 48)."""
+    return discovery_service.get_drift_reports()
+
+
+@router.get("/health", response_model=CausalQualityMetrics)
+def get_causal_health() -> CausalQualityMetrics:
+    """Retrieve engine telemetry and model quality metrics (Spec 50)."""
+    return discovery_service.get_quality_metrics()
+
+
+@router.post("/query", response_model=CausalQuestionResponse)
+def query_causal_engine(req: DiscoveryQuestionRequest) -> CausalQuestionResponse:
+    """Query the Causal Question Engine for one of the 8 core question types (Spec 34)."""
+    return discovery_service.query_engine(request=req)
+
+
+@router.post("/interventions", response_model=InterventionRecord)
+def record_intervention(req: RecordInterventionRequest) -> InterventionRecord:
+    """Record an empirical DO(X = v) intervention (Spec 7, 8)."""
+    return discovery_service.record_intervention(
+        target=req.target,
+        previous_state=req.previous_state,
+        new_state=req.new_state,
+        experiment_id=req.experiment_id,
+        environment=req.environment,
+        operator=req.operator,
+        authorization=req.authorization,
+        rollback_plan=req.rollback_plan,
+        observations=req.observations,
+        outcome=req.outcome,
+    )
+
+
+@router.get("/interventions", response_model=list[InterventionRecord])
+def list_interventions() -> list[InterventionRecord]:
+    """List recorded empirical interventions."""
+    return list(discovery_service._interventions.values())
+
+
+@router.post("/experiments/evaluate")
+def evaluate_discovery_experiment(req: EvaluateExperimentRequest) -> dict[str, Any]:
+    """Evaluate experiment outcome from Task 72 and advance causal lifecycle."""
+    try:
+        rel, msg = discovery_service.evaluate_experiment_outcome(
+            relation_id=req.relation_id,
+            experiment_id=req.experiment_id,
+            intervention_target=req.intervention_target,
+            observed_delta=req.observed_delta,
+            is_controlled=req.is_controlled,
+            verification_ref=req.verification_ref,
+            actor=req.actor,
+        )
+        return {
+            "relationship": rel.model_dump(),
+            "message": msg,
+        }
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/experiments/discriminative")
+def get_discriminative_experiments() -> list[dict[str, Any]]:
+    """Retrieve synthesized discriminative experiments to resolve competing hypotheses (Spec 32, 55)."""
+    return discovery_service.generate_discriminative_experiments()
+

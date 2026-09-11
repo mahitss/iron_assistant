@@ -196,3 +196,141 @@ class CausalExperimentModel(Base):
     __table_args__ = (
         Index("ix_cexp_status_idx", "status"),
     )
+
+
+class CausalRelationshipModel(Base):
+    """Discovered or hypothesized causal relationship (Task 73, Spec 3, 4, 18, 19)."""
+
+    __tablename__ = "causal_relationships"
+
+    id = Column(String(64), primary_key=True, default=lambda: f"crel_{uuid.uuid4().hex[:12]}")
+    relation_id = Column(String(64), unique=True, nullable=False, index=True)
+    tenant_id = Column(String(64), nullable=False, default="default", index=True)
+    workspace_id = Column(String(64), nullable=False, default="default", index=True)
+
+    cause_entity = Column(String(128), nullable=False)
+    cause_variable = Column(String(128), nullable=False)
+    effect_entity = Column(String(128), nullable=False)
+    effect_variable = Column(String(128), nullable=False)
+
+    relationship_type = Column(String(64), nullable=False, default="RELATIONSHIP")
+    direction = Column(String(64), nullable=False, default="UNKNOWN")
+    mechanism = Column(Text, nullable=False, default="UNKNOWN")
+    mechanism_status = Column(String(64), nullable=False, default="UNKNOWN")
+
+    conditions = Column(JSON, nullable=False, default=dict)
+    scope = Column(String(64), nullable=False, default="SYSTEM")
+    environment = Column(String(64), nullable=False, default="STAGING")
+    software_version = Column(String(64), nullable=True)
+    time_window = Column(JSON, nullable=True)
+
+    strength = Column(String(64), nullable=False, default="MODERATE")
+    effect_size = Column(JSON, nullable=True)
+    thresholds = Column(JSON, nullable=False, default=list)
+    confidence = Column(Float, nullable=False, default=0.5)
+
+    evidence_refs = Column(JSON, nullable=False, default=list)
+    experiment_refs = Column(JSON, nullable=False, default=list)
+    observation_refs = Column(JSON, nullable=False, default=list)
+    counterfactual_refs = Column(JSON, nullable=False, default=list)
+    verification_refs = Column(JSON, nullable=False, default=list)
+    contradiction_refs = Column(JSON, nullable=False, default=list)
+    falsification_criteria = Column(JSON, nullable=False, default=list)
+
+    status = Column(String(64), nullable=False, default="CANDIDATE")
+    model_version = Column(Integer, nullable=False, default=1)
+    previous_version_id = Column(String(64), nullable=True)
+    change_reason = Column(Text, nullable=True)
+    provenance = Column(JSON, nullable=False, default=dict)
+
+    created_at = Column(DateTime(timezone=True), nullable=False, default=_now_utc)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=_now_utc, onupdate=_now_utc)
+
+    __table_args__ = (
+        Index("ix_crel_cause_effect_idx", "cause_entity", "cause_variable", "effect_entity", "effect_variable"),
+        Index("ix_crel_status_env_idx", "status", "environment"),
+        Index("ix_crel_tenant_ws_idx", "tenant_id", "workspace_id"),
+    )
+
+
+class CausalInterventionRecordModel(Base):
+    """Empirical record of DO(X = v) interventions (Task 73, Spec 7, 8)."""
+
+    __tablename__ = "causal_intervention_records"
+
+    id = Column(String(64), primary_key=True, default=lambda: f"cintrec_{uuid.uuid4().hex[:12]}")
+    intervention_id = Column(String(64), unique=True, nullable=False, index=True)
+    tenant_id = Column(String(64), nullable=False, default="default", index=True)
+    workspace_id = Column(String(64), nullable=False, default="default", index=True)
+
+    target = Column(String(128), nullable=False, index=True)
+    operator = Column(String(64), nullable=False, default="SYSTEM")
+    experiment_id = Column(String(64), nullable=True, index=True)
+    previous_state = Column(JSON, nullable=False, default=dict)
+    new_state = Column(JSON, nullable=False, default=dict)
+    environment = Column(String(64), nullable=False, default="STAGING")
+    authorization = Column(JSON, nullable=False, default=dict)
+    rollback_plan = Column(JSON, nullable=False, default=dict)
+    observations = Column(JSON, nullable=False, default=list)
+    outcome = Column(JSON, nullable=False, default=dict)
+    status = Column(String(64), nullable=False, default="COMPLETED")
+    is_controlled = Column(Boolean, nullable=False, default=True)
+    provenance = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=_now_utc)
+
+    __table_args__ = (
+        Index("ix_cintrec_target_env_idx", "target", "environment"),
+        Index("ix_cintrec_status_idx", "status"),
+    )
+
+
+class CausalAuditModel(Base):
+    """Audit log for causal engine state transitions and updates (Task 73, Spec 56)."""
+
+    __tablename__ = "causal_audit_events"
+
+    id = Column(String(64), primary_key=True, default=lambda: f"caud_{uuid.uuid4().hex[:12]}")
+    event_id = Column(String(64), unique=True, nullable=False, index=True)
+    tenant_id = Column(String(64), nullable=False, default="default", index=True)
+    workspace_id = Column(String(64), nullable=False, default="default", index=True)
+
+    event_type = Column(String(64), nullable=False, index=True)
+    relation_id = Column(String(64), nullable=True, index=True)
+    actor = Column(String(64), nullable=False, default="SYSTEM")
+    source = Column(String(128), nullable=False, default="causal_engine")
+    reason = Column(Text, nullable=True)
+    details = Column(JSON, nullable=False, default=dict)
+    correlation_id = Column(String(64), nullable=True)
+    timestamp = Column(DateTime(timezone=True), nullable=False, default=_now_utc)
+
+    __table_args__ = (
+        Index("ix_caud_type_ts_idx", "event_type", "timestamp"),
+    )
+
+
+class CausalDriftReportModel(Base):
+    """Drift detections and degradations in causal world model (Task 73, Spec 47, 48)."""
+
+    __tablename__ = "causal_drift_reports"
+
+    id = Column(String(64), primary_key=True, default=lambda: f"cdrift_{uuid.uuid4().hex[:12]}")
+    report_id = Column(String(64), unique=True, nullable=False, index=True)
+    tenant_id = Column(String(64), nullable=False, default="default", index=True)
+    workspace_id = Column(String(64), nullable=False, default="default", index=True)
+
+    drift_type = Column(String(64), nullable=False, default="CAUSAL_DRIFT")
+    relation_id = Column(String(64), nullable=False, index=True)
+    environment = Column(String(64), nullable=False, default="STAGING")
+    software_version = Column(String(64), nullable=True)
+    expected_behavior = Column(JSON, nullable=False, default=dict)
+    observed_behavior = Column(JSON, nullable=False, default=dict)
+    prediction_error = Column(Float, nullable=False, default=0.0)
+    status = Column(String(64), nullable=False, default="DETECTED")
+    recommended_action = Column(Text, nullable=True)
+    timestamp = Column(DateTime(timezone=True), nullable=False, default=_now_utc)
+
+    __table_args__ = (
+        Index("ix_cdrift_rel_type_idx", "relation_id", "drift_type"),
+        Index("ix_cdrift_status_idx", "status"),
+    )
+

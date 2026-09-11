@@ -3138,6 +3138,88 @@ export const Endpoints = {
   async getDiscoveryHealth() {
     return api.get('/api/v1/experiments/health');
   },
+
+  // --- Task 73: Autonomous Causal Discovery & World-Model Learning Engine ---
+  async getCausalGraph(graphId = 'system_default') {
+    return api.get(`/api/v1/causal/graph?graph_id=${encodeURIComponent(graphId)}`);
+  },
+
+  async getCausalRelationships(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/causal/relationships${query ? '?' + query : ''}`);
+  },
+
+  async getCausalRelationship(relationId) {
+    return api.get(`/api/v1/causal/relationships/${encodeURIComponent(relationId)}`);
+  },
+
+  async proposeCausalCandidate(proposal) {
+    return api.post('/api/v1/causal/propose-candidate', proposal);
+  },
+
+  async registerCausalHypothesis(hypothesis) {
+    return api.post('/api/v1/causal/hypotheses', hypothesis);
+  },
+
+  async getCausalHypotheses() {
+    return api.get('/api/v1/causal/hypotheses');
+  },
+
+  async getCausalEvidence(relationId) {
+    return api.get(`/api/v1/causal/relationships/${encodeURIComponent(relationId)}/evidence`);
+  },
+
+  async getCausalExplanation(relationId) {
+    return api.get(`/api/v1/causal/relationships/${encodeURIComponent(relationId)}/explanation`);
+  },
+
+  async getCausalTrace(relationId) {
+    return api.get(`/api/v1/causal/relationships/${encodeURIComponent(relationId)}/trace`);
+  },
+
+  async getCausalProvenance(relationId) {
+    return api.get(`/api/v1/causal/relationships/${encodeURIComponent(relationId)}/provenance`);
+  },
+
+  async invalidateCausalRelationship(relationId, payload) {
+    return api.post(`/api/v1/causal/relationships/${encodeURIComponent(relationId)}/invalidate`, payload);
+  },
+
+  async verifyCausalRelationship(relationId, payload) {
+    return api.post(`/api/v1/causal/relationships/${encodeURIComponent(relationId)}/verify`, payload);
+  },
+
+  async getCausalConflicts() {
+    return api.get('/api/v1/causal/conflicts');
+  },
+
+  async getCausalDrift() {
+    return api.get('/api/v1/causal/drift');
+  },
+
+  async getCausalHealth() {
+    return api.get('/api/v1/causal/health');
+  },
+
+  async queryCausalEngine(queryData) {
+    return api.post('/api/v1/causal/query', queryData);
+  },
+
+  async recordCausalIntervention(interventionData) {
+    return api.post('/api/v1/causal/interventions', interventionData);
+  },
+
+  async listCausalInterventions() {
+    return api.get('/api/v1/causal/interventions');
+  },
+
+  async evaluateCausalExperiment(evalData) {
+    return api.post('/api/v1/causal/experiments/evaluate', evalData);
+  },
+
+  async getDiscriminativeExperiments() {
+    return api.get('/api/v1/causal/experiments/discriminative');
+  },
 };
 
 
@@ -3267,6 +3349,7 @@ export const digitalTwinApi = {
 };
 
 export const causalApi = {
+  // Task 55 Causal Reasoning methods
   getGraph: (graphId) => Endpoints.getCausalGraph(graphId),
   addNode: (payload) => Endpoints.addCausalNode(payload),
   addEdge: (payload) => Endpoints.addCausalEdge(payload),
@@ -3279,7 +3362,29 @@ export const causalApi = {
   evaluateCounterfactual: (payload) => Endpoints.evaluateCausalCounterfactual(payload),
   detectFallacies: (payload) => Endpoints.detectCausalFallacies(payload),
   getBlastRadius: (serviceName) => Endpoints.getCausalBlastRadius(serviceName),
+
+  // Task 73 Autonomous Causal Discovery methods
+  getRelationships: (params) => Endpoints.getCausalRelationships(params),
+  getRelationship: (id) => Endpoints.getCausalRelationship(id),
+  proposeCandidate: (p) => Endpoints.proposeCausalCandidate(p),
+  registerHypothesis: (h) => Endpoints.registerCausalHypothesis(h),
+  getHypotheses: () => Endpoints.getCausalHypotheses(),
+  getEvidence: (id) => Endpoints.getCausalEvidence(id),
+  getTrace: (id) => Endpoints.getCausalTrace(id),
+  getProvenance: (id) => Endpoints.getCausalProvenance(id),
+  invalidate: (id, payload) => Endpoints.invalidateCausalRelationship(id, payload),
+  verify: (id, payload) => Endpoints.verifyCausalRelationship(id, payload),
+  getConflicts: () => Endpoints.getCausalConflicts(),
+  getDrift: () => Endpoints.getCausalDrift(),
+  getHealth: () => Endpoints.getCausalHealth(),
+  query: (data) => Endpoints.queryCausalEngine(data),
+  recordIntervention: (data) => Endpoints.recordCausalIntervention(data),
+  listInterventions: () => Endpoints.listCausalInterventions(),
+  evaluateExperiment: (data) => Endpoints.evaluateCausalExperiment(data),
+  getDiscriminativeExperiments: () => Endpoints.getDiscriminativeExperiments(),
 };
+
+export const causalIntelligenceCenterApi = causalApi;
 
 export const simulationApi = {
   captureSnapshot: (payload) => Endpoints.captureSimulationSnapshot(payload),

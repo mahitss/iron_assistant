@@ -237,6 +237,16 @@ class EventRegistry:
             EventRegistration("early_warning.created", "v1", "Proactive early warning issued", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
             EventRegistration("early_warning.escalated", "v1", "Early warning severity escalated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("early_warning.resolved", "v1", "Early warning resolved with explicit reason", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("propagation.analysis_created", "v1", "Systemic risk propagation analysis generated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("propagation.cascade_detected", "v1", "Downstream cascade chain detected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("propagation.cascade_updated", "v1", "Existing cascade updated with new downstream path", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("propagation.cascade_confirmed", "v1", "Projected cascade confirmed by empirical evidence", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("propagation.cascade_contained", "v1", "Cascade contained by isolation boundary", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("propagation.cascade_resolved", "v1", "Cascade resolved following component recovery", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("propagation.bottleneck_detected", "v1", "Critical topological bottleneck identified", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("propagation.spof_detected", "v1", "Single point of failure identified", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("propagation.forecast_created", "v1", "Forecast candidate generated from cascade path", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("propagation.drift_detected", "v1", "Structural propagation drift or regime shift detected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
         ]
         for reg in defaults:
             self.register(reg)

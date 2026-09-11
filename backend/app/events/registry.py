@@ -247,6 +247,21 @@ class EventRegistry:
             EventRegistration("propagation.spof_detected", "v1", "Single point of failure identified", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("propagation.forecast_created", "v1", "Forecast candidate generated from cascade path", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
             EventRegistration("propagation.drift_detected", "v1", "Structural propagation drift or regime shift detected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+
+            # Autonomous Resilience, Recovery, Containment & Adaptive Defense events (Task 76)
+            EventRegistration("resilience.assessment_created", "v1", "Resilience assessment and scorecard generated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("resilience.gap_detected", "v1", "Resilience gap or single point of failure identified", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("resilience.recovery_plan_created", "v1", "Structured recovery and containment plan formulated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("resilience.containment_started", "v1", "Containment barrier execution initiated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("resilience.containment_completed", "v1", "Containment barrier successfully engaged", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("resilience.recovery_started", "v1", "Recovery execution steps started", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("resilience.recovery_verification_started", "v1", "Deterministic recovery verification initiated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("resilience.recovery_verification_failed", "v1", "Deterministic recovery verification checks failed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("resilience.recovery_completed", "v1", "Recovery deterministically verified and completed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("resilience.recovery_failed", "v1", "Recovery execution failed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("resilience.recovery_rolled_back", "v1", "Recovery actions rolled back to previous state", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("resilience.residual_risk_detected", "v1", "Post-recovery residual risk report formulated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("resilience.human_handoff_required", "v1", "Safe autonomous bounds exceeded, human handoff escalated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
         ]
         for reg in defaults:
             self.register(reg)

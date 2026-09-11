@@ -211,5 +211,46 @@ describe('Predictive Intelligence & Anticipation Engine Endpoints & UI (Task 47)
     assert.ok(warnHtml.includes('LOCKED'));
     assert.ok(warnHtml.includes('CONTAINER_OOM_KILL'));
   });
+
+  test('Endpoints exposes all Task 75 risk propagation methods', () => {
+    assert.strictEqual(typeof endpoints.analyzePropagation, 'function');
+    assert.strictEqual(typeof endpoints.getPropagationAnalysis, 'function');
+    assert.strictEqual(typeof endpoints.getPropagationGraph, 'function');
+    assert.strictEqual(typeof endpoints.getPropagationExplanation, 'function');
+    assert.strictEqual(typeof endpoints.getPropagationProvenance, 'function');
+    assert.strictEqual(typeof endpoints.getPropagationScenarios, 'function');
+    assert.strictEqual(typeof endpoints.evaluatePropagationOutcome, 'function');
+    assert.strictEqual(typeof endpoints.listActiveCascades, 'function');
+    assert.strictEqual(typeof endpoints.listCascades, 'function');
+    assert.strictEqual(typeof endpoints.listPropagationBottlenecks, 'function');
+    assert.strictEqual(typeof endpoints.listSinglePointsOfFailure, 'function');
+    assert.strictEqual(typeof endpoints.getPropagationResilience, 'function');
+  });
+
+  test('CascadeView initializes and renders epistemic safety badges correctly', () => {
+    const fakeContainer = { innerHTML: '', querySelector: () => null, querySelectorAll: () => [] };
+    const view = new PredictionView(fakeContainer);
+    view.activeTab = 'cascades';
+    view.cascades = [{
+      chain_id: 'c_1',
+      cascade_type: 'DEPENDENCY_CASCADE',
+      nodes: ['db_primary', 'auth_service', 'api_gateway'],
+      edges: [],
+      total_depth: 2,
+      cumulative_delay_seconds: 4.5,
+      amplification_detected: true,
+      likelihood: 0.82,
+      status: 'PROJECTED',
+    }];
+    const tabHtml = view.renderActiveTab();
+    assert.ok(tabHtml.includes('cascade-view-mount-point'));
+
+    const cv = view.cascadeView;
+    assert.ok(cv.formatEpistemicBadge('OBSERVED').includes('OBSERVED'));
+    assert.ok(cv.formatEpistemicBadge('CAUSAL_RELATIONSHIP').includes('CAUSAL'));
+    assert.ok(cv.formatEpistemicBadge('PREDICTED').includes('PROJECTED'));
+    assert.ok(cv.formatEpistemicBadge('SIMULATION_RESULT').includes('SIMULATED'));
+    assert.ok(cv.formatEpistemicBadge('HYPOTHESIS').includes('HYPOTHESIS'));
+  });
 });
 

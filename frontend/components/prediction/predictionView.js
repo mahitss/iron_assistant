@@ -6,6 +6,7 @@
 
 import { Endpoints } from '../../lib/api/endpoints.js';
 import { store } from '../../state/store.js';
+import { CascadeView } from './cascadeView.js';
 
 export class PredictionView {
   constructor(container) {
@@ -14,6 +15,8 @@ export class PredictionView {
     this.forecasts = [];
     this.warnings = [];
     this.risks = [];
+    this.cascades = [];
+    this.cascadeView = new CascadeView(null);
     this.calibration = null;
     this.health = null;
     this.activeTab = 'predictions';
@@ -92,6 +95,7 @@ export class PredictionView {
           <button class="tab-btn ${this.activeTab === 'forecasts' ? 'active' : ''}" data-tab="forecasts">Forecasts (${this.forecasts.length})</button>
           <button class="tab-btn ${this.activeTab === 'predictions' ? 'active' : ''}" data-tab="predictions">Predictions (${this.predictions.length})</button>
           <button class="tab-btn ${this.activeTab === 'warnings' ? 'active' : ''}" data-tab="warnings">Early Warnings (${this.warnings.length})</button>
+          <button class="tab-btn ${this.activeTab === 'cascades' ? 'active' : ''}" data-tab="cascades">Risk Cascades (${this.cascades.length})</button>
           <button class="tab-btn ${this.activeTab === 'risks' ? 'active' : ''}" data-tab="risks">Anticipated Risks (${this.risks.length})</button>
           <button class="tab-btn ${this.activeTab === 'calibration' ? 'active' : ''}" data-tab="calibration">Calibration & Accuracy</button>
         </div>
@@ -112,6 +116,8 @@ export class PredictionView {
         return this.renderForecastsTab();
       case 'warnings':
         return this.renderWarningsTab();
+      case 'cascades':
+        return this.renderCascadesTab();
       case 'risks':
         return this.renderRisksTab();
       case 'calibration':
@@ -341,6 +347,10 @@ export class PredictionView {
     `;
   }
 
+  renderCascadesTab() {
+    return `<div id="cascade-view-mount-point"></div>`;
+  }
+
   bindEvents() {
     if (!this.container) return;
 
@@ -360,6 +370,15 @@ export class PredictionView {
         await this.loadData();
         await this.render();
       });
+    }
+
+    if (this.activeTab === 'cascades') {
+      const mount = this.container.querySelector('#cascade-view-mount-point');
+      if (mount) {
+        this.cascadeView.container = mount;
+        this.cascadeView.cascades = this.cascades;
+        this.cascadeView.render();
+      }
     }
   }
 
@@ -383,6 +402,14 @@ export class PredictionView {
         this.forecasts = fcs || [];
       } catch {
         this.forecasts = [];
+      }
+
+      try {
+        const cascs = await Endpoints.listActiveCascades();
+        this.cascades = cascs || [];
+        this.cascadeView.cascades = this.cascades;
+      } catch {
+        this.cascades = [];
       }
     } catch (err) {
       console.error("Failed to load prediction telemetry:", err);

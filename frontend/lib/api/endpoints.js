@@ -1529,6 +1529,61 @@ export const Endpoints = {
     return api.get('/api/v1/prediction/health');
   },
 
+  // --- Task 75: Autonomous Risk Propagation, Cascade Analysis & Systemic Impact ---
+  async analyzePropagation(payload) {
+    return api.post('/api/v1/propagation/analyze', payload);
+  },
+
+  async getPropagationAnalysis(propagationId) {
+    return api.get(`/api/v1/propagation/${encodeURIComponent(propagationId)}`);
+  },
+
+  async getPropagationGraph(propagationId) {
+    return api.get(`/api/v1/propagation/${encodeURIComponent(propagationId)}/graph`);
+  },
+
+  async getPropagationExplanation(propagationId) {
+    return api.get(`/api/v1/propagation/${encodeURIComponent(propagationId)}/explanation`);
+  },
+
+  async getPropagationProvenance(propagationId) {
+    return api.get(`/api/v1/propagation/${encodeURIComponent(propagationId)}/provenance`);
+  },
+
+  async getPropagationScenarios(propagationId, params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/propagation/${encodeURIComponent(propagationId)}/scenarios${qs ? `?${qs}` : ''}`);
+  },
+
+  async evaluatePropagationOutcome(propagationId, payload = {}) {
+    return api.post(`/api/v1/propagation/${encodeURIComponent(propagationId)}/outcome`, payload);
+  },
+
+  async listActiveCascades(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/propagation/active${qs ? `?${qs}` : ''}`);
+  },
+
+  async listCascades(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/propagation/cascades${qs ? `?${qs}` : ''}`);
+  },
+
+  async listPropagationBottlenecks(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/propagation/bottlenecks${qs ? `?${qs}` : ''}`);
+  },
+
+  async listSinglePointsOfFailure(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/propagation/single-points-of-failure${qs ? `?${qs}` : ''}`);
+  },
+
+  async getPropagationResilience(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/propagation/resilience${qs ? `?${qs}` : ''}`);
+  },
+
   // Task 48: Intent Understanding, Goal Extraction & Safe Motivation
   async parseIntent(payload) {
     return api.post('/api/v1/intent/parse', payload);
@@ -3810,6 +3865,21 @@ export const discoveryApi = {
 };
 
 export const discoveryCenterApi = discoveryApi;
+
+export const propagationApi = {
+  analyze: (payload) => Endpoints.analyzePropagation(payload),
+  get: (id) => Endpoints.getPropagationAnalysis(id),
+  getGraph: (id) => Endpoints.getPropagationGraph(id),
+  getExplanation: (id) => Endpoints.getPropagationExplanation(id),
+  getProvenance: (id) => Endpoints.getPropagationProvenance(id),
+  getScenarios: (id, params) => Endpoints.getPropagationScenarios(id, params),
+  evaluateOutcome: (id, payload) => Endpoints.evaluatePropagationOutcome(id, payload),
+  listActive: (params) => Endpoints.listActiveCascades(params),
+  listCascades: (params) => Endpoints.listCascades(params),
+  listBottlenecks: (params) => Endpoints.listPropagationBottlenecks(params),
+  listSPoFs: (params) => Endpoints.listSinglePointsOfFailure(params),
+  getResilience: (params) => Endpoints.getPropagationResilience(params),
+};
 
 export const endpoints = Endpoints;
 

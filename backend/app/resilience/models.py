@@ -102,3 +102,29 @@ class CircuitStateModel(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False
     )
+
+
+# Task 76 Autonomous Resilience, Recovery, and Adaptive Defense Models
+from app.resilience.defense_models import (  # noqa: E402
+    AdaptiveDefenseRecommendationModel,
+    PostIncidentLessonModel,
+    RecoveryExecutionStepModel,
+    RecoveryPlanModel,
+    ResilienceAssessmentModel,
+    ResilienceGapModel,
+)
+
+__all__ = [
+    "IdempotencyModel",
+    "TaskLeaseModel",
+    "ResilienceCheckpointModel",
+    "QuarantineModel",
+    "CircuitStateModel",
+    "ResilienceAssessmentModel",
+    "ResilienceGapModel",
+    "RecoveryPlanModel",
+    "RecoveryExecutionStepModel",
+    "PostIncidentLessonModel",
+    "AdaptiveDefenseRecommendationModel",
+]
+

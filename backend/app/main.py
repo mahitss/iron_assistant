@@ -72,6 +72,7 @@ from app.perception.router import router as perception_router
 from app.planning.router import router as planning_router
 from app.policy import admin_policy_router, policy_router
 from app.prediction.router import router as prediction_router
+from app.propagation.router import router as propagation_router
 from app.reasoning import reasoning_router
 from app.research.router import router as research_router
 from app.resilience.router import router as resilience_router
@@ -201,6 +202,8 @@ def create_app() -> FastAPI:
     app.include_router(reasoning_router, prefix=settings.API_V1_STR)
     app.include_router(discovery_router, prefix=settings.API_V1_STR)
     app.include_router(experiments_router, prefix=settings.API_V1_STR)
+    app.include_router(propagation_router, prefix=settings.API_V1_STR)
+    app.include_router(propagation_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

@@ -75,7 +75,7 @@ from app.prediction.router import router as prediction_router
 from app.propagation.router import router as propagation_router
 from app.reasoning import reasoning_router
 from app.research.router import router as research_router
-from app.resilience.router import router as resilience_router
+from app.resilience.router import recovery_router, router as resilience_router
 from app.self_audit.router import router as self_audit_router
 from app.simulation.router import router as simulation_router
 from app.situational_awareness.router import router as situations_router
@@ -170,6 +170,9 @@ def create_app() -> FastAPI:
     app.include_router(policy_router, prefix=settings.API_V1_STR)
     app.include_router(admin_policy_router, prefix=settings.API_V1_STR)
     app.include_router(resilience_router, prefix=settings.API_V1_STR)
+    app.include_router(resilience_router)
+    app.include_router(recovery_router, prefix=settings.API_V1_STR)
+    app.include_router(recovery_router)
     app.include_router(state_router)
     app.include_router(observability_router)
     app.include_router(cognition_router, prefix=settings.API_V1_STR)

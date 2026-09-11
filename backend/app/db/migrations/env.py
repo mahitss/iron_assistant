@@ -46,6 +46,7 @@ import app.planning.models  # noqa: F401
 import app.policy.models  # noqa: F401
 import app.prediction.models  # noqa: F401
 import app.proactive.models  # noqa: F401
+import app.propagation.models  # noqa: F401
 import app.reasoning.models  # noqa: F401
 import app.research.models  # noqa: F401
 import app.resilience.models  # noqa: F401

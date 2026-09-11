@@ -1,0 +1,68 @@
+"""Kairo Autonomous World Model & Long-Horizon Foresight Engine (Task 65)."""
+
+from app.foresight.router import router as foresight_router
+from app.foresight.router import world_model_router
+from app.foresight.safety import (
+    ForesightExecutionBoundaryError,
+    ForesightLimitExceededError,
+    ForesightSafetyError,
+    WorldModelPoisoningError,
+)
+from app.foresight.schemas import (
+    EarlyWarningSeverity,
+    EarlyWarningSignal,
+    ForecastInterval,
+    ForecastRecord,
+    ForecastStatus,
+    ForesightEntity,
+    ForesightHorizon,
+    ForesightRelationship,
+    InconsistencyType,
+    MonitoringPlan,
+    RelationshipType,
+    ReversibilityClass,
+    ScenarioBranch,
+    ScenarioType,
+    StateAuthority,
+    StrategicOpportunity,
+    StrategicRisk,
+    TrendDirection,
+    UncertaintyGrade,
+    WorldDiff,
+    WorldModelOverview,
+    WorldScope,
+)
+from app.foresight.service import ForesightService, foresight_service
+
+__all__ = [
+    "foresight_service",
+    "ForesightService",
+    "foresight_router",
+    "world_model_router",
+    "ForesightSafetyError",
+    "ForesightExecutionBoundaryError",
+    "WorldModelPoisoningError",
+    "ForesightLimitExceededError",
+    "WorldScope",
+    "ForesightHorizon",
+    "UncertaintyGrade",
+    "StateAuthority",
+    "RelationshipType",
+    "TrendDirection",
+    "ScenarioType",
+    "ReversibilityClass",
+    "EarlyWarningSeverity",
+    "InconsistencyType",
+    "ForecastStatus",
+    "ForesightEntity",
+    "ForesightRelationship",
+    "ForecastInterval",
+    "ForecastRecord",
+    "ScenarioBranch",
+    "EarlyWarningSignal",
+    "StrategicRisk",
+    "StrategicOpportunity",
+    "MonitoringPlan",
+    "WorldDiff",
+    "WorldModelOverview",
+]

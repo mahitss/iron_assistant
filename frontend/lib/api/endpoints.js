@@ -2525,6 +2525,96 @@ export const Endpoints = {
   async getSwarmHealth() {
     return api.get('/api/v1/swarm/health');
   },
+
+  // --- Task 65: Autonomous World Model & Long-Horizon Foresight Engine ---
+  async getWorldModelOverview() {
+    return api.get('/api/v1/world-model');
+  },
+
+  async queryWorldModel(payload) {
+    return api.post('/api/v1/world-model/query', payload);
+  },
+
+  async listWorldEntities(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/world-model/entities${qs ? `?${qs}` : ''}`);
+  },
+
+  async getWorldEntity(entityId) {
+    return api.get(`/api/v1/world-model/entities/${encodeURIComponent(entityId)}`);
+  },
+
+  async listWorldRelationships(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/world-model/relationships${qs ? `?${qs}` : ''}`);
+  },
+
+  async getWorldDiff(historicalTimestamp = null) {
+    const qs = historicalTimestamp ? `?historical_timestamp=${encodeURIComponent(historicalTimestamp)}` : '';
+    return api.get(`/api/v1/world-model/diff${qs}`);
+  },
+
+  async reassessWorldModel(payload = {}) {
+    return api.post('/api/v1/world-model/reassess', payload);
+  },
+
+  async createForecast(payload) {
+    return api.post('/api/v1/foresight/forecast', payload);
+  },
+
+  async listForecasts(horizon = null) {
+    const qs = horizon ? `?horizon=${encodeURIComponent(horizon)}` : '';
+    return api.get(`/api/v1/foresight/forecasts${qs}`);
+  },
+
+  async getForecast(forecastId) {
+    return api.get(`/api/v1/foresight/forecast/${encodeURIComponent(forecastId)}`);
+  },
+
+  async getForecastEvidence(forecastId) {
+    return api.get(`/api/v1/foresight/forecast/${encodeURIComponent(forecastId)}/evidence`);
+  },
+
+  async getForecastAssumptions(forecastId) {
+    return api.get(`/api/v1/foresight/forecast/${encodeURIComponent(forecastId)}/assumptions`);
+  },
+
+  async getForecastScenarios(forecastId) {
+    return api.get(`/api/v1/foresight/forecast/${encodeURIComponent(forecastId)}/scenarios`);
+  },
+
+  async getForecastOutcomes(forecastId) {
+    return api.get(`/api/v1/foresight/forecast/${encodeURIComponent(forecastId)}/outcomes`);
+  },
+
+  async createScenario(payload) {
+    return api.post('/api/v1/foresight/scenario', payload);
+  },
+
+  async listScenarios(scenarioType = null) {
+    const qs = scenarioType ? `?scenario_type=${encodeURIComponent(scenarioType)}` : '';
+    return api.get(`/api/v1/foresight/scenarios${qs}`);
+  },
+
+  async listStrategicRisks() {
+    return api.get('/api/v1/foresight/risks');
+  },
+
+  async listStrategicOpportunities() {
+    return api.get('/api/v1/foresight/opportunities');
+  },
+
+  async listEarlyWarnings() {
+    return api.get('/api/v1/foresight/early-warnings');
+  },
+
+  async getForesightAudit(limit = 50) {
+    return api.get(`/api/v1/foresight/audit/trail?limit=${limit}`);
+  },
+
+  async getForesightHealth() {
+    return api.get('/api/v1/foresight/health');
+  },
 };
 
 
@@ -2837,6 +2927,32 @@ export const swarmApi = {
   getAudit: (id, limit) => Endpoints.getSwarmAudit(id, limit),
   getHealth: () => Endpoints.getSwarmHealth(),
 };
+
+export const foresightApi = {
+  getHealth: () => Endpoints.getForesightHealth(),
+  getOverview: () => Endpoints.getWorldModelOverview(),
+  query: (payload) => Endpoints.queryWorldModel(payload),
+  listEntities: (params) => Endpoints.listWorldEntities(params),
+  getEntity: (id) => Endpoints.getWorldEntity(id),
+  listRelationships: (params) => Endpoints.listWorldRelationships(params),
+  getDiff: (ts) => Endpoints.getWorldDiff(ts),
+  reassess: (payload) => Endpoints.reassessWorldModel(payload),
+  createForecast: (payload) => Endpoints.createForecast(payload),
+  listForecasts: (horizon) => Endpoints.listForecasts(horizon),
+  getForecast: (id) => Endpoints.getForecast(id),
+  getForecastEvidence: (id) => Endpoints.getForecastEvidence(id),
+  getForecastAssumptions: (id) => Endpoints.getForecastAssumptions(id),
+  getForecastScenarios: (id) => Endpoints.getForecastScenarios(id),
+  getForecastOutcomes: (id) => Endpoints.getForecastOutcomes(id),
+  createScenario: (payload) => Endpoints.createScenario(payload),
+  listScenarios: (type) => Endpoints.listScenarios(type),
+  listRisks: () => Endpoints.listStrategicRisks(),
+  listOpportunities: () => Endpoints.listStrategicOpportunities(),
+  listEarlyWarnings: () => Endpoints.listEarlyWarnings(),
+  getAudit: (limit) => Endpoints.getForesightAudit(limit),
+};
+
+export const worldModelApi = foresightApi;
 
 export const endpoints = Endpoints;
 

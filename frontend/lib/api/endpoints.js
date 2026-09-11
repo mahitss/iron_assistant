@@ -1431,12 +1431,77 @@ export const Endpoints = {
     return api.post('/api/v1/prediction/forecasts', payload);
   },
 
+  async listForecasts(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return api.get(`/api/v1/prediction/forecasts${qs ? `?${qs}` : ''}`);
+  },
+
+  async listActiveForecasts() {
+    return api.get('/api/v1/prediction/forecasts/active');
+  },
+
+  async getForecast(forecastId) {
+    return api.get(`/api/v1/prediction/forecasts/${encodeURIComponent(forecastId)}`);
+  },
+
+  async refreshForecast(forecastId, payload = {}) {
+    return api.post(`/api/v1/prediction/forecasts/${encodeURIComponent(forecastId)}/refresh`, payload);
+  },
+
+  async invalidateForecast(forecastId, payload = {}) {
+    return api.post(`/api/v1/prediction/forecasts/${encodeURIComponent(forecastId)}/invalidate`, payload);
+  },
+
+  async evaluateForecastOutcome(forecastId, payload = {}) {
+    return api.post(`/api/v1/prediction/forecasts/${encodeURIComponent(forecastId)}/evaluate`, payload);
+  },
+
+  async getForecastHistory(forecastId) {
+    return api.get(`/api/v1/prediction/forecasts/${encodeURIComponent(forecastId)}/history`);
+  },
+
+  async getForecastOutcome(forecastId) {
+    return api.get(`/api/v1/prediction/forecasts/${encodeURIComponent(forecastId)}/outcome`);
+  },
+
+  async getForecastExplanation(forecastId) {
+    return api.get(`/api/v1/prediction/forecasts/${encodeURIComponent(forecastId)}/explanation`);
+  },
+
+  async getForecastProvenance(forecastId) {
+    return api.get(`/api/v1/prediction/forecasts/${encodeURIComponent(forecastId)}/provenance`);
+  },
+
+  async runForecastBacktest(payload = {}) {
+    return api.post('/api/v1/prediction/forecasts/backtest', payload);
+  },
+
   async issueEarlyWarning(payload) {
     return api.post('/api/v1/prediction/warnings', payload);
   },
 
   async listActiveWarnings() {
     return api.get('/api/v1/prediction/warnings');
+  },
+
+  async listEarlyWarnings() {
+    return api.get('/api/v1/prediction/early-warnings');
+  },
+
+  async getEarlyWarning(warningId) {
+    return api.get(`/api/v1/prediction/early-warnings/${encodeURIComponent(warningId)}`);
+  },
+
+  async acknowledgeEarlyWarning(warningId, payload = {}) {
+    return api.post(`/api/v1/prediction/early-warnings/${encodeURIComponent(warningId)}/acknowledge`, payload);
+  },
+
+  async dismissEarlyWarning(warningId, payload = {}) {
+    return api.post(`/api/v1/prediction/early-warnings/${encodeURIComponent(warningId)}/dismiss`, payload);
+  },
+
+  async escalateEarlyWarning(warningId, payload = {}) {
+    return api.post(`/api/v1/prediction/early-warnings/${encodeURIComponent(warningId)}/escalate`, payload);
   },
 
   async evaluatePredictedRisk(payload) {

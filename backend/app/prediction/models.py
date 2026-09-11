@@ -132,3 +132,101 @@ class PredictionCalibrationModel(Base):
     calibration_error = Column(Float, nullable=False, default=0.0)
     accuracy = Column(Float, nullable=False, default=0.0)
     timestamp = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+
+# ==================================================
+# Task 74 Persistent Entities
+# ==================================================
+
+class ForecastVersionModel(Base):
+    """Persistent version history of forecasts across revisions (Spec 34, 35)."""
+
+    __tablename__ = "forecast_versions"
+
+    id = Column(String(64), primary_key=True, default=lambda: f"fcv_{uuid.uuid4().hex[:12]}")
+    forecast_id = Column(String(64), nullable=False, index=True)
+    version = Column(Integer, nullable=False, default=1)
+    previous_version_id = Column(String(64), nullable=True)
+    change_reason = Column(Text, nullable=False, default="")
+    changed_inputs = Column(JSON, nullable=False, default=dict)
+    changed_model = Column(String(128), nullable=True)
+    changed_assumptions = Column(JSON, nullable=False, default=list)
+    likelihood_delta = Column(Float, nullable=False, default=0.0)
+    point_estimate_delta = Column(Float, nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+
+class ForecastEvaluationModel(Base):
+    """Persistent evaluation results comparing forecasts against ground truth reality (Spec 13, 33)."""
+
+    __tablename__ = "forecast_evaluations"
+
+    id = Column(String(64), primary_key=True, default=lambda: f"fce_{uuid.uuid4().hex[:12]}")
+    forecast_id = Column(String(64), nullable=False, index=True)
+    target = Column(String(256), nullable=False, index=True)
+    realized_outcome = Column(JSON, nullable=False, default=dict)
+    realized_value = Column(Float, nullable=True)
+    error_metrics = Column(JSON, nullable=False, default=dict)  # MAE, RMSE, sMAPE, Brier
+    baseline_comparison = Column(JSON, nullable=False, default=dict)  # skill_score, outperformance
+    action_influenced = Column(Boolean, nullable=False, default=False)
+    evaluated_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+
+class ForecastLeadingIndicatorModel(Base):
+    """Persistent tracking of leading indicators and historical correlation (Spec 20)."""
+
+    __tablename__ = "forecast_leading_indicators"
+
+    id = Column(String(64), primary_key=True, default=lambda: f"fli_{uuid.uuid4().hex[:12]}")
+    indicator_id = Column(String(128), nullable=False, unique=True, index=True)
+    target_metric = Column(String(128), nullable=False, index=True)
+    name = Column(String(256), nullable=False)
+    direction = Column(String(32), nullable=False, default="increasing")
+    lead_time_seconds = Column(Integer, nullable=False, default=3600)
+    historical_reliability = Column(Float, nullable=False, default=0.8)
+    current_value = Column(Float, nullable=False, default=0.0)
+    baseline_value = Column(Float, nullable=False, default=0.0)
+    deviation = Column(Float, nullable=False, default=0.0)
+    is_active = Column(Boolean, nullable=False, default=False)
+    evidence_refs = Column(JSON, nullable=False, default=list)
+    last_updated_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+
+class ForecastDriftModel(Base):
+    """Persistent audit of statistical and behavioural drift events (Spec 23)."""
+
+    __tablename__ = "forecast_drifts"
+
+    id = Column(String(64), primary_key=True, default=lambda: f"drf_{uuid.uuid4().hex[:12]}")
+    target = Column(String(256), nullable=False, index=True)
+    drift_type = Column(String(64), nullable=False, index=True)  # INPUT, FEATURE, RESIDUAL, CALIBRATION
+    p_value_or_score = Column(Float, nullable=False, default=0.0)
+    threshold = Column(Float, nullable=False, default=0.05)
+    description = Column(Text, nullable=False, default="")
+    action_taken = Column(String(128), nullable=False, default="LOGGED")
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+
+
+class ForecastWarningRecordModel(Base):
+    """Persistent record of early warnings with hysteresis and deduplication tracking (Spec 24-27, 65, 66)."""
+
+    __tablename__ = "forecast_warning_records"
+
+    id = Column(String(64), primary_key=True, default=lambda: f"fwr_{uuid.uuid4().hex[:12]}")
+    warning_id = Column(String(64), nullable=False, unique=True, index=True)
+    fingerprint = Column(String(128), nullable=False, index=True)
+    target = Column(String(256), nullable=False, index=True)
+    signal = Column(String(128), nullable=False)
+    predicted_event = Column(String(256), nullable=False)
+    severity = Column(String(32), nullable=False, default="INFO", index=True)
+    status = Column(String(32), nullable=False, default="CREATED", index=True)
+    confidence = Column(Float, nullable=False, default=0.5)
+    hysteresis_state = Column(JSON, nullable=False, default=dict)
+    resolution = Column(String(64), nullable=True)
+    lead_time_seconds = Column(Float, nullable=True)
+    evidence = Column(JSON, nullable=False, default=dict)
+    scope_data = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    resolved_at = Column(DateTime(timezone=True), nullable=True)
+

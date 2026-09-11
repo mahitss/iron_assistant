@@ -132,5 +132,84 @@ describe('Predictive Intelligence & Anticipation Engine Endpoints & UI (Task 47)
     const calibHtml = view.renderActiveTab();
     assert.ok(calibHtml.includes('Statistical Probability Calibration'));
     assert.ok(calibHtml.includes('0.0421'));
+
+    // Task 74: Forecasts tab
+    view.activeTab = 'forecasts';
+    view.forecasts = [{
+      forecast_id: 'fc_101',
+      target: 'service:api:latency',
+      strategy: 'EXPONENTIAL_SMOOTHING',
+      horizon: 'MEDIUM',
+      point_estimate: 142.5,
+      interval: { lower_bound: 120.0, upper_bound: 165.0 },
+      baseline: { outperformed: true },
+      state: 'PUBLISHED',
+    }];
+    const fcHtml = view.renderActiveTab();
+    assert.ok(fcHtml.includes('service:api:latency'));
+    assert.ok(fcHtml.includes('EXPONENTIAL_SMOOTHING'));
+    assert.ok(fcHtml.includes('142.5'));
+    assert.ok(fcHtml.includes('[120 – 165]'));
+    assert.ok(fcHtml.includes('Beat baseline'));
+  });
+
+  test('Endpoints exposes all Task 74 forecasting and early warning methods', () => {
+    assert.strictEqual(typeof endpoints.listForecasts, 'function');
+    assert.strictEqual(typeof endpoints.listActiveForecasts, 'function');
+    assert.strictEqual(typeof endpoints.getForecast, 'function');
+    assert.strictEqual(typeof endpoints.refreshForecast, 'function');
+    assert.strictEqual(typeof endpoints.invalidateForecast, 'function');
+    assert.strictEqual(typeof endpoints.evaluateForecastOutcome, 'function');
+    assert.strictEqual(typeof endpoints.getForecastHistory, 'function');
+    assert.strictEqual(typeof endpoints.getForecastOutcome, 'function');
+    assert.strictEqual(typeof endpoints.getForecastExplanation, 'function');
+    assert.strictEqual(typeof endpoints.getForecastProvenance, 'function');
+    assert.strictEqual(typeof endpoints.runForecastBacktest, 'function');
+    assert.strictEqual(typeof endpoints.listEarlyWarnings, 'function');
+    assert.strictEqual(typeof endpoints.getEarlyWarning, 'function');
+    assert.strictEqual(typeof endpoints.acknowledgeEarlyWarning, 'function');
+    assert.strictEqual(typeof endpoints.dismissEarlyWarning, 'function');
+    assert.strictEqual(typeof endpoints.escalateEarlyWarning, 'function');
+  });
+
+  test('PredictionView renders decile calibration buckets and hysteresis states correctly', () => {
+    const view = new PredictionView({});
+
+    // Calibration with buckets
+    view.activeTab = 'calibration';
+    view.calibration = {
+      model_reference: 'multi_strategy_ensemble',
+      brier_score: 0.0812,
+      expected_calibration_error: 0.035,
+      systematic_bias: 'BALANCED',
+      buckets: [
+        { bin_range: '0.0-0.1', count: 12, avg_predicted_prob: 0.05, empirical_rate: 0.045, calibration_gap: 0.005 },
+        { bin_range: '0.7-0.8', count: 25, avg_predicted_prob: 0.74, empirical_rate: 0.72, calibration_gap: 0.02 },
+      ],
+    };
+    const calibHtml = view.renderActiveTab();
+    assert.ok(calibHtml.includes('0.0-0.1'));
+    assert.ok(calibHtml.includes('0.7-0.8'));
+    assert.ok(calibHtml.includes('Decile Reliability Analysis'));
+
+    // Early warning with hysteresis lock
+    view.activeTab = 'warnings';
+    view.warnings = [{
+      warning_id: 'ew_hyst_1',
+      target: 'cluster:cpu_saturation',
+      signal: 'derivative_acceleration',
+      predicted_event: 'CONTAINER_OOM_KILL',
+      severity: 'CRITICAL',
+      confidence: 0.88,
+      hysteresis_active: true,
+      state: 'ACTIVE',
+      status: 'OPEN',
+      expires_at: new Date().toISOString(),
+    }];
+    const warnHtml = view.renderActiveTab();
+    assert.ok(warnHtml.includes('cluster:cpu_saturation'));
+    assert.ok(warnHtml.includes('LOCKED'));
+    assert.ok(warnHtml.includes('CONTAINER_OOM_KILL'));
   });
 });
+

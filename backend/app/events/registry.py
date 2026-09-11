@@ -225,10 +225,18 @@ class EventRegistry:
             EventRegistration("policy.scope_violation", "v1", "Policy scope boundary violation detected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("policy.conflict_detected", "v1", "Contradictory policy overlap detected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
 
-            # System & Provider events
-            EventRegistration("service.started", "v1", "Kairo subsystem online", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.SYSTEM_PUBLIC),
-            EventRegistration("provider.degraded", "v1", "Upstream model provider degraded", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.SYSTEM_PUBLIC),
-            EventRegistration("provider.recovered", "v1", "Upstream model provider recovered", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.SYSTEM_PUBLIC),
+            # Autonomous Forecasting & Early-Warning events (Task 74, Spec 50)
+            EventRegistration("forecast.created", "v1", "Temporal forecast formulated and published", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("forecast.updated", "v1", "Forecast revised with new evidence or version", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("forecast.refreshed", "v1", "Forecast updated with refreshed inputs", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("forecast.outcome_observed", "v1", "Ground truth observed for active forecast", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("forecast.evaluated", "v1", "Forecast scored against realized outcome", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("forecast.drift_detected", "v1", "Process or residual error drift detected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("forecast.calibration_degraded", "v1", "Statistical probability calibration degraded", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("forecast.invalidated", "v1", "Forecast invalidated due to assumption failure", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("early_warning.created", "v1", "Proactive early warning issued", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("early_warning.escalated", "v1", "Early warning severity escalated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("early_warning.resolved", "v1", "Early warning resolved with explicit reason", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
         ]
         for reg in defaults:
             self.register(reg)

@@ -3881,7 +3881,39 @@ export const propagationApi = {
   getResilience: (params) => Endpoints.getPropagationResilience(params),
 };
 
+export const resilienceApi = {
+  assess: (payload) => api.post('/api/v1/resilience/assess', payload),
+  getOverview: () => api.get('/api/v1/resilience/overview'),
+  getBottlenecks: () => api.get('/api/v1/resilience/bottlenecks'),
+  getRecoveryHistory: () => api.get('/api/v1/resilience/recovery-history'),
+  get: (id) => api.get(`/api/v1/resilience/${id}`),
+  getGaps: (id) => api.get(`/api/v1/resilience/${id}/gaps`),
+  getRecoveryPaths: (id) => api.get(`/api/v1/resilience/${id}/recovery-paths`),
+  getScenarios: (id) => api.get(`/api/v1/resilience/${id}/scenarios`),
+  getExplanation: (id) => api.get(`/api/v1/resilience/${id}/explanation`),
+  getProvenance: (id) => api.get(`/api/v1/resilience/${id}/provenance`),
+};
+
+export const recoveryApi = {
+  plan: (payload) => api.post('/api/v1/recovery/plan', payload),
+  listActive: () => api.get('/api/v1/recovery/active'),
+  get: (id) => api.get(`/api/v1/recovery/${id}`),
+  approve: (id, payload) => api.post(`/api/v1/recovery/${id}/approve`, payload),
+  executeContainment: (id, actor) => api.post(`/api/v1/recovery/${id}/execute-containment?actor=${encodeURIComponent(actor || 'operator')}`),
+  execute: (id, actor) => api.post(`/api/v1/recovery/${id}/execute?actor=${encodeURIComponent(actor || 'operator')}`),
+  verify: (id, payload) => api.post(`/api/v1/recovery/${id}/verify`, payload),
+  rollback: (id, actor) => api.post(`/api/v1/recovery/${id}/rollback?actor=${encodeURIComponent(actor || 'operator')}`),
+  abort: (id, payload) => api.post(`/api/v1/recovery/${id}/abort`, payload),
+  handoff: (id, payload) => api.post(`/api/v1/recovery/${id}/handoff`, payload),
+};
+
+export const resilienceCenterApi = {
+  ...resilienceApi,
+  recovery: recoveryApi,
+};
+
 export const endpoints = Endpoints;
+
 
 
 

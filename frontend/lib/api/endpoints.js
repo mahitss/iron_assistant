@@ -3056,6 +3056,88 @@ export const Endpoints = {
   async getReasoningHealth() {
     return api.get('/api/v1/reasoning/health');
   },
+
+  // --- Task 72: Autonomous Hypothesis, Experimentation & Scientific Discovery Engine ---
+  async startDiscovery(payload, tenantId = 'default', workspaceId = 'default') {
+    return api.post('/api/v1/discovery/start', payload, { headers: { 'x-tenant-id': tenantId, 'x-workspace-id': workspaceId } });
+  },
+
+  async getDiscovery(discoveryId) {
+    return api.get(`/api/v1/discovery/${encodeURIComponent(discoveryId)}`);
+  },
+
+  async listDiscoveries(status = null, tenantId = 'default', workspaceId = 'default') {
+    const q = status ? `?status_filter=${encodeURIComponent(status)}` : '';
+    return api.get(`/api/v1/discovery${q}`, { headers: { 'x-tenant-id': tenantId, 'x-workspace-id': workspaceId } });
+  },
+
+  async addDiscoveryHypotheses(discoveryId, payload) {
+    return api.post(`/api/v1/discovery/${encodeURIComponent(discoveryId)}/hypotheses`, payload);
+  },
+
+  async getDiscoveryHypotheses(discoveryId) {
+    return api.get(`/api/v1/discovery/${encodeURIComponent(discoveryId)}/hypotheses`);
+  },
+
+  async concludeDiscovery(discoveryId) {
+    return api.post(`/api/v1/discovery/${encodeURIComponent(discoveryId)}/conclude`, {});
+  },
+
+  async getDiscoveryAudit(discoveryId) {
+    return api.get(`/api/v1/discovery/${encodeURIComponent(discoveryId)}/audit`);
+  },
+
+  async designExperiment(payload) {
+    return api.post('/api/v1/experiments/design', payload);
+  },
+
+  async getExperiment(experimentId) {
+    return api.get(`/api/v1/experiments/${encodeURIComponent(experimentId)}`);
+  },
+
+  async recordExperimentPrediction(experimentId, payload) {
+    return api.post(`/api/v1/experiments/${encodeURIComponent(experimentId)}/prediction`, payload);
+  },
+
+  async approveExperiment(experimentId, approver) {
+    return api.post(`/api/v1/experiments/${encodeURIComponent(experimentId)}/approve`, { approver });
+  },
+
+  async startExperiment(experimentId, payload = {}) {
+    return api.post(`/api/v1/experiments/${encodeURIComponent(experimentId)}/start`, payload);
+  },
+
+  async recordExperimentObservation(experimentId, payload) {
+    return api.post(`/api/v1/experiments/${encodeURIComponent(experimentId)}/observation`, payload);
+  },
+
+  async analyzeExperiment(experimentId, payload) {
+    return api.post(`/api/v1/experiments/${encodeURIComponent(experimentId)}/analyze`, payload);
+  },
+
+  async rollbackExperiment(experimentId) {
+    return api.post(`/api/v1/experiments/${encodeURIComponent(experimentId)}/rollback`, {});
+  },
+
+  async cleanupExperiment(experimentId) {
+    return api.post(`/api/v1/experiments/${encodeURIComponent(experimentId)}/cleanup`, {});
+  },
+
+  async replicateExperiment(payload) {
+    return api.post('/api/v1/experiments/replicate', payload);
+  },
+
+  async getExperimentExplanation(experimentId) {
+    return api.get(`/api/v1/experiments/${encodeURIComponent(experimentId)}/explanation`);
+  },
+
+  async getExperimentQueue() {
+    return api.get('/api/v1/experiments/queue');
+  },
+
+  async getDiscoveryHealth() {
+    return api.get('/api/v1/experiments/health');
+  },
 };
 
 
@@ -3533,6 +3615,31 @@ export const reasoningApi = {
 };
 
 export const reasoningCenterApi = reasoningApi;
+
+export const discoveryApi = {
+  start: (payload, tenantId, workspaceId) => Endpoints.startDiscovery(payload, tenantId, workspaceId),
+  get: (id) => Endpoints.getDiscovery(id),
+  list: (status, tenantId, workspaceId) => Endpoints.listDiscoveries(status, tenantId, workspaceId),
+  addHypotheses: (id, payload) => Endpoints.addDiscoveryHypotheses(id, payload),
+  getHypotheses: (id) => Endpoints.getDiscoveryHypotheses(id),
+  conclude: (id) => Endpoints.concludeDiscovery(id),
+  getAudit: (id) => Endpoints.getDiscoveryAudit(id),
+  designExperiment: (payload) => Endpoints.designExperiment(payload),
+  getExperiment: (id) => Endpoints.getExperiment(id),
+  recordPrediction: (id, payload) => Endpoints.recordExperimentPrediction(id, payload),
+  approveExperiment: (id, approver) => Endpoints.approveExperiment(id, approver),
+  startExperiment: (id, payload) => Endpoints.startExperiment(id, payload),
+  recordObservation: (id, payload) => Endpoints.recordExperimentObservation(id, payload),
+  analyzeExperiment: (id, payload) => Endpoints.analyzeExperiment(id, payload),
+  rollbackExperiment: (id) => Endpoints.rollbackExperiment(id),
+  cleanupExperiment: (id) => Endpoints.cleanupExperiment(id),
+  replicate: (payload) => Endpoints.replicateExperiment(payload),
+  getExplanation: (id) => Endpoints.getExperimentExplanation(id),
+  getQueue: () => Endpoints.getExperimentQueue(),
+  getHealth: () => Endpoints.getDiscoveryHealth(),
+};
+
+export const discoveryCenterApi = discoveryApi;
 
 export const endpoints = Endpoints;
 

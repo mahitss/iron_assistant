@@ -52,6 +52,7 @@ from app.decision.router import router as decision_router
 from app.environment.router import router as environment_router
 from app.executive_memory.router import router as executive_memory_router
 from app.foresight.router import router as foresight_router
+from app.discovery import discovery_router, experiments_router
 from app.foresight.router import world_model_router
 from app.incident_response.router import router as incidents_router
 from app.intent import commands_router, intent_router
@@ -198,6 +199,8 @@ def create_app() -> FastAPI:
     app.include_router(self_audit_router, prefix=settings.API_V1_STR)
     app.include_router(attention_router, prefix=settings.API_V1_STR)
     app.include_router(reasoning_router, prefix=settings.API_V1_STR)
+    app.include_router(discovery_router, prefix=settings.API_V1_STR)
+    app.include_router(experiments_router, prefix=settings.API_V1_STR)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

@@ -21,6 +21,7 @@ import app.communication.models  # noqa: F401
 import app.context.models  # noqa: F401
 import app.context.universal_models  # noqa: F401
 import app.decision.models  # noqa: F401
+import app.discovery.models  # noqa: F401
 import app.environment.models  # noqa: F401
 import app.executive_memory.models  # noqa: F401
 import app.foresight.models  # noqa: F401

@@ -135,6 +135,8 @@ VALID_RECOVERY_TRANSITIONS: dict[RecoveryLifecycleState, set[RecoveryLifecycleSt
     RecoveryLifecycleState.CONTAINMENT_PLANNED: {
         RecoveryLifecycleState.CONTAINMENT_PENDING_APPROVAL,
         RecoveryLifecycleState.CONTAINMENT_EXECUTING,
+        RecoveryLifecycleState.RECOVERY_PLANNED,
+        RecoveryLifecycleState.RECOVERY_PENDING_APPROVAL,
         RecoveryLifecycleState.HUMAN_REQUIRED,
         RecoveryLifecycleState.ABORTED,
     },
@@ -186,9 +188,12 @@ VALID_RECOVERY_TRANSITIONS: dict[RecoveryLifecycleState, set[RecoveryLifecycleSt
         RecoveryLifecycleState.RECOVERED,
         RecoveryLifecycleState.PARTIALLY_RECOVERED,
         RecoveryLifecycleState.RECOVERY_FAILED,
+        RecoveryLifecycleState.ROLLED_BACK,
         RecoveryLifecycleState.HUMAN_REQUIRED,
     },
-    RecoveryLifecycleState.RECOVERED: set(),
+    RecoveryLifecycleState.RECOVERED: {
+        RecoveryLifecycleState.ROLLED_BACK,
+    },
     RecoveryLifecycleState.PARTIALLY_RECOVERED: {
         RecoveryLifecycleState.RECOVERY_PLANNED,
         RecoveryLifecycleState.HUMAN_REQUIRED,

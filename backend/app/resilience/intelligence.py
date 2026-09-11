@@ -261,6 +261,9 @@ class ResilienceIntelligenceCoordinator:
             }
 
         # Transition to EXECUTING
+        if plan.state in (RecoveryLifecycleState.CONTAINMENT_PLANNED, RecoveryLifecycleState.CONTAINED):
+            self.state_machine.transition_recovery_plan(plan, RecoveryLifecycleState.RECOVERY_PLANNED, reason="Advancing to recovery execution", actor=actor)
+
         if plan.state == RecoveryLifecycleState.RECOVERY_PENDING_APPROVAL and plan.approved_by:
             self.state_machine.transition_recovery_plan(plan, RecoveryLifecycleState.RECOVERY_EXECUTING, reason="Approved", actor=actor)
         elif plan.state == RecoveryLifecycleState.RECOVERY_PLANNED:

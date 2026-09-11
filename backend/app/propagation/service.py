@@ -70,7 +70,7 @@ class PropagationService:
         custom_edges: Optional[List[PropagationEdge]] = None,
         custom_entities: Optional[Dict[str, Dict[str, Any]]] = None,
         initial_impact: Optional[ImpactDimensions] = None,
-        initial_confidence: float = 0.9,
+        initial_confidence: float = 1.0,
         regime_factor: float = 1.0,
         critical_path_entities: Optional[Set[str]] = None,
         as_of_timestamp: Optional[datetime] = None,

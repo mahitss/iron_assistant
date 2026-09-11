@@ -35,7 +35,7 @@ class AnalyzePropagationRequest(BaseModel):
     custom_edges: Optional[List[PropagationEdge]] = None
     custom_entities: Optional[Dict[str, Dict[str, Any]]] = None
     initial_impact: Optional[ImpactDimensions] = None
-    initial_confidence: float = Field(default=0.9, ge=0.0, le=1.0)
+    initial_confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     regime_factor: float = Field(default=1.0, ge=0.1, le=5.0)
 
 

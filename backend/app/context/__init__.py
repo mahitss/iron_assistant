@@ -19,6 +19,28 @@ from app.context.schemas import (
 )
 from app.context.service import ContextEngine
 from app.context.session import SessionContextManager
+from app.context.universal_schemas import (
+    AdaptivePreference,
+    AdaptivePreferenceCreate,
+    AdaptivePreferenceUpdate,
+    ContextConflictItem,
+    ContextHierarchyLevel,
+    ContextPackage,
+    ContextPriorityTier,
+    ContextQualityScore,
+    ContextRequest,
+    ContextSnapshot,
+    MissingContextItem,
+    PreferenceCategory,
+    PreferenceConfidence,
+    PreferenceSource,
+    UniversalContextItem,
+    UniversalContextType,
+)
+from app.context.universal_service import (
+    UniversalContextService,
+    get_universal_context_service,
+)
 
 __all__ = [
     "ContextEngine",
@@ -38,4 +60,22 @@ __all__ = [
     "ContextSettingsUpdate",
     "MemoryScope",
     "MemorySource",
+    "UniversalContextType",
+    "ContextPriorityTier",
+    "ContextHierarchyLevel",
+    "PreferenceCategory",
+    "PreferenceSource",
+    "PreferenceConfidence",
+    "ContextQualityScore",
+    "MissingContextItem",
+    "ContextConflictItem",
+    "UniversalContextItem",
+    "ContextRequest",
+    "ContextPackage",
+    "AdaptivePreference",
+    "AdaptivePreferenceCreate",
+    "AdaptivePreferenceUpdate",
+    "ContextSnapshot",
+    "UniversalContextService",
+    "get_universal_context_service",
 ]

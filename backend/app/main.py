@@ -41,38 +41,44 @@ from app.api.routes.tasks import router as tasks_router
 from app.api.routes.voice import router as voice_router
 from app.api.routes.web_monitors import router as web_monitors_router
 from app.api.routes.world import router as world_router
+from app.attention import attention_router
 from app.auth.middleware import AuthContextMiddleware
 from app.autonomy.router import router as autonomy_router
 from app.causal.router import router as causal_router
 from app.cognition.router import router as cognition_router
 from app.communication import communication_router
 from app.config.settings import get_settings
+from app.decision.router import router as decision_router
 from app.environment.router import router as environment_router
 from app.executive_memory.router import router as executive_memory_router
+from app.foresight.router import router as foresight_router
+from app.foresight.router import world_model_router
+from app.incident_response.router import router as incidents_router
 from app.intent import commands_router, intent_router
 from app.knowledge_graph import knowledge_graph_router
 from app.learning.router import router as learning_router
 from app.lifecycle import shutdown_lifecycle, startup_lifecycle
+from app.memory_consolidation import memory_consolidation_router
 from app.metacognition import metacognition_router
+from app.missions.router import router as mission_router
 from app.notifications import notifications_router
 from app.observability.health import router as health_router
 from app.observability.logging import configure_structured_logging
 from app.observability.router import router as observability_router
+from app.optimization.router import router as optimization_router
+from app.orchestration.router import router as orchestration_router
 from app.perception.router import router as perception_router
+from app.planning.router import router as planning_router
 from app.policy import admin_policy_router, policy_router
 from app.prediction.router import router as prediction_router
-from app.resilience.router import router as resilience_router
-from app.simulation.router import router as simulation_router
-from app.decision.router import router as decision_router
-from app.planning.router import router as planning_router
-from app.orchestration.router import router as orchestration_router
-from app.situational_awareness.router import router as situations_router
-from app.incident_response.router import router as incidents_router
-from app.optimization.router import router as optimization_router
+from app.reasoning import reasoning_router
 from app.research.router import router as research_router
-from app.swarm.router import router as swarm_router
-from app.foresight.router import router as foresight_router, world_model_router
+from app.resilience.router import router as resilience_router
+from app.self_audit.router import router as self_audit_router
+from app.simulation.router import router as simulation_router
+from app.situational_awareness.router import router as situations_router
 from app.state.router import router as state_router
+from app.swarm.router import router as swarm_router
 from app.verification.router import router as verification_router
 
 logger = logging.getLogger("kairo.main")
@@ -133,6 +139,7 @@ def create_app() -> FastAPI:
     # 5. Mount Protected Domain API Routers
     app.include_router(auth_router, prefix=settings.API_V1_STR)
     app.include_router(chat_router, prefix=settings.API_V1_STR)
+    app.include_router(memory_consolidation_router, prefix=settings.API_V1_STR)
     app.include_router(memory_router, prefix=settings.API_V1_STR)
     app.include_router(memory_api_router, prefix=settings.API_V1_STR)
     app.include_router(user_memory_router, prefix=settings.API_V1_STR)
@@ -187,6 +194,10 @@ def create_app() -> FastAPI:
     app.include_router(swarm_router)
     app.include_router(foresight_router)
     app.include_router(world_model_router)
+    app.include_router(mission_router, prefix=settings.API_V1_STR)
+    app.include_router(self_audit_router, prefix=settings.API_V1_STR)
+    app.include_router(attention_router, prefix=settings.API_V1_STR)
+    app.include_router(reasoning_router, prefix=settings.API_V1_STR)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

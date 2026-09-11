@@ -12,42 +12,48 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
 import app.agents.models  # noqa: F401
+import app.attention.models  # noqa: F401
 import app.automation.models  # noqa: F401
 import app.autonomy.models  # noqa: F401
 import app.causal.models  # noqa: F401
 import app.cognition.models  # noqa: F401
 import app.communication.models  # noqa: F401
 import app.context.models  # noqa: F401
+import app.context.universal_models  # noqa: F401
 import app.decision.models  # noqa: F401
 import app.environment.models  # noqa: F401
 import app.executive_memory.models  # noqa: F401
+import app.foresight.models  # noqa: F401
 
 # Import all models to register them on Base.metadata for migrations
 import app.identity.models  # noqa: F401
+import app.incident_response.models  # noqa: F401
 import app.intent.models  # noqa: F401  # noqa: F401
 import app.knowledge.models  # noqa: F401
 import app.knowledge_graph.models  # noqa: F401
 import app.learning.models  # noqa: F401
 import app.memory.models  # noqa: F401
+import app.memory_consolidation.models  # noqa: F401
 import app.metacognition.models  # noqa: F401
+import app.missions.models  # noqa: F401
 import app.notifications.models  # noqa: F401
 import app.observability.models  # noqa: F401
+import app.optimization.models  # noqa: F401
+import app.orchestration.models  # noqa: F401
 import app.perception.models  # noqa: F401
 import app.planning.models  # noqa: F401
-import app.orchestration.models  # noqa: F401
-import app.situational_awareness.models  # noqa: F401
-import app.incident_response.models  # noqa: F401
-import app.optimization.models  # noqa: F401
-import app.research.models  # noqa: F401
-import app.swarm.models  # noqa: F401
-import app.foresight.models  # noqa: F401
 import app.policy.models  # noqa: F401
 import app.prediction.models  # noqa: F401
 import app.proactive.models  # noqa: F401
+import app.reasoning.models  # noqa: F401
+import app.research.models  # noqa: F401
 import app.resilience.models  # noqa: F401
 import app.security.models  # noqa: F401
+import app.self_audit.models  # noqa: F401
 import app.simulation.models  # noqa: F401
+import app.situational_awareness.models  # noqa: F401
 import app.state.models  # noqa: F401
+import app.swarm.models  # noqa: F401
 import app.verification.models  # noqa: F401
 from app.core.config import get_settings
 from app.db.session import Base

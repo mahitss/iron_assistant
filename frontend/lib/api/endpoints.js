@@ -2615,6 +2615,447 @@ export const Endpoints = {
   async getForesightHealth() {
     return api.get('/api/v1/foresight/health');
   },
+
+  // --- Task 66: Autonomous Goal Management & Self-Directed Mission Engine ---
+  async createMission(payload, isHumanApproved = false) {
+    return api.post(`/api/v1/missions/?is_human_approved=${Boolean(isHumanApproved)}`, payload);
+  },
+
+  async listMissions(tenantId = 'default') {
+    return api.get(`/api/v1/missions/?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMissionOverview(tenantId = 'default') {
+    return api.get(`/api/v1/missions/overview?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMission(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async startMission(missionId, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/start?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async pauseMission(missionId, reason = '', tenantId = 'default') {
+    const qs = reason ? `&reason=${encodeURIComponent(reason)}` : '';
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/pause?tenant_id=${encodeURIComponent(tenantId)}${qs}`);
+  },
+
+  async resumeMission(missionId, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/resume?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async cancelMission(missionId, reason = '', tenantId = 'default') {
+    const qs = reason ? `&reason=${encodeURIComponent(reason)}` : '';
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/cancel?tenant_id=${encodeURIComponent(tenantId)}${qs}`);
+  },
+
+  async replanMission(missionId, reason = '', tenantId = 'default') {
+    const qs = reason ? `&reason=${encodeURIComponent(reason)}` : '';
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/replan?tenant_id=${encodeURIComponent(tenantId)}${qs}`);
+  },
+
+  async executeSupervisoryCycle(missionId, payload = {}, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/cycle?tenant_id=${encodeURIComponent(tenantId)}`, payload);
+  },
+
+  async completeMission(missionId, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/complete?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMissionAuditTrail(missionId) {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/audit`);
+  },
+
+  async verifyMissionAuditChain() {
+    return api.get('/api/v1/missions/audit/verify');
+  },
+
+  async getMissionControlHealth() {
+    return api.get('/api/v1/missions/health');
+  },
+
+  async getMissionGoals(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/goals?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMissionTasks(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/tasks?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMissionProgress(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/progress?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMissionBlockers(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/blockers?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMissionTimeline(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/timeline?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMissionDecisions(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/decisions?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMissionRisks(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/risks?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async reassessMission(missionId, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/reassess?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async verifyMission(missionId, telemetry = {}, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/verify?tenant_id=${encodeURIComponent(tenantId)}`, telemetry);
+  },
+
+  // --- Task 67: Metacognitive Control & Autonomous Self-Audit Engine ---
+  async createSelfAudit(payload) {
+    return api.post('/api/v1/self-audit/', payload);
+  },
+
+  async runSelfAuditCycle(payload) {
+    return api.post('/api/v1/self-audit/cycle', payload);
+  },
+
+  async listSelfAudits(tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getSelfAuditOverview(tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/overview?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getSelfAudit(auditId, tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/${encodeURIComponent(auditId)}?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getSelfAuditFindings(auditId, tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/${encodeURIComponent(auditId)}/findings?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getSelfAuditEvidence(auditId, tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/${encodeURIComponent(auditId)}/evidence?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getSelfAuditHistory(tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/history?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getSelfAuditDrift(tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/drift?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getSelfAuditCalibration(tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/calibration?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getSelfAuditErrors(tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/errors?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async reassessSelfAudit(auditId, tenantId = 'default') {
+    return api.post(`/api/v1/self-audit/${encodeURIComponent(auditId)}/reassess?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async listSelfAuditBeliefs(tenantId = 'default') {
+    return api.get(`/api/v1/self-audit/beliefs?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async registerSelfAuditBelief(payload) {
+    return api.post('/api/v1/self-audit/beliefs', payload);
+  },
+
+  async reviseSelfAuditBelief(beliefId, payload) {
+    return api.post(`/api/v1/self-audit/beliefs/${encodeURIComponent(beliefId)}/revise`, payload);
+  },
+
+  async resolveSelfAuditFinding(findingId, evidence = '', tenantId = 'default') {
+    return api.post(`/api/v1/self-audit/findings/${encodeURIComponent(findingId)}/resolve?evidence=${encodeURIComponent(evidence)}&tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getSelfAuditHealth() {
+    return api.get('/api/v1/self-audit/health');
+  },
+
+  // --- Task 68: Autonomous Knowledge & Memory Consolidation Engine ---
+  async captureMemory(payload, tenantId = 'default') {
+    return api.post(`/api/v1/memory/capture?tenant_id=${encodeURIComponent(tenantId)}`, payload);
+  },
+
+  async searchConsolidatedMemories(params = {}, tenantId = 'default') {
+    const queryParts = [`tenant_id=${encodeURIComponent(tenantId)}`];
+    if (params.query || params.q) queryParts.push(`q=${encodeURIComponent(params.query || params.q)}`);
+    if (params.top_k) queryParts.push(`top_k=${encodeURIComponent(params.top_k)}`);
+    if (params.memory_type) queryParts.push(`memory_type=${encodeURIComponent(params.memory_type)}`);
+    if (params.cognitive_type) queryParts.push(`cognitive_type=${encodeURIComponent(params.cognitive_type)}`);
+    if (params.trust_level) queryParts.push(`trust_level=${encodeURIComponent(params.trust_level)}`);
+    if (params.include_stale !== undefined) queryParts.push(`include_stale=${encodeURIComponent(params.include_stale)}`);
+    return api.get(`/api/v1/memory/search?${queryParts.join('&')}`);
+  },
+
+  async getMemoryConflicts(tenantId = 'default') {
+    return api.get(`/api/v1/memory/conflicts?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getStaleMemories(tenantId = 'default') {
+    return api.get(`/api/v1/memory/stale?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getExpiringMemories(withinHours = 24, tenantId = 'default') {
+    return api.get(`/api/v1/memory/expiring?within_hours=${encodeURIComponent(withinHours)}&tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMemoryHealth(tenantId = 'default') {
+    return api.get(`/api/v1/memory/health?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async assembleMemoryContext(payload, tenantId = 'default') {
+    return api.post(`/api/v1/memory/context?tenant_id=${encodeURIComponent(tenantId)}`, payload);
+  },
+
+  async triggerConsolidationSweep(tenantId = 'default') {
+    return api.post(`/api/v1/memory/sweep?tenant_id=${encodeURIComponent(tenantId)}`, {});
+  },
+
+  async getMemoryProvenance(memoryId, tenantId = 'default') {
+    return api.get(`/api/v1/memory/${encodeURIComponent(memoryId)}/provenance?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMemoryHistory(memoryId, tenantId = 'default') {
+    return api.get(`/api/v1/memory/${encodeURIComponent(memoryId)}/history?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async validateMemory(memoryId, verified = true, evidenceRef = '', tenantId = 'default') {
+    return api.post(`/api/v1/memory/${encodeURIComponent(memoryId)}/validate?verified=${encodeURIComponent(verified)}&evidence_ref=${encodeURIComponent(evidenceRef)}&tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async promoteMemory(memoryId, reason = '', tenantId = 'default') {
+    return api.post(`/api/v1/memory/${encodeURIComponent(memoryId)}/promote?reason=${encodeURIComponent(reason)}&tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async consolidateMemories(memoryId, relatedIds = [], tenantId = 'default') {
+    const q = relatedIds.map(id => `related_ids=${encodeURIComponent(id)}`).join('&');
+    const url = `/api/v1/memory/${encodeURIComponent(memoryId)}/consolidate?tenant_id=${encodeURIComponent(tenantId)}${q ? '&' + q : ''}`;
+    return api.post(url, {});
+  },
+
+  async quarantineMemory(memoryId, reason = '', tenantId = 'default') {
+    return api.post(`/api/v1/memory/${encodeURIComponent(memoryId)}/quarantine?reason=${encodeURIComponent(reason)}&tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async forgetMemory(memoryId, reason = '', hardDelete = false, tenantId = 'default') {
+    return api.post(`/api/v1/memory/${encodeURIComponent(memoryId)}/forget?reason=${encodeURIComponent(reason)}&hard_delete=${encodeURIComponent(hardDelete)}&tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  // --- Task 69: Universal Context & Adaptive Personalization Engine ---
+  async buildUniversalContext(payload, tenantId = 'default') {
+    return api.post('/api/v1/context/build', { tenant_id: tenantId, ...payload });
+  },
+
+  async previewUniversalContext(payload, tenantId = 'default') {
+    return api.post('/api/v1/context/preview', { tenant_id: tenantId, ...payload });
+  },
+
+  async getContextQuality(tenantId = 'default') {
+    return api.get(`/api/v1/context/quality`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getMissingContext(tenantId = 'default') {
+    return api.get(`/api/v1/context/missing`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getContextConflicts(tenantId = 'default') {
+    return api.get(`/api/v1/context/conflicts`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getUniversalContextHealth(tenantId = 'default') {
+    return api.get(`/api/v1/context/health`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async listAdaptivePreferences(category = null, tenantId = 'default') {
+    const qs = category ? `?category=${encodeURIComponent(category)}` : '';
+    return api.get(`/api/v1/context/preferences${qs}`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async registerAdaptivePreference(payload, tenantId = 'default') {
+    return api.post('/api/v1/context/preferences', { tenant_id: tenantId, ...payload }, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async updateAdaptivePreference(preferenceId, payload, tenantId = 'default') {
+    return api.patch(`/api/v1/context/preferences/${encodeURIComponent(preferenceId)}`, payload, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async deleteAdaptivePreference(preferenceId, tenantId = 'default') {
+    return api.delete(`/api/v1/context/preferences/${encodeURIComponent(preferenceId)}`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async listContextSnapshots(userId = null, limit = 50, tenantId = 'default') {
+    let q = [`limit=${limit}`];
+    if (userId) q.push(`user_id=${encodeURIComponent(userId)}`);
+    return api.get(`/api/v1/context/snapshots?${q.join('&')}`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getContextSnapshot(snapshotId, tenantId = 'default') {
+    return api.get(`/api/v1/context/snapshots/${encodeURIComponent(snapshotId)}`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async replayContextSnapshot(snapshotId, tenantId = 'default') {
+    return api.get(`/api/v1/context/snapshots/${encodeURIComponent(snapshotId)}/replay`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getContextPackage(contextId, tenantId = 'default') {
+    return api.get(`/api/v1/context/${encodeURIComponent(contextId)}`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getContextExplanation(contextId, tenantId = 'default') {
+    return api.get(`/api/v1/context/${encodeURIComponent(contextId)}/explanation`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getContextSources(contextId, tenantId = 'default') {
+    return api.get(`/api/v1/context/${encodeURIComponent(contextId)}/sources`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async refreshContextPackage(contextId, tenantId = 'default') {
+    return api.post(`/api/v1/context/${encodeURIComponent(contextId)}/refresh`, {}, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  // --- Task 70: Autonomous Attention & Cognitive Resource Engine ---
+  async evaluateAttentionCandidate(payload, tenantId = 'default') {
+    return api.post('/api/v1/attention/evaluate', { tenant_id: tenantId, ...payload }, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getCurrentAttentionFocus(tenantId = 'default') {
+    return api.get('/api/v1/attention/current', { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getAttentionQueue(tenantId = 'default') {
+    return api.get('/api/v1/attention/queue', { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getAttentionSnapshot(tenantId = 'default') {
+    return api.get('/api/v1/attention/snapshot', { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getAttentionHealth(tenantId = 'default') {
+    return api.get('/api/v1/attention/health', { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getAttentionMetrics(tenantId = 'default') {
+    return api.get('/api/v1/attention/metrics', { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getAttentionCandidate(attentionId, tenantId = 'default') {
+    return api.get(`/api/v1/attention/${encodeURIComponent(attentionId)}`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async focusAttentionCandidate(attentionId, tenantId = 'default') {
+    return api.post(`/api/v1/attention/${encodeURIComponent(attentionId)}/focus`, {}, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async pauseAttentionCandidate(attentionId, reason = '', tenantId = 'default') {
+    return api.post(`/api/v1/attention/${encodeURIComponent(attentionId)}/pause`, { reason }, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async resumeAttentionCandidate(attentionId, tenantId = 'default') {
+    return api.post(`/api/v1/attention/${encodeURIComponent(attentionId)}/resume`, {}, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async deferAttentionCandidate(attentionId, reason = '', tenantId = 'default') {
+    return api.post(`/api/v1/attention/${encodeURIComponent(attentionId)}/defer`, { reason }, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async delegateAttentionCandidate(attentionId, targetAgentId, reason = '', scope = 'full_investigation', tenantId = 'default') {
+    return api.post(`/api/v1/attention/${encodeURIComponent(attentionId)}/delegate`, { target_agent_id: targetAgentId, reason, scope }, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async dismissAttentionCandidate(attentionId, reason = '', tenantId = 'default') {
+    return api.post(`/api/v1/attention/${encodeURIComponent(attentionId)}/dismiss`, { reason }, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async escalateAttentionCandidate(attentionId, delta = 0.15, reason = '', tenantId = 'default') {
+    return api.post(`/api/v1/attention/${encodeURIComponent(attentionId)}/escalate`, { delta, reason }, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async deescalateAttentionCandidate(attentionId, delta = 0.15, reason = '', tenantId = 'default') {
+    return api.post(`/api/v1/attention/${encodeURIComponent(attentionId)}/deescalate`, { delta, reason }, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getAttentionExplanation(attentionId, tenantId = 'default') {
+    return api.get(`/api/v1/attention/${encodeURIComponent(attentionId)}/explanation`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getAttentionHistory(attentionId, tenantId = 'default') {
+    return api.get(`/api/v1/attention/${encodeURIComponent(attentionId)}/history`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  // --- Task 71: Autonomous Reasoning & Deliberation Engine ---
+  async startReasoning(payload, tenantId = 'default', workspaceId = 'default') {
+    return api.post('/api/v1/reasoning/start', { tenant_id: tenantId, workspace_id: workspaceId, ...payload }, { headers: { 'x-tenant-id': tenantId, 'x-workspace-id': workspaceId } });
+  },
+
+  async listReasoningSessions(limit = 50, tenantId = 'default', workspaceId = 'default') {
+    return api.get(`/api/v1/reasoning/sessions?limit=${limit}`, { headers: { 'x-tenant-id': tenantId, 'x-workspace-id': workspaceId } });
+  },
+
+  async getReasoningSession(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getReasoningHypotheses(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/hypotheses`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getReasoningEvidence(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/evidence`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async addReasoningEvidence(reasoningId, payload, tenantId = 'default') {
+    return api.post(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/evidence`, payload, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getReasoningAssumptions(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/assumptions`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async invalidateReasoningAssumption(reasoningId, assumptionId, reason, tenantId = 'default') {
+    return api.post(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/assumptions/${encodeURIComponent(assumptionId)}/invalidate`, { reason }, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getReasoningConclusion(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/conclusion`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getReasoningExplanation(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/explanation`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getReasoningTrace(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/trace`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getReasoningGraph(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/graph`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getReasoningQuality(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/quality`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async replayReasoning(reasoningId, tenantId = 'default') {
+    return api.get(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/replay`, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async verifyReasoningConclusion(reasoningId, tenantId = 'default') {
+    return api.post(`/api/v1/reasoning/${encodeURIComponent(reasoningId)}/verify`, {}, { headers: { 'x-tenant-id': tenantId } });
+  },
+
+  async getReasoningHealth() {
+    return api.get('/api/v1/reasoning/health');
+  },
 };
 
 
@@ -2954,7 +3395,147 @@ export const foresightApi = {
 
 export const worldModelApi = foresightApi;
 
+export const missionsApi = {
+  createMission: (payload, isHumanApproved) => Endpoints.createMission(payload, isHumanApproved),
+  listMissions: (tenantId) => Endpoints.listMissions(tenantId),
+  getOverview: (tenantId) => Endpoints.getMissionOverview(tenantId),
+  getMission: (id, tenantId) => Endpoints.getMission(id, tenantId),
+  startMission: (id, tenantId) => Endpoints.startMission(id, tenantId),
+  pauseMission: (id, reason, tenantId) => Endpoints.pauseMission(id, reason, tenantId),
+  resumeMission: (id, tenantId) => Endpoints.resumeMission(id, tenantId),
+  cancelMission: (id, reason, tenantId) => Endpoints.cancelMission(id, reason, tenantId),
+  replanMission: (id, reason, tenantId) => Endpoints.replanMission(id, reason, tenantId),
+  executeSupervisoryCycle: (id, payload, tenantId) => Endpoints.executeSupervisoryCycle(id, payload, tenantId),
+  completeMission: (id, tenantId) => Endpoints.completeMission(id, tenantId),
+  getAuditTrail: (id) => Endpoints.getMissionAuditTrail(id),
+  verifyAuditChain: () => Endpoints.verifyMissionAuditChain(),
+  getHealth: () => Endpoints.getMissionControlHealth(),
+  getGoals: (id, tenantId) => Endpoints.getMissionGoals(id, tenantId),
+  getTasks: (id, tenantId) => Endpoints.getMissionTasks(id, tenantId),
+  getProgress: (id, tenantId) => Endpoints.getMissionProgress(id, tenantId),
+  getBlockers: (id, tenantId) => Endpoints.getMissionBlockers(id, tenantId),
+  getTimeline: (id, tenantId) => Endpoints.getMissionTimeline(id, tenantId),
+  getDecisions: (id, tenantId) => Endpoints.getMissionDecisions(id, tenantId),
+  getRisks: (id, tenantId) => Endpoints.getMissionRisks(id, tenantId),
+  reassess: (id, tenantId) => Endpoints.reassessMission(id, tenantId),
+  verify: (id, telemetry, tenantId) => Endpoints.verifyMission(id, telemetry, tenantId),
+};
+
+export const missionControlApi = missionsApi;
+
+export const selfAuditApi = {
+  createAudit: (payload) => Endpoints.createSelfAudit(payload),
+  runCycle: (payload) => Endpoints.runSelfAuditCycle(payload),
+  listAudits: (tenantId) => Endpoints.listSelfAudits(tenantId),
+  getOverview: (tenantId) => Endpoints.getSelfAuditOverview(tenantId),
+  getAudit: (id, tenantId) => Endpoints.getSelfAudit(id, tenantId),
+  getFindings: (id, tenantId) => Endpoints.getSelfAuditFindings(id, tenantId),
+  getEvidence: (id, tenantId) => Endpoints.getSelfAuditEvidence(id, tenantId),
+  getHistory: (tenantId) => Endpoints.getSelfAuditHistory(tenantId),
+  getDrift: (tenantId) => Endpoints.getSelfAuditDrift(tenantId),
+  getCalibration: (tenantId) => Endpoints.getSelfAuditCalibration(tenantId),
+  getErrors: (tenantId) => Endpoints.getSelfAuditErrors(tenantId),
+  reassess: (id, tenantId) => Endpoints.reassessSelfAudit(id, tenantId),
+  listBeliefs: (tenantId) => Endpoints.listSelfAuditBeliefs(tenantId),
+  registerBelief: (payload) => Endpoints.registerSelfAuditBelief(payload),
+  reviseBelief: (id, payload) => Endpoints.reviseSelfAuditBelief(id, payload),
+  resolveFinding: (id, evidence, tenantId) => Endpoints.resolveSelfAuditFinding(id, evidence, tenantId),
+  getHealth: () => Endpoints.getSelfAuditHealth(),
+};
+
+export const metacognitiveControlApi = selfAuditApi;
+
+export const memoryConsolidationApi = {
+  capture: (payload, tenantId) => Endpoints.captureMemory(payload, tenantId),
+  search: (params, tenantId) => Endpoints.searchConsolidatedMemories(params, tenantId),
+  getConflicts: (tenantId) => Endpoints.getMemoryConflicts(tenantId),
+  getStale: (tenantId) => Endpoints.getStaleMemories(tenantId),
+  getExpiring: (withinHours, tenantId) => Endpoints.getExpiringMemories(withinHours, tenantId),
+  getHealth: (tenantId) => Endpoints.getMemoryHealth(tenantId),
+  assembleContext: (payload, tenantId) => Endpoints.assembleMemoryContext(payload, tenantId),
+  triggerSweep: (tenantId) => Endpoints.triggerConsolidationSweep(tenantId),
+  getMemory: (id) => Endpoints.getMemory(id),
+  getProvenance: (id, tenantId) => Endpoints.getMemoryProvenance(id, tenantId),
+  getHistory: (id, tenantId) => Endpoints.getMemoryHistory(id, tenantId),
+  validate: (id, verified, evidenceRef, tenantId) => Endpoints.validateMemory(id, verified, evidenceRef, tenantId),
+  promote: (id, reason, tenantId) => Endpoints.promoteMemory(id, reason, tenantId),
+  consolidate: (id, relatedIds, tenantId) => Endpoints.consolidateMemories(id, relatedIds, tenantId),
+  quarantine: (id, reason, tenantId) => Endpoints.quarantineMemory(id, reason, tenantId),
+  forget: (id, reason, hardDelete, tenantId) => Endpoints.forgetMemory(id, reason, hardDelete, tenantId),
+};
+
+export const universalContextApi = {
+  buildContext: (payload, tenantId) => Endpoints.buildUniversalContext(payload, tenantId),
+  previewContext: (payload, tenantId) => Endpoints.previewUniversalContext(payload, tenantId),
+  getQuality: (tenantId) => Endpoints.getContextQuality(tenantId),
+  getMissing: (tenantId) => Endpoints.getMissingContext(tenantId),
+  getConflicts: (tenantId) => Endpoints.getContextConflicts(tenantId),
+  getHealth: (tenantId) => Endpoints.getUniversalContextHealth(tenantId),
+  listPreferences: (category, tenantId) => Endpoints.listAdaptivePreferences(category, tenantId),
+  registerPreference: (payload, tenantId) => Endpoints.registerAdaptivePreference(payload, tenantId),
+  updatePreference: (id, payload, tenantId) => Endpoints.updateAdaptivePreference(id, payload, tenantId),
+  deletePreference: (id, tenantId) => Endpoints.deleteAdaptivePreference(id, tenantId),
+  listSnapshots: (userId, limit, tenantId) => Endpoints.listContextSnapshots(userId, limit, tenantId),
+  getSnapshot: (id, tenantId) => Endpoints.getContextSnapshot(id, tenantId),
+  replaySnapshot: (id, tenantId) => Endpoints.replayContextSnapshot(id, tenantId),
+  getContext: (id, tenantId) => Endpoints.getContextPackage(id, tenantId),
+  getExplanation: (id, tenantId) => Endpoints.getContextExplanation(id, tenantId),
+  getSources: (id, tenantId) => Endpoints.getContextSources(id, tenantId),
+  refreshContext: (id, tenantId) => Endpoints.refreshContextPackage(id, tenantId),
+};
+
+export const contextCenterApi = universalContextApi;
+
+export const attentionApi = {
+  evaluate: (payload, tenantId) => Endpoints.evaluateAttentionCandidate(payload, tenantId),
+  getCurrent: (tenantId) => Endpoints.getCurrentAttentionFocus(tenantId),
+  getQueue: (tenantId) => Endpoints.getAttentionQueue(tenantId),
+  getSnapshot: (tenantId) => Endpoints.getAttentionSnapshot(tenantId),
+  getHealth: (tenantId) => Endpoints.getAttentionHealth(tenantId),
+  getMetrics: (tenantId) => Endpoints.getAttentionMetrics(tenantId),
+  getCandidate: (id, tenantId) => Endpoints.getAttentionCandidate(id, tenantId),
+  focus: (id, tenantId) => Endpoints.focusAttentionCandidate(id, tenantId),
+  pause: (id, reason, tenantId) => Endpoints.pauseAttentionCandidate(id, reason, tenantId),
+  resume: (id, tenantId) => Endpoints.resumeAttentionCandidate(id, tenantId),
+  defer: (id, reason, tenantId) => Endpoints.deferAttentionCandidate(id, reason, tenantId),
+  delegate: (id, agentId, reason, scope, tenantId) => Endpoints.delegateAttentionCandidate(id, agentId, reason, scope, tenantId),
+  dismiss: (id, reason, tenantId) => Endpoints.dismissAttentionCandidate(id, reason, tenantId),
+  escalate: (id, delta, reason, tenantId) => Endpoints.escalateAttentionCandidate(id, delta, reason, tenantId),
+  deescalate: (id, delta, reason, tenantId) => Endpoints.deescalateAttentionCandidate(id, delta, reason, tenantId),
+  getExplanation: (id, tenantId) => Endpoints.getAttentionExplanation(id, tenantId),
+  getHistory: (id, tenantId) => Endpoints.getAttentionHistory(id, tenantId),
+};
+
+export const cognitiveResourceApi = {
+  getBudget: (tenantId) => Endpoints.getAttentionMetrics(tenantId),
+  getHealth: (tenantId) => Endpoints.getAttentionHealth(tenantId),
+};
+
+export const attentionCenterApi = attentionApi;
+
+export const reasoningApi = {
+  start: (payload, tenantId, workspaceId) => Endpoints.startReasoning(payload, tenantId, workspaceId),
+  listSessions: (limit, tenantId, workspaceId) => Endpoints.listReasoningSessions(limit, tenantId, workspaceId),
+  getSession: (id, tenantId) => Endpoints.getReasoningSession(id, tenantId),
+  getHypotheses: (id, tenantId) => Endpoints.getReasoningHypotheses(id, tenantId),
+  getEvidence: (id, tenantId) => Endpoints.getReasoningEvidence(id, tenantId),
+  addEvidence: (id, payload, tenantId) => Endpoints.addReasoningEvidence(id, payload, tenantId),
+  getAssumptions: (id, tenantId) => Endpoints.getReasoningAssumptions(id, tenantId),
+  invalidateAssumption: (id, asmId, reason, tenantId) => Endpoints.invalidateReasoningAssumption(id, asmId, reason, tenantId),
+  getConclusion: (id, tenantId) => Endpoints.getReasoningConclusion(id, tenantId),
+  getExplanation: (id, tenantId) => Endpoints.getReasoningExplanation(id, tenantId),
+  getTrace: (id, tenantId) => Endpoints.getReasoningTrace(id, tenantId),
+  getGraph: (id, tenantId) => Endpoints.getReasoningGraph(id, tenantId),
+  getQuality: (id, tenantId) => Endpoints.getReasoningQuality(id, tenantId),
+  replay: (id, tenantId) => Endpoints.replayReasoning(id, tenantId),
+  verify: (id, tenantId) => Endpoints.verifyReasoningConclusion(id, tenantId),
+  getHealth: () => Endpoints.getReasoningHealth(),
+};
+
+export const reasoningCenterApi = reasoningApi;
+
 export const endpoints = Endpoints;
+
 
 
 

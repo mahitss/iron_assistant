@@ -279,7 +279,9 @@ class ContextResolver:
                             title=f"User Preference ({scope_str}): {pref.key}",
                             content=f"USER PREFERENCE [{scope_str}]: {pref.key} = {pref.value}",
                             relevance_score=0.90,
-                            confidence=1.0 if getattr(pref.confidence, "value", str(pref.confidence)) == "HIGH" else 0.8,
+                            confidence=1.0
+                            if getattr(pref.confidence, "value", str(pref.confidence)) == "HIGH"
+                            else 0.8,
                             timestamp=pref.updated_at,
                             provenance="user_preference",
                             reason="Active user preference.",
@@ -295,7 +297,9 @@ class ContextResolver:
                             title=f"Experience ({exp_type_str}): {exp.summary[:50]}",
                             content=f"EXPERIENCE [{exp_type_str}]: {exp.summary}",
                             relevance_score=0.85,
-                            confidence=0.9 if getattr(exp.confidence, "value", str(exp.confidence)) == "HIGH" else 0.7,
+                            confidence=0.9
+                            if getattr(exp.confidence, "value", str(exp.confidence)) == "HIGH"
+                            else 0.7,
                             timestamp=exp.updated_at,
                             provenance=exp.source.value if hasattr(exp.source, "value") else str(exp.source),
                             reason="Relevant past experience.",

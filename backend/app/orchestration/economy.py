@@ -48,8 +48,8 @@ class ResourceEconomyEngine:
         else:
             blended_tokens = estimated_tokens
 
-        lower = max(0.0, float(blended_tokens) * (1.0 - uncertainty_pct))
-        upper = float(blended_tokens) * (1.0 + uncertainty_pct)
+        lower = round(max(0.0, float(blended_tokens) * (1.0 - uncertainty_pct)), 4)
+        upper = round(float(blended_tokens) * (1.0 + uncertainty_pct), 4)
 
         demand = ResourceDemand(
             demand_id=f"dem_{uuid.uuid4().hex[:8]}",

@@ -177,3 +177,28 @@ class OrchestrationOutcomeModel(Base):
     variance_summary: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
     lessons_learned: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now_utc, nullable=False)
+
+
+# Re-export Task 77 Autonomous Resource Economy models
+from app.orchestration.economy_models import (
+    CognitiveBudgetModel,
+    ResourceContentionRecordModel,
+    ResourceDemandModel,
+    ResourceEfficiencyLogModel,
+    TaskPreemptionModel,
+)
+
+__all__ = [
+    "CapabilityModel",
+    "ResourceModel",
+    "ResourceReservationModel",
+    "OrchestrationPlanModel",
+    "TaskAssignmentModel",
+    "OrchestrationRevisionModel",
+    "OrchestrationOutcomeModel",
+    "CognitiveBudgetModel",
+    "ResourceDemandModel",
+    "TaskPreemptionModel",
+    "ResourceContentionRecordModel",
+    "ResourceEfficiencyLogModel",
+]

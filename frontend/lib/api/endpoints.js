@@ -3912,6 +3912,26 @@ export const resilienceCenterApi = {
   recovery: recoveryApi,
 };
 
+export const resourceEconomyApi = {
+  getOverview: () => api.get('/api/v1/orchestration/economy/overview'),
+  estimateDemand: (payload) => api.post('/api/v1/orchestration/economy/demand/estimate', payload),
+  createBudget: (payload) => api.post('/api/v1/orchestration/budgets/create', payload),
+  listBudgets: () => api.get('/api/v1/orchestration/budgets'),
+  getBudget: (scope, scopeId) => api.get(`/api/v1/orchestration/budgets/${scope}/${scopeId}`),
+  checkBudget: (payload) => api.post('/api/v1/orchestration/budgets/check', payload),
+  allocateBudget: (payload) => api.post('/api/v1/orchestration/budgets/allocate', payload),
+  resetBudget: (payload) => api.post('/api/v1/orchestration/budgets/reset', payload),
+  requestPreemption: (payload) => api.post('/api/v1/orchestration/preempt', payload),
+  checkpointTask: (payload) => api.post('/api/v1/orchestration/checkpoint', payload),
+  resumeTask: (taskId) => api.post(`/api/v1/orchestration/resume/${taskId}`),
+  listPreemptions: () => api.get('/api/v1/orchestration/preemptions'),
+  detectDeadlocks: () => api.get('/api/v1/orchestration/deadlock/detect'),
+  resolveDeadlocks: () => api.post('/api/v1/orchestration/deadlock/resolve'),
+  getFairnessMetrics: () => api.get('/api/v1/orchestration/fairness/metrics'),
+  evaluateTradeOff: (payload) => api.post('/api/v1/orchestration/tradeoff/evaluate', payload),
+  routeModel: (payload) => api.post('/api/v1/orchestration/route-model', payload),
+};
+
 export const endpoints = Endpoints;
 
 

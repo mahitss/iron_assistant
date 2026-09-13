@@ -3932,6 +3932,20 @@ export const resourceEconomyApi = {
   routeModel: (payload) => api.post('/api/v1/orchestration/route-model', payload),
 };
 
+export const governanceApi = {
+  submitReview: (payload) => api.post('/api/v1/governance/review', payload),
+  getConstitution: () => api.get('/api/v1/governance/constitution'),
+  updatePrinciple: (principleName, payload) => api.put(`/api/v1/governance/constitution/principles/${encodeURIComponent(principleName)}`, payload),
+  issueAuthorityGrant: (payload) => api.post('/api/v1/governance/authority/grant', payload),
+  getAuthority: (subjectId) => api.get(`/api/v1/governance/authority/${encodeURIComponent(subjectId)}`),
+  revokeAuthority: (subjectId) => api.delete(`/api/v1/governance/authority/${encodeURIComponent(subjectId)}`),
+  listPendingHumanReviews: () => api.get('/api/v1/governance/reviews/pending-human'),
+  getReview: (reviewId) => api.get(`/api/v1/governance/reviews/${encodeURIComponent(reviewId)}`),
+  resolveHumanReview: (reviewId, payload) => api.post(`/api/v1/governance/reviews/${encodeURIComponent(reviewId)}/resolve`, payload),
+  getDashboard: () => api.get('/api/v1/governance/dashboard'),
+  getEscalations: (limit = 20) => api.get(`/api/v1/governance/escalations?limit=${limit}`),
+};
+
 export const endpoints = Endpoints;
 
 

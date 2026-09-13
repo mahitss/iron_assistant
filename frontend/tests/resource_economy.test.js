@@ -107,6 +107,7 @@ describe('ResourceCenterView Component (Task 77)', () => {
     assert.match(htmlOutput, /6\. Starvation & Fair Share/);
     assert.match(htmlOutput, /7\. Native Enforcement/);
     assert.match(htmlOutput, /8\. Native Tool Fabric/);
+    assert.match(htmlOutput, /9\. Computer Substrate/);
   });
 
   test('switches to native enforcement subtab and renders matrix and explanation', () => {
@@ -158,6 +159,48 @@ describe('ResourceCenterView Component (Task 77)', () => {
     assert.match(htmlOutput, /native_hash/);
     assert.match(htmlOutput, /sandbox\.hash/);
   });
+
+  test('switches to computer substrate subtab and renders window/process/display tables and safety alerts', () => {
+    let htmlOutput = '';
+    const mockContainer = {
+      set innerHTML(val) { htmlOutput = val; },
+      get innerHTML() { return htmlOutput; },
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    };
+    const view = new ResourceCenterView(mockContainer);
+    view.nativeWindowsData = [
+      {
+        window_id: 65538,
+        title: 'Visual Studio Code',
+        process_name: 'Code.exe',
+        pid: 12345,
+        rect: { x: 0, y: 0, width: 1920, height: 1080 },
+        is_visible: true,
+        is_focused: true,
+      },
+    ];
+    view.nativeDisplaysData = [
+      {
+        display_id: 0,
+        name: 'Primary Display',
+        width: 1920,
+        height: 1080,
+        scale_factor: 1.0,
+        is_primary: true,
+      },
+    ];
+    view.setSubTab('computer');
+
+    assert.strictEqual(view.activeSubTab, 'computer');
+    assert.match(htmlOutput, /Observed Windows/);
+    assert.match(htmlOutput, /Target Context Verification & Safety Invariants/);
+    assert.match(htmlOutput, /ABORT_TARGET_CHANGED/);
+    assert.match(htmlOutput, /Visual Studio Code/);
+    assert.match(htmlOutput, /Code\.exe/);
+    assert.match(htmlOutput, /FOCUSED/);
+    assert.match(htmlOutput, /Connected Displays/);
+  });
 });
 
 describe('Native Tool Execution Fabric API (Task 83)', () => {
@@ -168,5 +211,19 @@ describe('Native Tool Execution Fabric API (Task 83)', () => {
     assert.strictEqual(typeof nativeRuntimeApi.executeTool, 'function');
   });
 });
+
+describe('Native Computer Interaction Substrate API (Task 84)', () => {
+  test('nativeRuntimeApi exposes all Task 84 computer interaction methods', () => {
+    assert.strictEqual(typeof nativeRuntimeApi.listWindows, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.listProcesses, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.listDisplays, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.captureScreen, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.readClipboard, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.writeClipboard, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.executeMouse, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.executeKeyboard, 'function');
+  });
+});
+
 
 

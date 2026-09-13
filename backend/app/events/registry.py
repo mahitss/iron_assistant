@@ -312,6 +312,18 @@ class EventRegistry:
             EventRegistration("tool.native.fallback", "v1", "Native tool execution safely fell back to verified Python implementation", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("tool.native.rejected", "v1", "Native tool execution rejected by governance or admission control", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("tool.native.conformance_failed", "v1", "Native tool output verification or conformance check failed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+
+            # Native Computer Interaction Substrate events (Task 84)
+            EventRegistration("computer.action.requested", "v1", "Computer interaction action requested", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("computer.action.authorized", "v1", "Computer interaction action authorized by security/governance", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("computer.action.rejected", "v1", "Computer interaction action rejected by security/governance", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("computer.action.started", "v1", "Native computer control primitive execution started", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("computer.action.completed", "v1", "Native computer control primitive completed successfully", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("computer.action.cancelled", "v1", "Native computer control action cancelled and input state released", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("computer.action.failed", "v1", "Native computer control primitive execution failed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("computer.action.unverified", "v1", "Native computer action executed but target state unverified", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("computer.target.changed", "v1", "Target window/process mismatch detected; action safely aborted", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("computer.emergency_stop", "v1", "EmergencyStop invoked; all active input operations aborted and keys/buttons released", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
         ]
         for reg in defaults:
             self.register(reg)

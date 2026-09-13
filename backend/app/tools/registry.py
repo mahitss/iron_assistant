@@ -223,6 +223,26 @@ def create_default_tool_registry() -> ToolRegistry:
     registry.register(NativeWorkspaceInspectTool())
     registry.register(NativeProbeTool())
 
+    # Register Native Computer Interaction Substrate Tools (Task 84)
+    from app.tools.builtin.computer import (
+        NativeClipboardReadTool,
+        NativeClipboardWriteTool,
+        NativeDisplayInspectTool,
+        NativeKeyboardActionTool,
+        NativeMouseActionTool,
+        NativeProcessInspectTool,
+        NativeScreenCaptureTool,
+        NativeWindowInspectTool,
+    )
+    registry.register(NativeWindowInspectTool())
+    registry.register(NativeProcessInspectTool())
+    registry.register(NativeDisplayInspectTool())
+    registry.register(NativeScreenCaptureTool())
+    registry.register(NativeClipboardReadTool())
+    registry.register(NativeClipboardWriteTool())
+    registry.register(NativeMouseActionTool())
+    registry.register(NativeKeyboardActionTool())
+
     if get_settings().KAIRO_BROWSER_ENABLED:
         from app.tools.browser.actions import (
             BrowserClickTool,

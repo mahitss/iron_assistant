@@ -252,6 +252,134 @@ impl SandboxCapabilityRegistry {
             },
             max_allowed_budget: ResourceBudget::default(),
         });
+
+        // 8. native.window.inspect
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.window.inspect",
+                "Native Window Inspector",
+                "1.0.0",
+                "Safe read-only window enumeration, focus state, bounds, and process association",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::ReadOnly,
+                vec!["native.window.inspect".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 9. native.process.inspect
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.process.inspect",
+                "Native Process Inspector",
+                "1.0.0",
+                "Controlled process metadata enumeration without sensitive host exposure",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::ReadOnly,
+                vec!["native.process.inspect".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 10. native.display.inspect
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.display.inspect",
+                "Native Display Inspector",
+                "1.0.0",
+                "Display monitor enumeration, resolution, and coordinate space bounds",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::ReadOnly,
+                vec!["native.display.inspect".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 11. native.screen.capture
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.screen.capture",
+                "Native Screen Capture",
+                "1.0.0",
+                "Bounded ephemeral display state capture for visual context inspection",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::ReadOnly,
+                vec!["native.screen.capture".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 12. native.clipboard.read
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.clipboard.read",
+                "Native Clipboard Reader",
+                "1.0.0",
+                "Bounded clipboard text reader with strict non-persistence guarantees",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::ReadOnly,
+                vec!["native.clipboard.read".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 13. native.clipboard.write
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.clipboard.write",
+                "Native Clipboard Writer",
+                "1.0.0",
+                "Controlled clipboard text writer requiring governance authorization",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::StatefulLocal,
+                vec!["native.clipboard.write".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 14. native.input.mouse
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.input.mouse",
+                "Native Mouse Input Primitive",
+                "1.0.0",
+                "Target-validated mouse movements, clicks, and coordinate actions",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::StatefulLocal,
+                vec!["native.input.mouse".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 15. native.input.keyboard
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.input.keyboard",
+                "Native Keyboard Input Primitive",
+                "1.0.0",
+                "Target-validated typed text and discrete key event execution",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::StatefulLocal,
+                vec!["native.input.keyboard".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
     }
 
     pub fn register(&mut self, contract: SandboxCapabilityContract) {

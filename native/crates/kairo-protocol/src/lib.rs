@@ -1,5 +1,6 @@
 pub mod budget;
 pub mod capabilities;
+pub mod computer;
 pub mod envelope;
 pub mod error;
 pub mod health;
@@ -10,6 +11,10 @@ pub use budget::{
     MAX_ALLOWED_FILE_COUNT, MAX_ALLOWED_MEMORY_BYTES, MAX_ALLOWED_OUTPUT_BYTES,
 };
 pub use capabilities::{CapabilityDescriptor, ExecutionClass, SideEffectClass};
+pub use computer::{
+    ComputerOperationResult, DisplayMetadata, InputPrimitive, InputState, MouseButton,
+    ProcessMetadata, TargetContext, VerificationStatus, WindowMetadata, WindowRect,
+};
 pub use envelope::{
     RequestContext, ResponseStatus, RuntimeRequest, RuntimeResponse, TimingMetadata,
     CURRENT_PROTOCOL_VERSION,

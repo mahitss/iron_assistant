@@ -3969,6 +3969,26 @@ export const nativeRuntimeApi = {
     const q = approvalId ? `?approval_id=${encodeURIComponent(approvalId)}` : '';
     return api.post(`/api/v1/native/tools/${encodeURIComponent(toolName)}/execute${q}`, payload);
   },
+  // Task 84: Native Computer Interaction Substrate
+  listWindows: (limit = 50) => api.get(`/api/v1/native/computer/windows?limit=${limit}`),
+  listProcesses: (limit = 100) => api.get(`/api/v1/native/computer/processes?limit=${limit}`),
+  listDisplays: () => api.get('/api/v1/native/computer/displays'),
+  captureScreen: (payload = {}) => api.post('/api/v1/native/computer/capture', payload),
+  readClipboard: () => api.get('/api/v1/native/computer/clipboard'),
+  writeClipboard: (text) => api.post('/api/v1/native/computer/clipboard', { text }),
+  executeMouse: (payload) => api.post('/api/v1/native/computer/mouse', payload),
+  executeKeyboard: (payload) => api.post('/api/v1/native/computer/keyboard', payload),
+};
+
+export const nativeComputerApi = {
+  listWindows: nativeRuntimeApi.listWindows,
+  listProcesses: nativeRuntimeApi.listProcesses,
+  listDisplays: nativeRuntimeApi.listDisplays,
+  captureScreen: nativeRuntimeApi.captureScreen,
+  readClipboard: nativeRuntimeApi.readClipboard,
+  writeClipboard: nativeRuntimeApi.writeClipboard,
+  executeMouse: nativeRuntimeApi.executeMouse,
+  executeKeyboard: nativeRuntimeApi.executeKeyboard,
 };
 
 

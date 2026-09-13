@@ -626,9 +626,203 @@ class NativeRuntimeService:
             ]),
         }
 
+    # =========================================================================
+    # Task 84: Native Computer Interaction Substrate APIs
+    # =========================================================================
+
+    async def list_windows(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Query host window metadata via native substrate."""
+        import json
+        req = ExecutionRequest(
+            request_id=f"win_req_{uuid.uuid4().hex[:8]}",
+            capability_id="native.window.inspect",
+            arguments=[],
+            payload={"limit": limit},
+        )
+        res = await self.sandbox_execute(req)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                data = json.loads(res.stdout)
+                if isinstance(data, dict) and "windows" in data:
+                    return data["windows"]
+                return data if isinstance(data, list) else []
+            except Exception:
+                return []
+        return []
+
+    async def list_processes(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Query host processes via native substrate."""
+        import json
+        req = ExecutionRequest(
+            request_id=f"proc_req_{uuid.uuid4().hex[:8]}",
+            capability_id="native.process.inspect",
+            arguments=[],
+            payload={"limit": limit},
+        )
+        res = await self.sandbox_execute(req)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                data = json.loads(res.stdout)
+                if isinstance(data, dict) and "processes" in data:
+                    return data["processes"]
+                return data if isinstance(data, list) else []
+            except Exception:
+                return []
+        return []
+
+    async def list_displays(self) -> List[Dict[str, Any]]:
+        """Query connected display monitors and boundaries via native substrate."""
+        import json
+        req = ExecutionRequest(
+            request_id=f"disp_req_{uuid.uuid4().hex[:8]}",
+            capability_id="native.display.inspect",
+            arguments=[],
+            payload={},
+        )
+        res = await self.sandbox_execute(req)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                data = json.loads(res.stdout)
+                if isinstance(data, dict) and "displays" in data:
+                    return data["displays"]
+                return data if isinstance(data, list) else []
+            except Exception:
+                return []
+        return []
+
+    async def capture_screen(
+        self,
+        display_id: Optional[int] = None,
+        max_width: Optional[int] = None,
+        max_height: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Capture bounded point-in-time screen frame metadata via native substrate."""
+        import json
+        payload: Dict[str, Any] = {}
+        if display_id is not None:
+            payload["display_id"] = display_id
+        if max_width is not None:
+            payload["max_width"] = max_width
+        if max_height is not None:
+            payload["max_height"] = max_height
+
+        req = ExecutionRequest(
+            request_id=f"cap_req_{uuid.uuid4().hex[:8]}",
+            capability_id="native.screen.capture",
+            arguments=[],
+            payload=payload,
+        )
+        res = await self.sandbox_execute(req)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                return json.loads(res.stdout)
+            except Exception:
+                pass
+        return {"error": res.stderr or "Screen capture failed", "status": "FAILED"}
+
+    async def read_clipboard(self) -> Dict[str, Any]:
+        """Read clipboard content without persisting to logs."""
+        import json
+        req = ExecutionRequest(
+            request_id=f"clip_r_req_{uuid.uuid4().hex[:8]}",
+            capability_id="native.clipboard.read",
+            arguments=[],
+            payload={},
+        )
+        res = await self.sandbox_execute(req)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                return json.loads(res.stdout)
+            except Exception:
+                pass
+        return {"error": res.stderr or "Clipboard read failed"}
+
+    async def write_clipboard(self, text: str) -> Dict[str, Any]:
+        """Write content to host clipboard under governance control."""
+        import json
+        req = ExecutionRequest(
+            request_id=f"clip_w_req_{uuid.uuid4().hex[:8]}",
+            capability_id="native.clipboard.write",
+            arguments=[],
+            payload={"text": text},
+        )
+        res = await self.sandbox_execute(req)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                return json.loads(res.stdout)
+            except Exception:
+                pass
+        return {"error": res.stderr or "Clipboard write failed"}
+
+    async def execute_mouse(
+        self,
+        action: str,
+        x: int,
+        y: int,
+        button: str = "left",
+        click_count: int = 1,
+        target_context: Optional[Dict[str, Any]] = None,
+        approval_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Execute target-validated native mouse action."""
+        import json
+        req = ExecutionRequest(
+            request_id=f"mouse_req_{uuid.uuid4().hex[:8]}",
+            capability_id="native.input.mouse",
+            arguments=[],
+            payload={
+                "action": action,
+                "x": x,
+                "y": y,
+                "button": button,
+                "click_count": click_count,
+                "target_context": target_context,
+            },
+        )
+        res = await self.sandbox_execute(req, approval_id=approval_id)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                return json.loads(res.stdout)
+            except Exception:
+                pass
+        return {"error": res.stderr or "Mouse action failed", "status": "FAILED"}
+
+    async def execute_keyboard(
+        self,
+        action: str,
+        text: Optional[str] = None,
+        key: Optional[str] = None,
+        target_context: Optional[Dict[str, Any]] = None,
+        approval_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Execute target-validated native keyboard action."""
+        import json
+        payload: Dict[str, Any] = {
+            "action": action,
+            "target_context": target_context,
+        }
+        if text is not None:
+            payload["text"] = text
+        if key is not None:
+            payload["key"] = key
+
+        req = ExecutionRequest(
+            request_id=f"kbd_req_{uuid.uuid4().hex[:8]}",
+            capability_id="native.input.keyboard",
+            arguments=[],
+            payload=payload,
+        )
+        res = await self.sandbox_execute(req, approval_id=approval_id)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                return json.loads(res.stdout)
+            except Exception:
+                pass
+        return {"error": res.stderr or "Keyboard action failed", "status": "FAILED"}
+
     async def _verify_sandbox_authorization(self, capability_id: str, ctx: Optional[RequestContext]) -> bool:
         """Verify whether caller is authorized for sandboxed capability execution."""
-        # Standard built-in capabilities are accessible to authenticated callers
+        # Standard built-in and native computer capabilities are accessible to authorized callers
         if capability_id in (
             "sandbox.preflight",
             "sandbox.echo",
@@ -637,6 +831,14 @@ class NativeRuntimeService:
             "sandbox.execute",
             "native.sysinfo",
             "native.file.inspect",
+            "native.window.inspect",
+            "native.process.inspect",
+            "native.display.inspect",
+            "native.screen.capture",
+            "native.clipboard.read",
+            "native.clipboard.write",
+            "native.input.mouse",
+            "native.input.keyboard",
         ):
             return True
 

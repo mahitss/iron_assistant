@@ -48,6 +48,15 @@ TOOL_POLICY_OVERRIDES: dict[str, SecurityDecision] = {
     "native_system_info": SecurityDecision.ALLOWED,
     "native_workspace_inspect": SecurityDecision.ALLOWED,
     "native_probe": SecurityDecision.APPROVAL_REQUIRED,
+    # Native Computer Interaction Substrate tools (Task 84)
+    "native_window_inspect": SecurityDecision.ALLOWED,
+    "native_process_inspect": SecurityDecision.ALLOWED,
+    "native_display_inspect": SecurityDecision.ALLOWED,
+    "native_screen_capture": SecurityDecision.ALLOWED,
+    "native_clipboard_read": SecurityDecision.ALLOWED,
+    "native_clipboard_write": SecurityDecision.APPROVAL_REQUIRED,
+    "native_mouse_action": SecurityDecision.APPROVAL_REQUIRED,
+    "native_keyboard_action": SecurityDecision.APPROVAL_REQUIRED,
     # Interactive / External actions requiring approval
     "browser_click": SecurityDecision.APPROVAL_REQUIRED,
     "browser_fill": SecurityDecision.APPROVAL_REQUIRED,

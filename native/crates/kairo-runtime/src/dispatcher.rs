@@ -294,7 +294,18 @@ impl RequestDispatcher {
                 Ok(serde_json::to_value(preflight)
                     .unwrap_or(json!({"error": "preflight_serialization_failed"})))
             }
-            "sandbox.execute" | "sandbox.echo" | "sandbox.hash" | "sandbox.probe" => {
+            "sandbox.execute"
+            | "sandbox.echo"
+            | "sandbox.hash"
+            | "sandbox.probe"
+            | "native.window.inspect"
+            | "native.process.inspect"
+            | "native.display.inspect"
+            | "native.screen.capture"
+            | "native.clipboard.read"
+            | "native.clipboard.write"
+            | "native.input.mouse"
+            | "native.input.keyboard" => {
                 let mut exec_req: kairo_protocol::sandbox::ExecutionRequest =
                     if req.payload.is_object() && req.payload.get("request_id").is_some() {
                         serde_json::from_value(req.payload.clone()).map_err(|e| {

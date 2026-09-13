@@ -1,4 +1,5 @@
 pub mod capabilities;
+pub mod computer;
 pub mod executor;
 pub mod policy;
 pub mod process;
@@ -6,6 +7,7 @@ pub mod resources;
 pub mod workspace;
 
 pub use capabilities::{SandboxCapabilityContract, SandboxCapabilityRegistry};
+pub use computer::{InputStateTracker, NativeComputerSubstrate};
 pub use executor::SandboxExecutor;
 pub use policy::{calculate_effective_policy, normalize_path, validate_path_safety};
 pub use process::{

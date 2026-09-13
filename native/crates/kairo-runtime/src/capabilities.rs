@@ -153,6 +153,117 @@ impl CapabilityRegistry {
             supported_operations: vec!["sandbox.execute".to_string()],
             default_budget: Some(ResourceBudget::default()),
         });
+
+        // 9. native.window.inspect
+        self.register(CapabilityDescriptor {
+            capability_id: "native.window.inspect".to_string(),
+            name: "Native Window Inspector".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Enumerate active host windows, titles, PIDs, geometry, and focus state"
+                .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["native.window.inspect".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        // 10. native.process.inspect
+        self.register(CapabilityDescriptor {
+            capability_id: "native.process.inspect".to_string(),
+            name: "Native Process Inspector".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Enumerate host processes, identities, parentage, and lifecycle state"
+                .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["native.process.inspect".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        // 11. native.display.inspect
+        self.register(CapabilityDescriptor {
+            capability_id: "native.display.inspect".to_string(),
+            name: "Native Display Inspector".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Display monitor enumeration, resolution, and coordinate space bounds"
+                .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["native.display.inspect".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        // 12. native.screen.capture
+        self.register(CapabilityDescriptor {
+            capability_id: "native.screen.capture".to_string(),
+            name: "Native Screen Capture".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Bounded ephemeral display state capture for visual context inspection"
+                .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["native.screen.capture".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        // 13. native.clipboard.read
+        self.register(CapabilityDescriptor {
+            capability_id: "native.clipboard.read".to_string(),
+            name: "Native Clipboard Reader".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Bounded clipboard text reader with strict non-persistence guarantees"
+                .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["native.clipboard.read".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        // 14. native.clipboard.write
+        self.register(CapabilityDescriptor {
+            capability_id: "native.clipboard.write".to_string(),
+            name: "Native Clipboard Writer".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Controlled clipboard text writer requiring governance authorization"
+                .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::StatefulLocal,
+            supported_operations: vec!["native.clipboard.write".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        // 15. native.input.mouse
+        self.register(CapabilityDescriptor {
+            capability_id: "native.input.mouse".to_string(),
+            name: "Native Mouse Input Primitive".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Target-validated mouse movements, clicks, and coordinate actions"
+                .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::StatefulLocal,
+            supported_operations: vec!["native.input.mouse".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        // 16. native.input.keyboard
+        self.register(CapabilityDescriptor {
+            capability_id: "native.input.keyboard".to_string(),
+            name: "Native Keyboard Input Primitive".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Target-validated typed text and discrete key event execution".to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::StatefulLocal,
+            supported_operations: vec!["native.input.keyboard".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
     }
 
     pub fn register(&mut self, cap: CapabilityDescriptor) {

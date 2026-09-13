@@ -327,3 +327,116 @@ async def execute_tool_endpoint(
     return res.model_dump()
 
 
+# =============================================================================
+# Task 84: Native Computer Interaction Substrate REST Endpoints
+# =============================================================================
+
+class ScreenCaptureRequestSchema(BaseModel):
+    display_id: Optional[int] = Field(default=None, description="Optional target display index")
+    max_width: Optional[int] = Field(default=1920, ge=100, le=3840, description="Bounded maximum width")
+    max_height: Optional[int] = Field(default=1080, ge=100, le=2160, description="Bounded maximum height")
+
+
+class ClipboardWriteRequestSchema(BaseModel):
+    text: str = Field(..., max_length=100000, description="Text string to write to clipboard")
+
+
+class MouseActionRequestSchema(BaseModel):
+    action: str = Field(default="move", description="Mouse action ('move' or 'click')")
+    x: int = Field(default=0, description="X coordinate")
+    y: int = Field(default=0, description="Y coordinate")
+    button: str = Field(default="left", description="Mouse button ('left', 'right', 'middle')")
+    click_count: int = Field(default=1, ge=1, le=3, description="Click count")
+    target_context: Optional[Dict[str, Any]] = Field(default=None, description="Expected target window/process binding")
+    approval_id: Optional[str] = Field(default=None, description="Optional bound approval ID")
+
+
+class KeyboardActionRequestSchema(BaseModel):
+    action: str = Field(default="type", description="Keyboard action ('type', 'press', 'down', 'up')")
+    text: Optional[str] = Field(default=None, max_length=1000, description="Text to type")
+    key: Optional[str] = Field(default=None, description="Key name to press")
+    target_context: Optional[Dict[str, Any]] = Field(default=None, description="Expected target window/process binding")
+    approval_id: Optional[str] = Field(default=None, description="Optional bound approval ID")
+
+
+@router.get("/computer/windows", summary="Enumerate Host Windows")
+async def list_windows_endpoint(
+    limit: int = Query(default=50, ge=1, le=200),
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> List[Dict[str, Any]]:
+    return await service.list_windows(limit=limit)
+
+
+@router.get("/computer/processes", summary="Enumerate Host Processes")
+async def list_processes_endpoint(
+    limit: int = Query(default=100, ge=1, le=500),
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> List[Dict[str, Any]]:
+    return await service.list_processes(limit=limit)
+
+
+@router.get("/computer/displays", summary="Enumerate Display Monitors")
+async def list_displays_endpoint(
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> List[Dict[str, Any]]:
+    return await service.list_displays()
+
+
+@router.post("/computer/capture", summary="Capture Bounded Screen Frame")
+async def capture_screen_endpoint(
+    req: ScreenCaptureRequestSchema = ScreenCaptureRequestSchema(),
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.capture_screen(
+        display_id=req.display_id,
+        max_width=req.max_width,
+        max_height=req.max_height,
+    )
+
+
+@router.get("/computer/clipboard", summary="Read Host Clipboard")
+async def read_clipboard_endpoint(
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.read_clipboard()
+
+
+@router.post("/computer/clipboard", summary="Write Host Clipboard")
+async def write_clipboard_endpoint(
+    req: ClipboardWriteRequestSchema,
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.write_clipboard(text=req.text)
+
+
+@router.post("/computer/mouse", summary="Execute Native Mouse Action")
+async def execute_mouse_endpoint(
+    req: MouseActionRequestSchema,
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.execute_mouse(
+        action=req.action,
+        x=req.x,
+        y=req.y,
+        button=req.button,
+        click_count=req.click_count,
+        target_context=req.target_context,
+        approval_id=req.approval_id,
+    )
+
+
+@router.post("/computer/keyboard", summary="Execute Native Keyboard Action")
+async def execute_keyboard_endpoint(
+    req: KeyboardActionRequestSchema,
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.execute_keyboard(
+        action=req.action,
+        text=req.text,
+        key=req.key,
+        target_context=req.target_context,
+        approval_id=req.approval_id,
+    )
+
+
+

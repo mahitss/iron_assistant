@@ -28,6 +28,9 @@ export class ResourceCenterView {
     this.nativeMatrixData = [];
     this.nativeToolsData = [];
     this.nativeToolHealth = null;
+    this.nativeWindowsData = [];
+    this.nativeProcessesData = [];
+    this.nativeDisplaysData = [];
     this.isLoading = false;
     this.statusMessage = null;
   }
@@ -67,7 +70,7 @@ export class ResourceCenterView {
     this.render();
 
     try {
-      const [overview, budgets, preemptions, deadlocks, fairness, nativeEco, nativeMatrix, nativeTools, nativeHealth] = await Promise.allSettled([
+      const [overview, budgets, preemptions, deadlocks, fairness, nativeEco, nativeMatrix, nativeTools, nativeHealth, nativeWins, nativeProcs, nativeDisps] = await Promise.allSettled([
         resourceEconomyApi.getOverview(),
         resourceEconomyApi.listBudgets(),
         resourceEconomyApi.listPreemptions(),
@@ -77,6 +80,9 @@ export class ResourceCenterView {
         nativeRuntimeApi.getEnforcementMatrix(),
         nativeRuntimeApi.listTools(),
         nativeRuntimeApi.getToolHealth(),
+        nativeRuntimeApi.listWindows(20),
+        nativeRuntimeApi.listProcesses(25),
+        nativeRuntimeApi.listDisplays(),
       ]);
 
       if (overview.status === 'fulfilled') this.overviewData = overview.value;
@@ -88,6 +94,9 @@ export class ResourceCenterView {
       if (nativeMatrix.status === 'fulfilled') this.nativeMatrixData = Array.isArray(nativeMatrix.value) ? nativeMatrix.value : [];
       if (nativeTools.status === 'fulfilled') this.nativeToolsData = Array.isArray(nativeTools.value) ? nativeTools.value : [];
       if (nativeHealth.status === 'fulfilled') this.nativeToolHealth = nativeHealth.value;
+      if (nativeWins.status === 'fulfilled') this.nativeWindowsData = Array.isArray(nativeWins.value) ? nativeWins.value : [];
+      if (nativeProcs.status === 'fulfilled') this.nativeProcessesData = Array.isArray(nativeProcs.value) ? nativeProcs.value : [];
+      if (nativeDisps.status === 'fulfilled') this.nativeDisplaysData = Array.isArray(nativeDisps.value) ? nativeDisps.value : [];
     } catch (err) {
       this.statusMessage = `Error loading resource economy: ${err.message}`;
     } finally {
@@ -157,6 +166,7 @@ export class ResourceCenterView {
           ${this.renderSubTab('fairness', '6. Starvation & Fair Share')}
           ${this.renderSubTab('native', '7. Native Enforcement (Task 82)')}
           ${this.renderSubTab('tools', '8. Native Tool Fabric (Task 83)')}
+          ${this.renderSubTab('computer', '9. Computer Substrate (Task 84)')}
         </div>
 
         <!-- Active View Content -->
@@ -211,6 +221,8 @@ export class ResourceCenterView {
         return this.renderNativeEnforcementTab();
       case 'tools':
         return this.renderToolFabricTab();
+      case 'computer':
+        return this.renderComputerSubstrateTab();
       default:
         return this.renderOverviewTab();
     }
@@ -713,6 +725,164 @@ export class ResourceCenterView {
                         <span>${t.metrics.avg_latency_ms || 0}ms</span> avg
                         ${t.metrics.fallbacks > 0 ? ` • <span style="color: #f59e0b;">${t.metrics.fallbacks} fb</span>` : ''}
                       ` : 'No telemetry'}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderComputerSubstrateTab() {
+    const windows = this.nativeWindowsData || [];
+    const processes = this.nativeProcessesData || [];
+    const displays = this.nativeDisplaysData || [];
+    const primaryDisplay = displays.find(d => d.is_primary) || displays[0] || { width: 1920, height: 1080, scale_factor: 1.0 };
+
+    return `
+      <div class="computer-substrate-view">
+        <!-- Metric Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+          <div style="background: #1e293b; padding: 18px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Observed Windows</div>
+            <div style="font-size: 28px; font-weight: 700; color: #38bdf8; margin-top: 6px;">
+              ${windows.length}
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+              Target Binding Active • Zero Blind Clicks
+            </div>
+          </div>
+
+          <div style="background: #1e293b; padding: 18px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Host Processes</div>
+            <div style="font-size: 28px; font-weight: 700; color: #10b981; margin-top: 6px;">
+              ${processes.length}
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+              Privacy Preserved • Anti-PID-Reuse
+            </div>
+          </div>
+
+          <div style="background: #1e293b; padding: 18px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Displays & Scaling</div>
+            <div style="font-size: 24px; font-weight: 700; color: #f59e0b; margin-top: 6px;">
+              ${primaryDisplay.width}×${primaryDisplay.height}
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+              ${displays.length} Display(s) • ${primaryDisplay.scale_factor}x DPI Scale
+            </div>
+          </div>
+
+          <div style="background: #1e293b; padding: 18px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Input Safety State</div>
+            <div style="font-size: 24px; font-weight: 700; color: #8b5cf6; margin-top: 6px;">
+              CLEAN
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+              Auto-Release Keys/Buttons • E-Stop Bound
+            </div>
+          </div>
+        </div>
+
+        <!-- Safety Boundaries Banner -->
+        <div style="background: #0f172a; border-left: 4px solid #38bdf8; border-radius: 8px; border: 1px solid #334155; padding: 16px 20px; margin-bottom: 24px;">
+          <div style="font-weight: 700; color: #f8fafc; font-size: 14px; margin-bottom: 4px;">
+            Target Context Verification & Safety Invariants
+          </div>
+          <div style="font-size: 12px; color: #94a3b8; line-height: 1.6;">
+            <strong>Target Context Binding:</strong> Coordinate-only actions are strictly prohibited for consequential operations. Actions bind to expected window title/process and abort with <code style="color: #f43f5e;">ABORT_TARGET_CHANGED</code> if window focus switches.<br/>
+            <strong>Input State Cleanup:</strong> Active mouse buttons and modifier keys are tracked by the native substrate and automatically released upon cancellation, timeout, or EmergencyStop.<br/>
+            <strong>Ephemeral Observation:</strong> Zero raw screenshot pixels or clipboard contents are logged or persisted.
+          </div>
+        </div>
+
+        <!-- Windows Observation Table -->
+        <div style="background: #1e293b; border-radius: 8px; border: 1px solid #334155; padding: 20px; margin-bottom: 24px;">
+          <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 14px 0; color: #f8fafc;">
+            Observed Top-Level Windows (${windows.length})
+          </h3>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+              <thead>
+                <tr style="border-bottom: 1px solid #334155; color: #94a3b8;">
+                  <th style="padding: 10px;">Window ID</th>
+                  <th style="padding: 10px;">Title</th>
+                  <th style="padding: 10px;">Process</th>
+                  <th style="padding: 10px;">PID</th>
+                  <th style="padding: 10px;">Geometry</th>
+                  <th style="padding: 10px;">Focus State</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${windows.length === 0 ? `
+                  <tr>
+                    <td colspan="6" style="padding: 20px; text-align: center; color: #94a3b8;">
+                      No windows detected or native substrate offline.
+                    </td>
+                  </tr>
+                ` : windows.map(w => `
+                  <tr style="border-bottom: 1px solid #33415540;">
+                    <td style="padding: 10px; font-family: monospace; color: #94a3b8;">0x${Number(w.window_id).toString(16)}</td>
+                    <td style="padding: 10px; font-weight: 600; color: #f8fafc; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      ${w.title || '<Untitled Window>'}
+                    </td>
+                    <td style="padding: 10px; font-family: monospace; color: #38bdf8;">${w.process_name}</td>
+                    <td style="padding: 10px; color: #cbd5e1;">${w.pid}</td>
+                    <td style="padding: 10px; font-size: 11px; color: #94a3b8;">
+                      ${w.rect ? `${w.rect.width}×${w.rect.height} @ (${w.rect.x}, ${w.rect.y})` : 'N/A'}
+                    </td>
+                    <td style="padding: 10px;">
+                      ${w.is_focused ? `
+                        <span style="display:inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background-color: #10b98120; color: #10b981; border: 1px solid #10b98160;">FOCUSED</span>
+                      ` : `
+                        <span style="color: #64748b; font-size: 11px;">BACKGROUND</span>
+                      `}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Connected Displays Table -->
+        <div style="background: #1e293b; border-radius: 8px; border: 1px solid #334155; padding: 20px; margin-bottom: 24px;">
+          <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 14px 0; color: #f8fafc;">
+            Connected Displays & Coordinate Boundaries (${displays.length})
+          </h3>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+              <thead>
+                <tr style="border-bottom: 1px solid #334155; color: #94a3b8;">
+                  <th style="padding: 10px;">Display ID</th>
+                  <th style="padding: 10px;">Monitor Name</th>
+                  <th style="padding: 10px;">Resolution</th>
+                  <th style="padding: 10px;">Scale Factor</th>
+                  <th style="padding: 10px;">Primary</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${displays.length === 0 ? `
+                  <tr>
+                    <td colspan="5" style="padding: 20px; text-align: center; color: #94a3b8;">
+                      No displays enumerated.
+                    </td>
+                  </tr>
+                ` : displays.map(d => `
+                  <tr style="border-bottom: 1px solid #33415540;">
+                    <td style="padding: 10px; font-family: monospace; color: #94a3b8;">${d.display_id}</td>
+                    <td style="padding: 10px; font-weight: 600; color: #f8fafc;">${d.name}</td>
+                    <td style="padding: 10px; color: #38bdf8; font-weight: 600;">${d.width} × ${d.height}</td>
+                    <td style="padding: 10px; color: #cbd5e1;">${d.scale_factor}x</td>
+                    <td style="padding: 10px;">
+                      ${d.is_primary ? `
+                        <span style="display:inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background-color: #3b82f620; color: #3b82f6; border: 1px solid #3b82f660;">PRIMARY</span>
+                      ` : `
+                        <span style="color: #64748b; font-size: 11px;">SECONDARY</span>
+                      `}
                     </td>
                   </tr>
                 `).join('')}

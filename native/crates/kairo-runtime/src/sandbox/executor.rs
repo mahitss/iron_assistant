@@ -1,11 +1,13 @@
 use crate::cancellation::CancellationRegistry;
 use crate::metrics::RuntimeMetrics;
 use crate::sandbox::capabilities::SandboxCapabilityRegistry;
+use crate::sandbox::computer::{InputStateTracker, NativeComputerSubstrate};
 use crate::sandbox::policy::{calculate_effective_policy, validate_path_safety};
 use crate::sandbox::process::{build_sanitized_environment, ProcessJobContainer};
 use crate::sandbox::resources::{build_resource_telemetry, evaluate_resource_violations};
 use crate::sandbox::workspace::IsolatedWorkspace;
 use chrono::Utc;
+use kairo_protocol::computer::{MouseButton, TargetContext};
 use kairo_protocol::sandbox::{
     EnforcementAction, ExecutionRequest, ExecutionResult, ExecutionState, OutputMetadata,
     PlatformSupportSummary, PreflightResult, ResourceViolation, ResourceViolationType,
@@ -25,6 +27,7 @@ pub struct SandboxExecutor {
     cancellation: Arc<CancellationRegistry>,
     metrics: Arc<RuntimeMetrics>,
     semaphore: Arc<Semaphore>,
+    computer: Arc<NativeComputerSubstrate>,
 }
 
 impl SandboxExecutor {
@@ -34,12 +37,19 @@ impl SandboxExecutor {
         metrics: Arc<RuntimeMetrics>,
         max_concurrency: usize,
     ) -> Self {
+        let tracker = Arc::new(InputStateTracker::new());
+        let computer = Arc::new(NativeComputerSubstrate::new(tracker));
         Self {
             capabilities,
             cancellation,
             metrics,
             semaphore: Arc::new(Semaphore::new(max_concurrency)),
+            computer,
         }
+    }
+
+    pub fn computer(&self) -> &Arc<NativeComputerSubstrate> {
+        &self.computer
     }
 
     /// Perform dry-run preflight evaluation without executing workload.
@@ -204,6 +214,7 @@ impl SandboxExecutor {
 
         tokio::select! {
             _ = cancel_token.cancelled() => {
+                self.computer.tracker().emergency_reset_input();
                 self.metrics.record_sandbox_cancellation();
                 self.cancellation.remove(&cancel_id).await;
                 let job_metrics = job_container.query_metrics();
@@ -359,6 +370,7 @@ impl SandboxExecutor {
                         }
                     }
                     Err(_) => {
+                        self.computer.tracker().emergency_reset_input();
                         self.metrics.record_sandbox_timeout();
                         let violation = ResourceViolation {
                             violation_type: ResourceViolationType::TimeLimitExceeded,
@@ -1022,6 +1034,450 @@ impl SandboxExecutor {
                 });
 
                 let out_str = info.to_string();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.window.inspect" => {
+                let limit = req
+                    .payload
+                    .get("limit")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(50) as usize;
+                let windows = self.computer.list_windows(limit);
+                let out_val = json!({
+                    "windows": windows,
+                    "count": windows.len(),
+                });
+                let out_str = serde_json::to_string(&out_val).unwrap_or_else(|_| "{}".to_string());
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.process.inspect" => {
+                let limit = req
+                    .payload
+                    .get("limit")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(100) as usize;
+                let processes = self.computer.list_processes(limit);
+                let out_val = json!({
+                    "processes": processes,
+                    "count": processes.len(),
+                });
+                let out_str = serde_json::to_string(&out_val).unwrap_or_else(|_| "{}".to_string());
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.display.inspect" => {
+                let displays = self.computer.list_displays();
+                let out_val = json!({
+                    "displays": displays,
+                    "count": displays.len(),
+                });
+                let out_str = serde_json::to_string(&out_val).unwrap_or_else(|_| "{}".to_string());
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.screen.capture" => {
+                let display_id = req
+                    .payload
+                    .get("display_id")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as u32);
+                let max_w = req
+                    .payload
+                    .get("max_width")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as u32);
+                let max_h = req
+                    .payload
+                    .get("max_height")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as u32);
+                let capture_info = self.computer.capture_screen(display_id, max_w, max_h)?;
+                let out_str = capture_info.to_string();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.clipboard.read" => {
+                let text = self.computer.read_clipboard()?;
+                let out_json = json!({
+                    "text": text,
+                    "length": text.len(),
+                });
+                let out_str = out_json.to_string();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.clipboard.write" => {
+                let text = req
+                    .payload
+                    .get("text")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| {
+                        RuntimeError::invalid_request(
+                            "MISSING_TEXT",
+                            "native.clipboard.write requires 'text'",
+                        )
+                    })?;
+                self.computer.write_clipboard(text)?;
+                let out_json = json!({
+                    "bytes_written": text.len(),
+                    "success": true,
+                });
+                let out_str = out_json.to_string();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.input.mouse" => {
+                let action = req
+                    .payload
+                    .get("action")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("move");
+                let x = req.payload.get("x").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                let y = req.payload.get("y").and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+                let target: Option<TargetContext> = req
+                    .payload
+                    .get("target_context")
+                    .and_then(|v| serde_json::from_value(v.clone()).ok());
+
+                // Coordinate bounds check against primary display bounds
+                let displays = self.computer.list_displays();
+                let max_w = displays.iter().map(|d| d.width).max().unwrap_or(3840) as i32;
+                let max_h = displays.iter().map(|d| d.height).max().unwrap_or(2160) as i32;
+                if x < 0 || y < 0 || x > max_w + 1000 || y > max_h + 1000 {
+                    return Err(RuntimeError::invalid_request(
+                        "COORDINATES_OUT_OF_BOUNDS",
+                        format!("Coordinates ({}, {}) exceed valid display boundaries", x, y),
+                    ));
+                }
+
+                let op_res = match action {
+                    "click" => {
+                        let button_str = req
+                            .payload
+                            .get("button")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("left");
+                        let btn = match button_str {
+                            "right" => MouseButton::Right,
+                            "middle" => MouseButton::Middle,
+                            _ => MouseButton::Left,
+                        };
+                        let click_count = req
+                            .payload
+                            .get("click_count")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(1) as u32;
+                        self.computer
+                            .click_mouse(btn, x, y, click_count, target.as_ref())?
+                    }
+                    _ => self.computer.move_mouse(x, y, target.as_ref())?,
+                };
+
+                let out_str = serde_json::to_string(&op_res).unwrap_or_default();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.input.keyboard" => {
+                let action = req
+                    .payload
+                    .get("action")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("type");
+                let target: Option<TargetContext> = req
+                    .payload
+                    .get("target_context")
+                    .and_then(|v| serde_json::from_value(v.clone()).ok());
+
+                let op_res =
+                    match action {
+                        "press" | "down" => {
+                            let key = req.payload.get("key").and_then(|v| v.as_str()).ok_or_else(
+                                || {
+                                    RuntimeError::invalid_request(
+                                        "MISSING_KEY",
+                                        "keyboard action requires 'key'",
+                                    )
+                                },
+                            )?;
+                            self.computer.press_key(key, true)?
+                        }
+                        "up" => {
+                            let key = req.payload.get("key").and_then(|v| v.as_str()).ok_or_else(
+                                || {
+                                    RuntimeError::invalid_request(
+                                        "MISSING_KEY",
+                                        "keyboard action requires 'key'",
+                                    )
+                                },
+                            )?;
+                            self.computer.press_key(key, false)?
+                        }
+                        _ => {
+                            let text = req
+                                .payload
+                                .get("text")
+                                .and_then(|v| v.as_str())
+                                .ok_or_else(|| {
+                                    RuntimeError::invalid_request(
+                                        "MISSING_TEXT",
+                                        "keyboard.type requires 'text'",
+                                    )
+                                })?;
+                            self.computer.type_text(text, target.as_ref())?
+                        }
+                    };
+
+                let out_str = serde_json::to_string(&op_res).unwrap_or_default();
                 let duration = req_start.elapsed().as_millis() as u64;
 
                 Ok(ExecutionResult {

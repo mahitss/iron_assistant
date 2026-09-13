@@ -473,3 +473,106 @@ class ToolInvocation(BaseModel):
 AuthorizationContext = RequestContext
 
 
+# =============================================================================
+# Native Computer Interaction Substrate Models (Task 84)
+# =============================================================================
+
+class ProcessMetadata(BaseModel):
+    """Controlled process metadata snapshot from native substrate."""
+    model_config = ConfigDict(extra="ignore")
+
+    pid: int
+    name: str
+    ppid: Optional[int] = None
+    create_time: Optional[int] = None
+    is_alive: bool = True
+    memory_bytes: Optional[int] = None
+    cpu_percent: Optional[float] = None
+
+
+class WindowRect(BaseModel):
+    """Geometry of a window on screen."""
+    model_config = ConfigDict(extra="ignore")
+
+    x: int
+    y: int
+    width: int
+    height: int
+
+
+class WindowMetadata(BaseModel):
+    """Controlled window metadata snapshot from native substrate."""
+    model_config = ConfigDict(extra="ignore")
+
+    window_id: int
+    title: str
+    pid: int
+    process_name: str
+    rect: WindowRect
+    is_visible: bool = True
+    is_focused: bool = False
+
+
+class DisplayMetadata(BaseModel):
+    """Display monitor metadata and coordinate space bounds."""
+    model_config = ConfigDict(extra="ignore")
+
+    display_id: int
+    name: str
+    width: int
+    height: int
+    scale_factor: float = 1.0
+    is_primary: bool = True
+
+
+class TargetContext(BaseModel):
+    """
+    Context binding an input action to an expected target window/process.
+    Prevents ambiguous coordinate-only actions and race condition misfires.
+    """
+    model_config = ConfigDict(extra="ignore")
+
+    window_id: Optional[int] = None
+    expected_title: Optional[str] = None
+    expected_pid: Optional[int] = None
+    expected_process_name: Optional[str] = None
+    coordinate: Optional[tuple[int, int]] = None
+    display_id: Optional[int] = None
+
+
+class MouseButton(str, Enum):
+    LEFT = "left"
+    RIGHT = "right"
+    MIDDLE = "middle"
+
+
+class VerificationStatus(str, Enum):
+    CONFIRMED = "CONFIRMED"
+    LIKELY = "LIKELY"
+    UNVERIFIED = "UNVERIFIED"
+    FAILED = "FAILED"
+
+
+class InputState(BaseModel):
+    """Active input state snapshot tracked by native substrate."""
+    model_config = ConfigDict(extra="ignore")
+
+    pressed_keys: List[str] = Field(default_factory=list)
+    pressed_buttons: List[str] = Field(default_factory=list)
+    active_operation: Optional[str] = None
+
+
+class ComputerOperationResult(BaseModel):
+    """Structured result returned by native computer control operations."""
+    model_config = ConfigDict(extra="ignore")
+
+    success: bool
+    action: str
+    target_verified: bool
+    verification_status: VerificationStatus
+    duration_ms: int
+    error: Optional[str] = None
+    details: Dict[str, Any] = Field(default_factory=dict)
+
+
+

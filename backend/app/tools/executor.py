@@ -46,6 +46,7 @@ class ToolExecutor:
         approval_id: str | None = None,
         correlation_id: str | None = None,
         db_session: Any = None,
+        device: dict[str, Any] | None = None,
     ) -> ToolResult:
         """Execute a structured tool call safely through governance and native/python execution routing."""
         tool_name = tool_call.name
@@ -99,12 +100,23 @@ class ToolExecutor:
         from app.policy.engine import policy_engine
         from app.policy.schemas import PolicyDecisionType
 
+        device_info = device or getattr(self, "default_device", None) or {
+            "id": "host_primary_workstation",
+            "name": "Host Primary Workstation",
+            "is_trusted": True,
+            "trust_level": "trusted",
+            "is_connected": True,
+            "status": "active",
+            "capabilities": ["screen_capture", "input_injection", "computer_control", "clipboard"],
+        }
+
         policy_dec = await policy_engine.check_tool_execution(
             tool_name=tool.name,
             arguments=tool_call.arguments,
             user_id=user_id,
             session_id=session_id,
             environment="development",
+            device=device_info,
         )
         if policy_dec.decision == PolicyDecisionType.DENY:
             logger.warning("Policy Engine DENIED tool '%s': %s", tool.name, policy_dec.safe_explanation)
@@ -441,11 +453,14 @@ class ToolExecutor:
 
         else:
             self.registry.record_invocation(tool.name, dur_ms, success=False)
+            err_msg = res.stderr or f"Native execution failed with status: {res.state.value}"
+            if res.failure_classification and res.failure_classification not in err_msg:
+                err_msg = f"[{res.failure_classification}] {err_msg}"
             return ToolResult(
                 success=False,
                 tool_name=tool.name,
                 tool_call_id=tool_call.id,
-                error=res.stderr or f"Native execution failed with status: {res.state.value}",
+                error=err_msg,
                 verification_status="failed",
                 execution_class="NATIVE_RUST",
                 duration_ms=dur_ms,

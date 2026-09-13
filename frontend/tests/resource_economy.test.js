@@ -105,5 +105,24 @@ describe('ResourceCenterView Component (Task 77)', () => {
     assert.match(htmlOutput, /4\. Deadlock & Contention/);
     assert.match(htmlOutput, /5\. Trade-Offs & Degradation/);
     assert.match(htmlOutput, /6\. Starvation & Fair Share/);
+    assert.match(htmlOutput, /7\. Native Enforcement/);
+  });
+
+  test('switches to native enforcement subtab and renders matrix and explanation', () => {
+    let htmlOutput = '';
+    const mockContainer = {
+      set innerHTML(val) { htmlOutput = val; },
+      get innerHTML() { return htmlOutput; },
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    };
+    const view = new ResourceCenterView(mockContainer);
+    view.setSubTab('native');
+
+    assert.strictEqual(view.activeSubTab, 'native');
+    assert.match(htmlOutput, /Cross-Platform Native Enforcement Matrix/);
+    assert.match(htmlOutput, /Execution Resource Lifecycle & Explanation/);
+    assert.match(htmlOutput, /RUST NATIVE/);
   });
 });
+

@@ -45,6 +45,8 @@ fn test_resource_budget_bounds() {
         max_execution_time_ms: Some(15_000),
         max_concurrency: Some(4),
         max_output_bytes: Some(1024 * 512),
+        max_disk_bytes: Some(50 * 1024 * 1024),
+        max_file_count: Some(500),
     };
     assert!(valid_budget.validate().is_ok());
 

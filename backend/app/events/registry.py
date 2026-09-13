@@ -297,6 +297,13 @@ class EventRegistry:
             EventRegistration("runtime.sandbox.resource_exceeded", "v1", "Native sandbox execution violated resource constraints", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("runtime.sandbox.cleanup_failed", "v1", "Native sandbox post-execution workspace or process cleanup failed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
 
+            # Native Resource Enforcement & Execution Economy events (Task 82)
+            EventRegistration("runtime.economy.reserved", "v1", "Native resource capacity atomically reserved prior to execution", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.economy.released", "v1", "Native resource capacity reservation released upon terminal state", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.economy.reconciled", "v1", "Execution telemetry reconciled against reserved bounds with estimation learning", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.economy.violation", "v1", "Native resource violation detected and enforced", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.economy.backpressure", "v1", "Workload rejected due to resource capacity exhaustion or pressure", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.economy.pressure_changed", "v1", "System resource pressure transitioned to new tier", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
         ]
         for reg in defaults:
             self.register(reg)

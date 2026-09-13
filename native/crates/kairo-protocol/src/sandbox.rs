@@ -276,6 +276,7 @@ impl OutputLimits {
 
 /// Comprehensive sandbox execution policy combining all dimensions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SandboxPolicy {
     pub profile: SandboxProfile,
     pub filesystem: FilesystemPolicy,
@@ -355,6 +356,22 @@ impl SandboxPolicy {
             max_output_bytes: match (
                 self.resource_budget.max_output_bytes,
                 other.resource_budget.max_output_bytes,
+            ) {
+                (Some(a), Some(b)) => Some(a.min(b)),
+                (Some(a), None) | (None, Some(a)) => Some(a),
+                (None, None) => None,
+            },
+            max_disk_bytes: match (
+                self.resource_budget.max_disk_bytes,
+                other.resource_budget.max_disk_bytes,
+            ) {
+                (Some(a), Some(b)) => Some(a.min(b)),
+                (Some(a), None) | (None, Some(a)) => Some(a),
+                (None, None) => None,
+            },
+            max_file_count: match (
+                self.resource_budget.max_file_count,
+                other.resource_budget.max_file_count,
             ) {
                 (Some(a), Some(b)) => Some(a.min(b)),
                 (Some(a), None) | (None, Some(a)) => Some(a),
@@ -470,6 +487,81 @@ pub struct VerificationMetadata {
     pub resources_released: bool,
 }
 
+/// Measurement quality classification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum MeasurementQuality {
+    Exact,
+    Estimated,
+    Partial,
+    #[default]
+    Unknown,
+}
+
+/// Structured low-level resource telemetry captured during execution.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ResourceUsageTelemetry {
+    pub wall_time_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cpu_time_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub peak_memory_bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_memory_bytes: Option<u64>,
+    pub process_count: u32,
+    pub output_bytes: u64,
+    pub workspace_bytes: u64,
+    pub file_count: u32,
+    pub measurement_quality: MeasurementQuality,
+}
+
+/// Resource violation classification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ResourceViolationType {
+    MemoryLimitExceeded,
+    CpuLimitExceeded,
+    TimeLimitExceeded,
+    ProcessLimitExceeded,
+    OutputLimitExceeded,
+    DiskLimitExceeded,
+    FileCountLimitExceeded,
+}
+
+/// Severity of a resource limit violation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ViolationSeverity {
+    Warning,
+    SoftLimit,
+    #[default]
+    HardLimit,
+    Critical,
+}
+
+/// Configurable enforcement action taken upon resource threshold breach.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum EnforcementAction {
+    Observe,
+    Warn,
+    Throttle,
+    #[default]
+    Terminate,
+}
+
+/// Specific resource violation event payload.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ResourceViolation {
+    pub violation_type: ResourceViolationType,
+    pub severity: ViolationSeverity,
+    pub limit_value: u64,
+    pub actual_value: u64,
+    pub unit: String,
+    pub message: String,
+    pub enforcement_action: EnforcementAction,
+}
+
 /// Structured execution result.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ExecutionResult {
@@ -485,6 +577,10 @@ pub struct ExecutionResult {
     pub duration_ms: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resource_usage: Option<ResourceBudget>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_telemetry: Option<ResourceUsageTelemetry>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resource_violation: Option<ResourceViolation>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cancellation_state: Option<String>,
     pub timeout_state: bool,
@@ -524,7 +620,6 @@ impl Default for PlatformSupportSummary {
     }
 }
 
-/// Result of dry-run / preflight validation.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PreflightResult {
     pub accepted: bool,

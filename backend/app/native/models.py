@@ -60,6 +60,8 @@ class ResourceBudget(BaseModel):
     max_execution_time_ms: Optional[int] = Field(default=None, gt=0, le=300000)
     max_concurrency: Optional[int] = Field(default=None, gt=0, le=64)
     max_output_bytes: Optional[int] = Field(default=None, gt=0)
+    max_disk_bytes: Optional[int] = Field(default=None, gt=0)
+    max_file_count: Optional[int] = Field(default=None, gt=0)
 
 
 class CapabilityDescriptor(BaseModel):
@@ -322,6 +324,63 @@ class VerificationMetadata(BaseModel):
     resources_released: bool = True
 
 
+class MeasurementQuality(str, Enum):
+    EXACT = "EXACT"
+    ESTIMATED = "ESTIMATED"
+    PARTIAL = "PARTIAL"
+    UNKNOWN = "UNKNOWN"
+
+
+class ResourceUsageTelemetry(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    wall_time_ms: int = 0
+    cpu_time_ms: Optional[int] = None
+    peak_memory_bytes: Optional[int] = None
+    current_memory_bytes: Optional[int] = None
+    process_count: int = 0
+    output_bytes: int = 0
+    workspace_bytes: int = 0
+    file_count: int = 0
+    measurement_quality: MeasurementQuality = MeasurementQuality.PARTIAL
+
+
+class ResourceViolationType(str, Enum):
+    MEMORY_LIMIT_EXCEEDED = "MEMORY_LIMIT_EXCEEDED"
+    CPU_LIMIT_EXCEEDED = "CPU_LIMIT_EXCEEDED"
+    TIME_LIMIT_EXCEEDED = "TIME_LIMIT_EXCEEDED"
+    PROCESS_LIMIT_EXCEEDED = "PROCESS_LIMIT_EXCEEDED"
+    OUTPUT_LIMIT_EXCEEDED = "OUTPUT_LIMIT_EXCEEDED"
+    DISK_LIMIT_EXCEEDED = "DISK_LIMIT_EXCEEDED"
+    FILE_COUNT_LIMIT_EXCEEDED = "FILE_COUNT_LIMIT_EXCEEDED"
+
+
+class ViolationSeverity(str, Enum):
+    WARNING = "WARNING"
+    SOFT_LIMIT = "SOFT_LIMIT"
+    HARD_LIMIT = "HARD_LIMIT"
+    CRITICAL = "CRITICAL"
+
+
+class EnforcementAction(str, Enum):
+    OBSERVE = "OBSERVE"
+    WARN = "WARN"
+    THROTTLE = "THROTTLE"
+    TERMINATE = "TERMINATE"
+
+
+class ResourceViolation(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    violation_type: ResourceViolationType
+    severity: ViolationSeverity = ViolationSeverity.HARD_LIMIT
+    limit_value: int = 0
+    actual_value: int = 0
+    unit: str = ""
+    message: str = ""
+    enforcement_action: EnforcementAction = EnforcementAction.TERMINATE
+
+
 class ExecutionResult(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -335,6 +394,8 @@ class ExecutionResult(BaseModel):
     output_metadata: OutputMetadata = Field(default_factory=OutputMetadata)
     duration_ms: int = 0
     resource_usage: Optional[ResourceBudget] = None
+    resource_telemetry: Optional[ResourceUsageTelemetry] = None
+    resource_violation: Optional[ResourceViolation] = None
     cancellation_state: Optional[str] = None
     timeout_state: bool = False
     failure_classification: Optional[str] = None

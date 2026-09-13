@@ -1,7 +1,9 @@
 use kairo_protocol::sandbox::{
-    EnvironmentMode, EnvironmentPolicy, ExecutionRequest, ExecutionResult, ExecutionState,
-    FilesystemMode, FilesystemPolicy, NetworkMode, NetworkPolicy, OutputLimits, OutputMetadata,
-    PreflightResult, ProcessTreePolicy, SandboxPolicy, SandboxProfile, VerificationMetadata,
+    EnforcementAction, EnvironmentMode, EnvironmentPolicy, ExecutionRequest, ExecutionResult,
+    ExecutionState, FilesystemMode, FilesystemPolicy, MeasurementQuality, NetworkMode,
+    NetworkPolicy, OutputLimits, OutputMetadata, PreflightResult, ProcessTreePolicy,
+    ResourceUsageTelemetry, ResourceViolation, ResourceViolationType, SandboxPolicy,
+    SandboxProfile, VerificationMetadata, ViolationSeverity,
 };
 use kairo_protocol::ResourceBudget;
 use std::path::PathBuf;
@@ -53,6 +55,8 @@ fn test_sandbox_policy_intersection_most_restrictive() {
             max_execution_time_ms: Some(60_000),
             max_concurrency: Some(4),
             max_output_bytes: Some(10 * 1024 * 1024),
+            max_disk_bytes: Some(1024 * 1024 * 1024),
+            max_file_count: Some(5000),
         },
     };
 
@@ -89,6 +93,8 @@ fn test_sandbox_policy_intersection_most_restrictive() {
             max_execution_time_ms: Some(15_000),
             max_concurrency: Some(1),
             max_output_bytes: Some(512 * 1024),
+            max_disk_bytes: Some(100 * 1024 * 1024),
+            max_file_count: Some(500),
         },
     };
 
@@ -123,6 +129,11 @@ fn test_sandbox_policy_intersection_most_restrictive() {
         Some(15_000)
     );
     assert_eq!(effective.resource_budget.max_concurrency, Some(1));
+    assert_eq!(
+        effective.resource_budget.max_disk_bytes,
+        Some(100 * 1024 * 1024)
+    );
+    assert_eq!(effective.resource_budget.max_file_count, Some(500));
 }
 
 #[test]
@@ -163,6 +174,8 @@ fn test_execution_request_and_result_roundtrip() {
         },
         duration_ms: 45,
         resource_usage: Some(ResourceBudget::default()),
+        resource_telemetry: None,
+        resource_violation: None,
         cancellation_state: None,
         timeout_state: false,
         failure_classification: None,
@@ -197,4 +210,38 @@ fn test_preflight_result_serialization() {
     let json_val = serde_json::to_value(&preflight).expect("Failed to serialize PreflightResult");
     assert_eq!(json_val["accepted"], true);
     assert_eq!(json_val["capability_id"], "sandbox.echo");
+}
+
+#[test]
+fn test_resource_telemetry_and_violation_serialization() {
+    let telemetry = ResourceUsageTelemetry {
+        wall_time_ms: 120,
+        cpu_time_ms: Some(85),
+        peak_memory_bytes: Some(340 * 1024 * 1024),
+        current_memory_bytes: Some(250 * 1024 * 1024),
+        process_count: 2,
+        output_bytes: 4096,
+        workspace_bytes: 1024 * 1024,
+        file_count: 5,
+        measurement_quality: MeasurementQuality::Exact,
+    };
+
+    let violation = ResourceViolation {
+        violation_type: ResourceViolationType::MemoryLimitExceeded,
+        severity: ViolationSeverity::HardLimit,
+        limit_value: 256 * 1024 * 1024,
+        actual_value: 340 * 1024 * 1024,
+        unit: "bytes".to_string(),
+        message: "Peak memory exceeded hard limit".to_string(),
+        enforcement_action: EnforcementAction::Terminate,
+    };
+
+    let val = serde_json::to_value(&telemetry).expect("serialize telemetry");
+    assert_eq!(val["peak_memory_bytes"], 340 * 1024 * 1024);
+    assert_eq!(val["measurement_quality"], "EXACT");
+
+    let v_val = serde_json::to_value(&violation).expect("serialize violation");
+    assert_eq!(v_val["violation_type"], "MEMORY_LIMIT_EXCEEDED");
+    assert_eq!(v_val["severity"], "HARD_LIMIT");
+    assert_eq!(v_val["enforcement_action"], "TERMINATE");
 }

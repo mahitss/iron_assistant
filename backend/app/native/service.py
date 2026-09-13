@@ -40,6 +40,10 @@ try:
     )
     from app.security.center import SecurityCenter
     from app.security.emergency_stop import EmergencyStopService
+    from app.orchestration.resource_registry import ResourceRegistry, default_resource_registry
+    from app.orchestration.coordinator import ResourceEconomyCoordinator, default_economy_coordinator
+    from app.orchestration.resources import create_resource
+    from app.orchestration.schemas import ResourceType, HealthStatus
 except ImportError:
     from backend.app.config.settings import get_settings
     from backend.app.events.registry import EventRegistry
@@ -65,6 +69,10 @@ except ImportError:
     )
     from backend.app.security.center import SecurityCenter
     from backend.app.security.emergency_stop import EmergencyStopService
+    from backend.app.orchestration.resource_registry import ResourceRegistry, default_resource_registry
+    from backend.app.orchestration.coordinator import ResourceEconomyCoordinator, default_economy_coordinator
+    from backend.app.orchestration.resources import create_resource
+    from backend.app.orchestration.schemas import ResourceType, HealthStatus
 
 logger = logging.getLogger("kairo.native.service")
 
@@ -78,6 +86,8 @@ class NativeRuntimeService:
         security_center: Optional[SecurityCenter] = None,
         emergency_stop: Optional[EmergencyStopService] = None,
         event_registry: Optional[EventRegistry] = None,
+        resource_registry: Optional[ResourceRegistry] = None,
+        economy_coordinator: Optional[ResourceEconomyCoordinator] = None,
     ):
         settings = get_settings()
         self.mode = getattr(settings, "KAIRO_NATIVE_RUNTIME_MODE", "OPTIONAL").upper()
@@ -89,6 +99,39 @@ class NativeRuntimeService:
         self.security_center = security_center or SecurityCenter()
         self.emergency_stop = emergency_stop or EmergencyStopService()
         self.event_registry = event_registry or EventRegistry()
+        self.resource_registry = resource_registry or default_resource_registry
+        self.economy_coordinator = economy_coordinator or default_economy_coordinator
+        self._ensure_native_resources()
+
+    def _ensure_native_resources(self) -> None:
+        """Register baseline native substrate resource definitions in ResourceRegistry if not present."""
+        try:
+            if not self.resource_registry.has_resource("native_memory"):
+                self.resource_registry.register(create_resource(
+                    name="Native Host Memory Substrate",
+                    resource_id="native_memory",
+                    resource_type=ResourceType.MEMORY,
+                    total_capacity=16384.0,  # 16 GiB pool
+                    environment="production",
+                ), allow_override=True)
+            if not self.resource_registry.has_resource("native_cpu"):
+                self.resource_registry.register(create_resource(
+                    name="Native CPU Core Substrate",
+                    resource_id="native_cpu",
+                    resource_type=ResourceType.COMPUTE,
+                    total_capacity=16.0,  # 16 cores
+                    environment="production",
+                ), allow_override=True)
+            if not self.resource_registry.has_resource("native_workspace"):
+                self.resource_registry.register(create_resource(
+                    name="Native Workspace Storage",
+                    resource_id="native_workspace",
+                    resource_type=ResourceType.STORAGE,
+                    total_capacity=51200.0,  # 50 GiB
+                    environment="production",
+                ), allow_override=True)
+        except Exception as exc:
+            logger.warning("native_service.ensure_resources_error: %s", exc)
 
     @classmethod
     def get_instance(cls) -> NativeRuntimeService:
@@ -429,7 +472,54 @@ class NativeRuntimeService:
                 ),
             )
 
-        # 5. Audit acceptance and start
+        # 5. Resource Reservation with Task 77 Resource Economy
+        self._ensure_native_resources()
+        mem_mb = float(req.resource_budget.max_memory_bytes or (256 * 1024 * 1024)) / (1024 * 1024)
+        expires_at = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=120)
+
+        try:
+            rsv_mem = self.resource_registry.reserve(
+                resource_id="native_memory",
+                owner=req.request_id,
+                purpose=f"sandbox:{req.capability_id}",
+                amount=mem_mb,
+                expires_at=expires_at,
+                scope=req.correlation_id or "GLOBAL",
+            )
+        except Exception as exc:
+            logger.warning(
+                "native_service.reservation_denied request_id=%s capability=%s error=%s",
+                req.request_id,
+                req.capability_id,
+                exc,
+            )
+            await self._emit_audit("runtime.economy.backpressure", {
+                "request_id": req.request_id,
+                "capability_id": req.capability_id,
+                "reason": str(exc),
+            })
+            return ExecutionResult(
+                request_id=req.request_id,
+                execution_id=f"exec_res_exh_{req.request_id[:8]}",
+                capability_id=req.capability_id,
+                state=ExecutionState.REJECTED,
+                exit_code=1,
+                stderr=f"Resource reservation capacity exhausted; backpressure applied: {exc}",
+                failure_classification="RESOURCE_UNAVAILABLE",
+                error=RuntimeErrorModel(
+                    category=ErrorCategory.RESOURCE_LIMIT,
+                    code="RESOURCE_UNAVAILABLE",
+                    message=f"Resource reservation capacity exhausted; backpressure applied: {exc}",
+                ),
+            )
+
+        # 6. Audit acceptance, reservation and start
+        await self._emit_audit("runtime.economy.reserved", {
+            "request_id": req.request_id,
+            "reservation_id": rsv_mem.reservation_id,
+            "resource_id": "native_memory",
+            "amount_mb": mem_mb,
+        })
         await self._emit_audit("runtime.sandbox.accepted", {
             "request_id": req.request_id,
             "capability_id": req.capability_id,
@@ -440,29 +530,101 @@ class NativeRuntimeService:
             "capability_id": req.capability_id,
         })
 
-        # 6. Dispatch to Rust sandbox runtime
-        result = await self.client.sandbox_execute(req)
+        result: Optional[ExecutionResult] = None
+        try:
+            # 7. Dispatch to Rust sandbox runtime
+            result = await self.client.sandbox_execute(req)
+            return result
+        finally:
+            # 8. ALWAYS release reservation on every terminal state (no reservation leaks!)
+            self.resource_registry.release_reservation(rsv_mem.reservation_id)
+            await self._emit_audit("runtime.economy.released", {
+                "request_id": req.request_id,
+                "reservation_id": rsv_mem.reservation_id,
+            })
 
-        # 7. Audit completion based on final state
-        event_map = {
-            ExecutionState.COMPLETED: "runtime.sandbox.completed",
-            ExecutionState.FAILED: "runtime.sandbox.failed",
-            ExecutionState.CANCELLED: "runtime.sandbox.cancelled",
-            ExecutionState.TIMED_OUT: "runtime.sandbox.timed_out",
-            ExecutionState.KILLED: "runtime.sandbox.killed",
-            ExecutionState.RESOURCE_EXCEEDED: "runtime.sandbox.resource_exceeded",
-            ExecutionState.REJECTED: "runtime.sandbox.rejected",
+            # 9. Audit completion based on final state
+            if result is not None:
+                event_map = {
+                    ExecutionState.COMPLETED: "runtime.sandbox.completed",
+                    ExecutionState.FAILED: "runtime.sandbox.failed",
+                    ExecutionState.CANCELLED: "runtime.sandbox.cancelled",
+                    ExecutionState.TIMED_OUT: "runtime.sandbox.timed_out",
+                    ExecutionState.KILLED: "runtime.sandbox.killed",
+                    ExecutionState.RESOURCE_EXCEEDED: "runtime.sandbox.resource_exceeded",
+                    ExecutionState.REJECTED: "runtime.sandbox.rejected",
+                }
+                event_name = event_map.get(result.state, "runtime.sandbox.completed")
+                await self._emit_audit(event_name, {
+                    "request_id": req.request_id,
+                    "execution_id": result.execution_id,
+                    "capability_id": req.capability_id,
+                    "state": result.state.value,
+                    "duration_ms": result.duration_ms,
+                })
+
+                # 10. Reconcile actual usage against reservation with estimation learning
+                actual_mb = 0.0
+                if result.resource_telemetry:
+                    peak_bytes = result.resource_telemetry.peak_memory_bytes or 0
+                    actual_mb = peak_bytes / (1024 * 1024)
+                variance_mb = mem_mb - actual_mb
+                error_pct = (abs(variance_mb) / max(1.0, mem_mb)) * 100.0
+
+                # Feed back into ResourceEconomyEngine for learning
+                if hasattr(self.economy_coordinator, "economy") and hasattr(self.economy_coordinator.economy, "_historical_demands"):
+                    key = f"native:{req.capability_id}"
+                    if key not in self.economy_coordinator.economy._historical_demands:
+                        self.economy_coordinator.economy._historical_demands[key] = []
+                    self.economy_coordinator.economy._historical_demands[key].append(actual_mb)
+                    if len(self.economy_coordinator.economy._historical_demands[key]) > 50:
+                        self.economy_coordinator.economy._historical_demands[key].pop(0)
+
+                await self._emit_audit("runtime.economy.reconciled", {
+                    "request_id": req.request_id,
+                    "capability_id": req.capability_id,
+                    "reserved_memory_mb": mem_mb,
+                    "actual_memory_mb": round(actual_mb, 2),
+                    "variance_mb": round(variance_mb, 2),
+                    "estimation_error_pct": round(error_pct, 2),
+                })
+
+                # 11. Resource violation audit
+                if result.resource_violation:
+                    await self._emit_audit("runtime.economy.violation", {
+                        "request_id": req.request_id,
+                        "capability_id": req.capability_id,
+                        "violation_type": result.resource_violation.violation_type.value,
+                        "severity": result.resource_violation.severity.value,
+                        "enforcement_action": result.resource_violation.enforcement_action.value,
+                        "message": result.resource_violation.message,
+                    })
+
+    def get_resource_economy_status(self) -> Dict[str, Any]:
+        """Query aggregate resource status, capacity, and active reservations."""
+        self._ensure_native_resources()
+        resources = self.resource_registry.list_all()
+        sat_pct, sat_state = self.economy_coordinator.economy.compute_economy_saturation()
+        return {
+            "saturation_pct": round(sat_pct * 100, 2),
+            "saturation_state": sat_state.value,
+            "resources": [
+                {
+                    "resource_id": r.resource_id,
+                    "name": r.name,
+                    "type": r.resource_type.value,
+                    "total_capacity": r.total_capacity,
+                    "available_capacity": r.available_capacity,
+                    "reserved_capacity": r.reserved_capacity,
+                    "allocated_capacity": r.allocated_capacity,
+                    "health": r.health.value,
+                }
+                for r in resources
+            ],
+            "active_reservations_count": len([
+                rsv for rsv in getattr(self.resource_registry, "_reservations", {}).values() if rsv.is_active
+            ]),
         }
-        event_name = event_map.get(result.state, "runtime.sandbox.completed")
-        await self._emit_audit(event_name, {
-            "request_id": req.request_id,
-            "execution_id": result.execution_id,
-            "capability_id": req.capability_id,
-            "state": result.state.value,
-            "duration_ms": result.duration_ms,
-        })
-
-        return result
 
     async def _verify_sandbox_authorization(self, capability_id: str, ctx: Optional[RequestContext]) -> bool:
         """Verify whether caller is authorized for sandboxed capability execution."""

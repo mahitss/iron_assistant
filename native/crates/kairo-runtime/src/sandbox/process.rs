@@ -19,6 +19,11 @@ mod win32 {
     pub type BOOL = i32;
 
     pub const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE: u32 = 0x0000_2000;
+    pub const JOB_OBJECT_LIMIT_PROCESS_MEMORY: u32 = 0x0000_0100;
+    pub const JOB_OBJECT_LIMIT_JOB_MEMORY: u32 = 0x0000_0200;
+    pub const JOB_OBJECT_LIMIT_ACTIVE_PROCESS: u32 = 0x0000_0008;
+
+    pub const JobObjectBasicAccountingInformation: u32 = 1;
     pub const JobObjectExtendedLimitInformation: u32 = 9;
 
     #[repr(C)]
@@ -57,6 +62,19 @@ mod win32 {
         pub PeakJobMemoryUsed: usize,
     }
 
+    #[repr(C)]
+    #[derive(Default)]
+    pub struct JOBOBJECT_BASIC_ACCOUNTING_INFORMATION {
+        pub TotalUserTime: i64,
+        pub TotalKernelTime: i64,
+        pub ThisPeriodTotalUserTime: i64,
+        pub ThisPeriodTotalKernelTime: i64,
+        pub TotalPageFaultCount: u32,
+        pub TotalProcesses: u32,
+        pub ActiveProcesses: u32,
+        pub TotalTerminatedProcesses: u32,
+    }
+
     #[link(name = "kernel32")]
     extern "system" {
         pub fn CreateJobObjectW(lpJobAttributes: *mut c_void, lpName: *const u16) -> HANDLE;
@@ -66,10 +84,29 @@ mod win32 {
             lpJobInformation: *const c_void,
             cbJobInformationLength: u32,
         ) -> BOOL;
+        pub fn QueryInformationJobObject(
+            hJob: HANDLE,
+            JobObjectInformationClass: u32,
+            lpJobInformation: *mut c_void,
+            cbJobInformationLength: u32,
+            lpReturnLength: *mut u32,
+        ) -> BOOL;
         pub fn AssignProcessToJobObject(hJob: HANDLE, hProcess: HANDLE) -> BOOL;
         pub fn TerminateJobObject(hJob: HANDLE, uExitCode: u32) -> BOOL;
         pub fn CloseHandle(hObject: HANDLE) -> BOOL;
     }
+}
+
+/// Metrics sampled directly from the OS process job container.
+#[derive(Debug, Clone, Default)]
+pub struct JobMetrics {
+    pub peak_memory_bytes: Option<u64>,
+    pub current_memory_bytes: Option<u64>,
+    pub total_cpu_time_ms: Option<u64>,
+    pub user_cpu_time_ms: Option<u64>,
+    pub kernel_cpu_time_ms: Option<u64>,
+    pub total_processes: u32,
+    pub active_processes: u32,
 }
 
 /// Platform-specific process tree container ensuring complete termination of all children.
@@ -96,6 +133,14 @@ impl ProcessJobContainer {
     }
 
     pub fn new() -> io::Result<Self> {
+        Self::new_with_limits(&Default::default(), &Default::default())
+    }
+
+    /// Construct a process container configured with hard OS kernel memory and process count limits.
+    pub fn new_with_limits(
+        budget: &kairo_protocol::ResourceBudget,
+        process_tree: &kairo_protocol::ProcessTreePolicy,
+    ) -> io::Result<Self> {
         #[cfg(windows)]
         {
             let handle = unsafe { win32::CreateJobObjectW(std::ptr::null_mut(), std::ptr::null()) };
@@ -105,6 +150,24 @@ impl ProcessJobContainer {
 
             let mut info = win32::JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
             info.BasicLimitInformation.LimitFlags = win32::JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+
+            // Enforce memory limits if configured
+            if let Some(max_mem) = budget.max_memory_bytes {
+                let limit_bytes = max_mem as usize;
+                info.ProcessMemoryLimit = limit_bytes;
+                info.JobMemoryLimit = limit_bytes;
+                info.BasicLimitInformation.LimitFlags |=
+                    win32::JOB_OBJECT_LIMIT_JOB_MEMORY | win32::JOB_OBJECT_LIMIT_PROCESS_MEMORY;
+            }
+
+            // Enforce child process creation limits
+            if !process_tree.allow_child_processes {
+                info.BasicLimitInformation.ActiveProcessLimit = 1;
+                info.BasicLimitInformation.LimitFlags |= win32::JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+            } else if process_tree.max_children > 0 {
+                info.BasicLimitInformation.ActiveProcessLimit = process_tree.max_children + 1;
+                info.BasicLimitInformation.LimitFlags |= win32::JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+            }
 
             let res = unsafe {
                 win32::SetInformationJobObject(
@@ -124,7 +187,66 @@ impl ProcessJobContainer {
         }
         #[cfg(unix)]
         {
+            let _ = (budget, process_tree);
             Ok(Self { pgid: None })
+        }
+    }
+
+    /// Query low-level process metrics directly from the kernel Job Object.
+    pub fn query_metrics(&self) -> JobMetrics {
+        #[cfg(windows)]
+        {
+            if self.job_handle.is_null() {
+                return JobMetrics::default();
+            }
+
+            let mut metrics = JobMetrics::default();
+
+            // 1. Query extended limits to obtain PeakJobMemoryUsed
+            let mut ext_info = win32::JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
+            let res_ext = unsafe {
+                win32::QueryInformationJobObject(
+                    self.job_handle,
+                    win32::JobObjectExtendedLimitInformation,
+                    &mut ext_info as *mut _ as *mut _,
+                    std::mem::size_of::<win32::JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+                    std::ptr::null_mut(),
+                )
+            };
+            if res_ext != 0 {
+                let peak = ext_info
+                    .PeakJobMemoryUsed
+                    .max(ext_info.PeakProcessMemoryUsed) as u64;
+                metrics.peak_memory_bytes = if peak > 0 { Some(peak) } else { None };
+            }
+
+            // 2. Query basic accounting to obtain CPU times and process counts
+            let mut acct_info = win32::JOBOBJECT_BASIC_ACCOUNTING_INFORMATION::default();
+            let res_acct = unsafe {
+                win32::QueryInformationJobObject(
+                    self.job_handle,
+                    win32::JobObjectBasicAccountingInformation,
+                    &mut acct_info as *mut _ as *mut _,
+                    std::mem::size_of::<win32::JOBOBJECT_BASIC_ACCOUNTING_INFORMATION>() as u32,
+                    std::ptr::null_mut(),
+                )
+            };
+            if res_acct != 0 {
+                // 100-ns intervals to milliseconds: divide by 10,000
+                let user_ms = (acct_info.TotalUserTime / 10_000).max(0) as u64;
+                let kernel_ms = (acct_info.TotalKernelTime / 10_000).max(0) as u64;
+                metrics.user_cpu_time_ms = Some(user_ms);
+                metrics.kernel_cpu_time_ms = Some(kernel_ms);
+                metrics.total_cpu_time_ms = Some(user_ms + kernel_ms);
+                metrics.total_processes = acct_info.TotalProcesses;
+                metrics.active_processes = acct_info.ActiveProcesses;
+            }
+
+            metrics
+        }
+        #[cfg(unix)]
+        {
+            JobMetrics::default()
         }
     }
 

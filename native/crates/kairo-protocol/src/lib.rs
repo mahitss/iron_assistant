@@ -6,8 +6,8 @@ pub mod health;
 pub mod sandbox;
 
 pub use budget::{
-    ResourceBudget, MAX_ALLOWED_CONCURRENCY, MAX_ALLOWED_DURATION_MS, MAX_ALLOWED_MEMORY_BYTES,
-    MAX_ALLOWED_OUTPUT_BYTES,
+    ResourceBudget, MAX_ALLOWED_CONCURRENCY, MAX_ALLOWED_DISK_BYTES, MAX_ALLOWED_DURATION_MS,
+    MAX_ALLOWED_FILE_COUNT, MAX_ALLOWED_MEMORY_BYTES, MAX_ALLOWED_OUTPUT_BYTES,
 };
 pub use capabilities::{CapabilityDescriptor, ExecutionClass, SideEffectClass};
 pub use envelope::{
@@ -17,8 +17,9 @@ pub use envelope::{
 pub use error::{ErrorCategory, RuntimeError};
 pub use health::{HealthState, RuntimeHealth, RuntimeMetadata};
 pub use sandbox::{
-    EnvironmentMode, EnvironmentPolicy, ExecutionRequest, ExecutionResult, ExecutionState,
-    FilesystemMode, FilesystemPolicy, NetworkMode, NetworkPolicy, OutputLimits, OutputMetadata,
-    PlatformSupportSummary, PreflightResult, ProcessTreePolicy, SandboxPolicy, SandboxProfile,
-    VerificationMetadata,
+    EnforcementAction, EnvironmentMode, EnvironmentPolicy, ExecutionRequest, ExecutionResult,
+    ExecutionState, FilesystemMode, FilesystemPolicy, MeasurementQuality, NetworkMode,
+    NetworkPolicy, OutputLimits, OutputMetadata, PlatformSupportSummary, PreflightResult,
+    ProcessTreePolicy, ResourceUsageTelemetry, ResourceViolation, ResourceViolationType,
+    SandboxPolicy, SandboxProfile, VerificationMetadata, ViolationSeverity,
 };

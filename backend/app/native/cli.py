@@ -149,6 +149,32 @@ def sandbox_cancel_cmd(cancellation_id: str):
     asyncio.run(_run())
 
 
+# =============================================================================
+# Resource Economy Subcommands (Task 82)
+# =============================================================================
+
+@native_cli.command(name="economy")
+def economy_cmd():
+    """Inspect native resource capacities, saturation, and active reservations."""
+    service = NativeRuntimeService.get_instance()
+    status = service.get_resource_economy_status()
+    click.echo("========================================")
+    click.echo("  NATIVE RESOURCE ENFORCEMENT & ECONOMY")
+    click.echo("========================================")
+    click.echo(f"  System Saturation:     {status.get('saturation_pct')}%")
+    click.echo(f"  Saturation State:      {status.get('saturation_state')}")
+    click.echo(f"  Active Reservations:   {status.get('active_reservations_count')}")
+    click.echo("----------------------------------------")
+    click.echo("  Registered Substrates:")
+    for res in status.get("resources", []):
+        click.echo(
+            f"   - {res['name']} ({res['resource_id']}) [{res['type']}]: "
+            f"Avail {res['available_capacity']:.1f} / Total {res['total_capacity']:.1f} "
+            f"(Reserved {res['reserved_capacity']:.1f}, Allocated {res['allocated_capacity']:.1f})"
+        )
+    click.echo("========================================")
+
+
 if __name__ == "__main__":
     native_cli()
 

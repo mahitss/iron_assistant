@@ -3959,6 +3959,8 @@ export const nativeRuntimeApi = {
   },
   sandboxCancel: (cancellationId) => api.post('/api/v1/native/sandbox/cancel', { cancellation_id: cancellationId }),
   sandboxHealth: () => api.get('/api/v1/native/sandbox/health'),
+  getEconomyStatus: () => api.get('/api/v1/native/economy/status'),
+  getEnforcementMatrix: () => api.get('/api/v1/native/economy/matrix'),
 };
 
 

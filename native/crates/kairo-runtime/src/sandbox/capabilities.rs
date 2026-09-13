@@ -164,6 +164,8 @@ impl SandboxCapabilityRegistry {
                 max_execution_time_ms: Some(60_000),
                 max_concurrency: Some(8),
                 max_output_bytes: Some(10 * 1024 * 1024),
+                max_disk_bytes: Some(512 * 1024 * 1024),
+                max_file_count: Some(1000),
             },
         });
 

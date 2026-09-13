@@ -62,6 +62,78 @@ impl IsolatedWorkspace {
     pub fn exists(&self) -> bool {
         self.path.exists()
     }
+
+    /// Recursively measure the total bytes and file count contained within this workspace.
+    pub fn measure_usage(&self) -> io::Result<(u64, u32)> {
+        if !self.path.exists() {
+            return Ok((0, 0));
+        }
+
+        let mut total_bytes = 0u64;
+        let mut file_count = 0u32;
+        let mut stack = vec![self.path.clone()];
+
+        while let Some(dir) = stack.pop() {
+            let entries = match fs::read_dir(&dir) {
+                Ok(e) => e,
+                Err(_) => continue,
+            };
+
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_dir() {
+                    stack.push(p);
+                } else if p.is_file() {
+                    file_count += 1;
+                    if let Ok(meta) = entry.metadata() {
+                        total_bytes += meta.len();
+                    }
+                }
+            }
+        }
+
+        Ok((total_bytes, file_count))
+    }
+
+    /// Validate workspace usage against disk and file count limits.
+    pub fn check_limits(
+        &self,
+        max_bytes: Option<u64>,
+        max_files: Option<u32>,
+    ) -> Result<(u64, u32), kairo_protocol::RuntimeError> {
+        let (bytes, files) = self.measure_usage().map_err(|e| {
+            kairo_protocol::RuntimeError::internal(
+                "WORKSPACE_MEASURE_FAILED",
+                format!("Failed to measure workspace usage: {}", e),
+            )
+        })?;
+
+        if let Some(limit_bytes) = max_bytes {
+            if bytes > limit_bytes {
+                return Err(kairo_protocol::RuntimeError::resource_limit(
+                    "DISK_LIMIT_EXCEEDED",
+                    format!(
+                        "Workspace disk limit exceeded: {} bytes > {} bytes",
+                        bytes, limit_bytes
+                    ),
+                ));
+            }
+        }
+
+        if let Some(limit_files) = max_files {
+            if files > limit_files {
+                return Err(kairo_protocol::RuntimeError::resource_limit(
+                    "FILE_COUNT_EXCEEDED",
+                    format!(
+                        "Workspace file count limit exceeded: {} files > {} files",
+                        files, limit_files
+                    ),
+                ));
+            }
+        }
+
+        Ok((bytes, files))
+    }
 }
 
 impl Drop for IsolatedWorkspace {

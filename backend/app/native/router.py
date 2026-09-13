@@ -174,24 +174,72 @@ async def sandbox_cancel(
     }
 
 
-@router.get("/sandbox/health", summary="Get Sandbox Platform Status")
-async def sandbox_health(
+@router.get("/economy/status", summary="Get Native Resource Economy Status")
+async def get_economy_status(
     service: NativeRuntimeService = Depends(get_native_service),
 ) -> Dict[str, Any]:
     """
-    Inspect the host platform's sandbox isolation primitives,
-    job object support, stream bounding capability, and runtime health.
+    Retrieve aggregate native resource capacity, saturation, and active reservations.
+    Connects Task 77 Resource Economy with Task 82 Native Enforcement Substrate.
     """
-    health = await service.get_health()
-    return {
-        "runtime_health": health,
-        "sandbox_ready": health.get("healthy", False),
-        "platform_capabilities": [
-            "isolated_workspaces_raii",
-            "win32_job_objects_process_tree_kill",
-            "bounded_output_streaming",
-            "sanitized_environment_allowlists",
-            "strict_policy_intersection",
-        ],
-    }
+    return service.get_resource_economy_status()
+
+
+@router.get("/economy/matrix", summary="Get Cross-Platform Resource Enforcement Matrix")
+async def get_enforcement_matrix() -> List[Dict[str, Any]]:
+    """
+    Returns the honest cross-platform resource enforcement matrix.
+    Clearly distinguishes HARD ENFORCED vs OBSERVABLE vs UNAVAILABLE.
+    """
+    return [
+        {
+            "resource": "MEMORY",
+            "windows": "HARD_ENFORCED",
+            "linux": "HARD_ENFORCED",
+            "macos": "OBSERVABLE_ONLY",
+            "mechanism": "Win32 Job Objects (JobMemoryLimit) / Linux cgroups (memory.max)",
+        },
+        {
+            "resource": "WALL_CLOCK_TIME",
+            "windows": "HARD_ENFORCED",
+            "linux": "HARD_ENFORCED",
+            "macos": "HARD_ENFORCED",
+            "mechanism": "Tokio deadline racing with process tree kill",
+        },
+        {
+            "resource": "CPU_TIME",
+            "windows": "OBSERVED",
+            "linux": "HARD_ENFORCED",
+            "macos": "OBSERVED",
+            "mechanism": "Win32 Job accounting (TotalUserTime+TotalKernelTime) / cgroups cpu.max",
+        },
+        {
+            "resource": "PROCESS_COUNT",
+            "windows": "HARD_ENFORCED",
+            "linux": "HARD_ENFORCED",
+            "macos": "OBSERVABLE_ONLY",
+            "mechanism": "ActiveProcessLimit in Job Objects / Linux cgroups pids.max",
+        },
+        {
+            "resource": "OUTPUT_BYTES",
+            "windows": "HARD_ENFORCED",
+            "linux": "HARD_ENFORCED",
+            "macos": "HARD_ENFORCED",
+            "mechanism": "Bounded stream readers with truncation and error tagging",
+        },
+        {
+            "resource": "WORKSPACE_DISK",
+            "windows": "HARD_ENFORCED",
+            "linux": "HARD_ENFORCED",
+            "macos": "HARD_ENFORCED",
+            "mechanism": "Workspace growth monitoring with hard quota check",
+        },
+        {
+            "resource": "FILE_COUNT",
+            "windows": "HARD_ENFORCED",
+            "linux": "HARD_ENFORCED",
+            "macos": "HARD_ENFORCED",
+            "mechanism": "Workspace recursive file enumeration limits",
+        },
+    ]
 

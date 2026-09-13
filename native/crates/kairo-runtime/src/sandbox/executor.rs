@@ -3,11 +3,13 @@ use crate::metrics::RuntimeMetrics;
 use crate::sandbox::capabilities::SandboxCapabilityRegistry;
 use crate::sandbox::policy::{calculate_effective_policy, validate_path_safety};
 use crate::sandbox::process::{build_sanitized_environment, ProcessJobContainer};
+use crate::sandbox::resources::{build_resource_telemetry, evaluate_resource_violations};
 use crate::sandbox::workspace::IsolatedWorkspace;
 use chrono::Utc;
 use kairo_protocol::sandbox::{
-    ExecutionRequest, ExecutionResult, ExecutionState, OutputMetadata, PlatformSupportSummary,
-    PreflightResult, SandboxPolicy, VerificationMetadata,
+    EnforcementAction, ExecutionRequest, ExecutionResult, ExecutionState, OutputMetadata,
+    PlatformSupportSummary, PreflightResult, ResourceViolation, ResourceViolationType,
+    SandboxPolicy, VerificationMetadata, ViolationSeverity,
 };
 use kairo_protocol::{ResourceBudget, RuntimeError};
 use serde_json::json;
@@ -173,8 +175,11 @@ impl SandboxExecutor {
             .unwrap_or_else(|| request_id.clone());
         let cancel_token = self.cancellation.register(&cancel_id).await;
 
-        // 7. Setup process job container for complete tree termination
-        let job_container = match ProcessJobContainer::new() {
+        // 7. Setup process job container for complete tree termination & resource limits
+        let job_container = match ProcessJobContainer::new_with_limits(
+            &effective_policy.resource_budget,
+            &effective_policy.process_tree,
+        ) {
             Ok(jc) => jc,
             Err(err) => {
                 warn!("sandbox_executor.job_container_init_failed error={}", err);
@@ -201,11 +206,15 @@ impl SandboxExecutor {
             _ = cancel_token.cancelled() => {
                 self.metrics.record_sandbox_cancellation();
                 self.cancellation.remove(&cancel_id).await;
+                let job_metrics = job_container.query_metrics();
+                let (ws_bytes, ws_files) = workspace.measure_usage().unwrap_or((0, 0));
                 let _ = job_container.terminate();
                 let _ = workspace.cleanup();
                 drop(permit);
 
                 let duration = start_instant.elapsed().as_millis() as u64;
+                let telemetry = build_resource_telemetry(duration, &job_metrics, ws_bytes, ws_files, 0);
+
                 ExecutionResult {
                     request_id,
                     execution_id,
@@ -216,7 +225,9 @@ impl SandboxExecutor {
                     stderr: "Execution was cancelled by caller".to_string(),
                     output_metadata: OutputMetadata::default(),
                     duration_ms: duration,
-                    resource_usage: None,
+                    resource_usage: Some(effective_policy.resource_budget.clone()),
+                    resource_telemetry: Some(telemetry),
+                    resource_violation: None,
                     cancellation_state: Some("Cancelled by token".to_string()),
                     timeout_state: false,
                     failure_classification: Some("CANCELLED".to_string()),
@@ -232,6 +243,8 @@ impl SandboxExecutor {
             }
             res = timeout(Duration::from_millis(timeout_ms), exec_workload) => {
                 self.cancellation.remove(&cancel_id).await;
+                let job_metrics = job_container.query_metrics();
+                let (ws_bytes, ws_files) = workspace.measure_usage().unwrap_or((0, 0));
                 let _ = job_container.terminate();
                 let _ = workspace.cleanup();
                 drop(permit);
@@ -240,23 +253,98 @@ impl SandboxExecutor {
 
                 match res {
                     Ok(Ok(mut result)) => {
-                        self.metrics.record_sandbox_success(duration, result.output_metadata.stdout_bytes + result.output_metadata.stderr_bytes);
+                        let total_out = result.output_metadata.stdout_bytes + result.output_metadata.stderr_bytes;
+                        let violation_opt = evaluate_resource_violations(
+                            &effective_policy.resource_budget,
+                            &job_metrics,
+                            ws_bytes,
+                            ws_files,
+                            total_out,
+                            duration,
+                        );
+                        let telemetry = build_resource_telemetry(
+                            duration,
+                            &job_metrics,
+                            ws_bytes,
+                            ws_files,
+                            total_out,
+                        );
+                        result.resource_usage = Some(effective_policy.resource_budget.clone());
+                        result.resource_telemetry = Some(telemetry);
+
+                        if let Some(violation) = violation_opt {
+                            self.metrics.record_sandbox_failure();
+                            result.state = ExecutionState::ResourceExceeded;
+                            result.failure_classification = Some(format!("{:?}", violation.violation_type));
+                            if result.stderr.is_empty() {
+                                result.stderr = violation.message.clone();
+                            } else {
+                                result.stderr = format!("{}\n{}", result.stderr, violation.message);
+                            }
+                            result.error = Some(RuntimeError::resource_limit(
+                                "RESOURCE_LIMIT_EXCEEDED",
+                                violation.message.clone(),
+                            ));
+                            result.resource_violation = Some(violation);
+                        } else {
+                            self.metrics.record_sandbox_success(duration, total_out);
+                            result.resource_violation = None;
+                        }
                         result.verification_metadata.workspace_cleaned = !workspace.exists();
                         result
                     }
                     Ok(Err(err)) => {
                         self.metrics.record_sandbox_failure();
+                        let is_res_err = err.code.contains("LIMIT_EXCEEDED") || err.code.contains("RESOURCE");
+                        let violation_type = if err.code.contains("MEMORY") {
+                            ResourceViolationType::MemoryLimitExceeded
+                        } else if err.code.contains("DISK") || err.code.contains("WORKSPACE") {
+                            ResourceViolationType::DiskLimitExceeded
+                        } else if err.code.contains("FILE_COUNT") {
+                            ResourceViolationType::FileCountLimitExceeded
+                        } else if err.code.contains("PROCESS") {
+                            ResourceViolationType::ProcessLimitExceeded
+                        } else if err.code.contains("OUTPUT") {
+                            ResourceViolationType::OutputLimitExceeded
+                        } else {
+                            ResourceViolationType::CpuLimitExceeded
+                        };
+
+                        let violation = if is_res_err {
+                            Some(ResourceViolation {
+                                violation_type,
+                                severity: ViolationSeverity::HardLimit,
+                                limit_value: 0,
+                                actual_value: 0,
+                                unit: "system_resource".to_string(),
+                                message: err.message.clone(),
+                                enforcement_action: EnforcementAction::Terminate,
+                            })
+                        } else {
+                            None
+                        };
+
+                        let state = if is_res_err {
+                            ExecutionState::ResourceExceeded
+                        } else {
+                            ExecutionState::Failed
+                        };
+
+                        let telemetry = build_resource_telemetry(duration, &job_metrics, ws_bytes, ws_files, 0);
+
                         ExecutionResult {
                             request_id,
                             execution_id,
                             capability_id,
-                            state: ExecutionState::Failed,
+                            state,
                             exit_code: Some(1),
                             stdout: String::new(),
                             stderr: err.message.clone(),
                             output_metadata: OutputMetadata::default(),
                             duration_ms: duration,
-                            resource_usage: None,
+                            resource_usage: Some(effective_policy.resource_budget.clone()),
+                            resource_telemetry: Some(telemetry),
+                            resource_violation: violation,
                             cancellation_state: None,
                             timeout_state: false,
                             failure_classification: Some(err.code.clone()),
@@ -272,6 +360,17 @@ impl SandboxExecutor {
                     }
                     Err(_) => {
                         self.metrics.record_sandbox_timeout();
+                        let violation = ResourceViolation {
+                            violation_type: ResourceViolationType::TimeLimitExceeded,
+                            severity: ViolationSeverity::HardLimit,
+                            limit_value: timeout_ms,
+                            actual_value: duration,
+                            unit: "ms".to_string(),
+                            message: format!("Execution exceeded timeout of {}ms", timeout_ms),
+                            enforcement_action: EnforcementAction::Terminate,
+                        };
+                        let telemetry = build_resource_telemetry(duration, &job_metrics, ws_bytes, ws_files, 0);
+
                         ExecutionResult {
                             request_id,
                             execution_id,
@@ -282,7 +381,9 @@ impl SandboxExecutor {
                             stderr: format!("Execution exceeded timeout of {}ms", timeout_ms),
                             output_metadata: OutputMetadata::default(),
                             duration_ms: duration,
-                            resource_usage: None,
+                            resource_usage: Some(effective_policy.resource_budget.clone()),
+                            resource_telemetry: Some(telemetry),
+                            resource_violation: Some(violation),
                             cancellation_state: None,
                             timeout_state: true,
                             failure_classification: Some("TIMED_OUT".to_string()),
@@ -349,6 +450,8 @@ impl SandboxExecutor {
                     },
                     duration_ms: duration,
                     resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
                     cancellation_state: None,
                     timeout_state: false,
                     failure_classification: None,
@@ -394,6 +497,8 @@ impl SandboxExecutor {
                     },
                     duration_ms: duration,
                     resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
                     cancellation_state: None,
                     timeout_state: false,
                     failure_classification: None,
@@ -436,6 +541,8 @@ impl SandboxExecutor {
                             output_metadata: OutputMetadata::default(),
                             duration_ms: duration,
                             resource_usage: Some(policy.resource_budget.clone()),
+                            resource_telemetry: None,
+                            resource_violation: None,
                             cancellation_state: None,
                             timeout_state: false,
                             failure_classification: None,
@@ -491,6 +598,8 @@ impl SandboxExecutor {
                             },
                             duration_ms: duration,
                             resource_usage: Some(policy.resource_budget.clone()),
+                            resource_telemetry: None,
+                            resource_violation: None,
                             cancellation_state: None,
                             timeout_state: false,
                             failure_classification: if truncated {
@@ -534,6 +643,8 @@ impl SandboxExecutor {
                             output_metadata: OutputMetadata::default(),
                             duration_ms: req_start.elapsed().as_millis() as u64,
                             resource_usage: None,
+                            resource_telemetry: None,
+                            resource_violation: None,
                             cancellation_state: None,
                             timeout_state: false,
                             failure_classification: None,
@@ -576,6 +687,167 @@ impl SandboxExecutor {
                             output_metadata: OutputMetadata::default(),
                             duration_ms: req_start.elapsed().as_millis() as u64,
                             resource_usage: None,
+                            resource_telemetry: None,
+                            resource_violation: None,
+                            cancellation_state: None,
+                            timeout_state: false,
+                            failure_classification: None,
+                            verification_metadata: VerificationMetadata::default(),
+                            error: None,
+                            timestamp: Utc::now(),
+                        })
+                    }
+
+                    "memory_burn" => {
+                        let burn_mb = req
+                            .payload
+                            .get("megabytes")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(64);
+                        let burn_bytes = burn_mb * 1024 * 1024;
+                        let max_bytes = policy.resource_budget.max_memory_bytes.unwrap_or(u64::MAX);
+                        if burn_bytes > max_bytes {
+                            return Err(RuntimeError::resource_limit(
+                                "MEMORY_LIMIT_EXCEEDED",
+                                format!(
+                                    "Probe requested {} MB memory ({} bytes) which exceeds limit of {} bytes",
+                                    burn_mb, burn_bytes, max_bytes
+                                ),
+                            ));
+                        }
+                        let bytes_to_alloc = burn_bytes as usize;
+                        let mut data = Vec::with_capacity(bytes_to_alloc);
+                        data.resize(bytes_to_alloc, 0x42);
+                        let sum: u64 = data.iter().take(1024).map(|&b| b as u64).sum();
+
+                        let duration = req_start.elapsed().as_millis() as u64;
+                        Ok(ExecutionResult {
+                            request_id: req.request_id.clone(),
+                            execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                            capability_id: req.capability_id.clone(),
+                            state: ExecutionState::Completed,
+                            exit_code: Some(0),
+                            stdout: format!(
+                                "Allocated and verified {} MB (checksum {})",
+                                burn_mb, sum
+                            ),
+                            stderr: String::new(),
+                            output_metadata: OutputMetadata::default(),
+                            duration_ms: duration,
+                            resource_usage: Some(policy.resource_budget.clone()),
+                            resource_telemetry: None,
+                            resource_violation: None,
+                            cancellation_state: None,
+                            timeout_state: false,
+                            failure_classification: None,
+                            verification_metadata: VerificationMetadata::default(),
+                            error: None,
+                            timestamp: Utc::now(),
+                        })
+                    }
+
+                    "disk_flood" => {
+                        let file_count = req
+                            .payload
+                            .get("file_count")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(10);
+                        let bytes_per_file = req
+                            .payload
+                            .get("bytes_per_file")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(1024);
+
+                        let max_bytes = policy.resource_budget.max_disk_bytes.unwrap_or(u64::MAX);
+                        let max_files = policy.resource_budget.max_file_count.unwrap_or(u32::MAX);
+
+                        let mut created = 0u32;
+                        let mut total_written = 0u64;
+
+                        for i in 0..file_count {
+                            if (created + 1) > max_files {
+                                return Err(RuntimeError::resource_limit(
+                                    "FILE_COUNT_LIMIT_EXCEEDED",
+                                    format!(
+                                        "File count limit exceeded: maximum {} files allowed",
+                                        max_files
+                                    ),
+                                ));
+                            }
+                            if (total_written + bytes_per_file) > max_bytes {
+                                return Err(RuntimeError::resource_limit(
+                                    "DISK_LIMIT_EXCEEDED",
+                                    format!(
+                                        "Disk limit exceeded: maximum {} bytes allowed",
+                                        max_bytes
+                                    ),
+                                ));
+                            }
+                            let fpath = workspace_dir.join(format!("flood_{}.dat", i));
+                            let buf = vec![0x55u8; bytes_per_file as usize];
+                            std::fs::write(&fpath, &buf).map_err(|e| {
+                                RuntimeError::internal(
+                                    "WORKSPACE_IO_ERROR",
+                                    format!("Disk flood write failed: {}", e),
+                                )
+                            })?;
+                            created += 1;
+                            total_written += bytes_per_file;
+                        }
+
+                        let duration = req_start.elapsed().as_millis() as u64;
+                        Ok(ExecutionResult {
+                            request_id: req.request_id.clone(),
+                            execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                            capability_id: req.capability_id.clone(),
+                            state: ExecutionState::Completed,
+                            exit_code: Some(0),
+                            stdout: format!(
+                                "Created {} files totaling {} bytes",
+                                created, total_written
+                            ),
+                            stderr: String::new(),
+                            output_metadata: OutputMetadata::default(),
+                            duration_ms: duration,
+                            resource_usage: Some(policy.resource_budget.clone()),
+                            resource_telemetry: None,
+                            resource_violation: None,
+                            cancellation_state: None,
+                            timeout_state: false,
+                            failure_classification: None,
+                            verification_metadata: VerificationMetadata::default(),
+                            error: None,
+                            timestamp: Utc::now(),
+                        })
+                    }
+
+                    "cpu_burn" => {
+                        let iterations = req
+                            .payload
+                            .get("iterations")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(10_000_000);
+                        let mut acc = 0u64;
+                        for i in 0..iterations {
+                            acc = acc.wrapping_add(i.wrapping_mul(31));
+                        }
+                        let duration = req_start.elapsed().as_millis() as u64;
+                        Ok(ExecutionResult {
+                            request_id: req.request_id.clone(),
+                            execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                            capability_id: req.capability_id.clone(),
+                            state: ExecutionState::Completed,
+                            exit_code: Some(0),
+                            stdout: format!(
+                                "CPU burn completed {} iterations (acc={})",
+                                iterations, acc
+                            ),
+                            stderr: String::new(),
+                            output_metadata: OutputMetadata::default(),
+                            duration_ms: duration,
+                            resource_usage: Some(policy.resource_budget.clone()),
+                            resource_telemetry: None,
+                            resource_violation: None,
                             cancellation_state: None,
                             timeout_state: false,
                             failure_classification: None,
@@ -598,6 +870,8 @@ impl SandboxExecutor {
                             output_metadata: OutputMetadata::default(),
                             duration_ms: duration,
                             resource_usage: Some(policy.resource_budget.clone()),
+                            resource_telemetry: None,
+                            resource_violation: None,
                             cancellation_state: None,
                             timeout_state: false,
                             failure_classification: None,
@@ -643,6 +917,8 @@ impl SandboxExecutor {
             output_metadata: OutputMetadata::default(),
             duration_ms: start_instant.elapsed().as_millis() as u64,
             resource_usage: None,
+            resource_telemetry: None,
+            resource_violation: None,
             cancellation_state: None,
             timeout_state: false,
             failure_classification: Some(err.code.clone()),

@@ -283,6 +283,20 @@ class EventRegistry:
             EventRegistration("runtime.request.cancelled", "v1", "Native operation cancelled via cancellation token", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
             EventRegistration("runtime.security.blocked_by_emergency_stop", "v1", "Native request blocked by active EmergencyStop", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("runtime.security.authorization_denied", "v1", "Native request denied by SecurityCenter policy", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+
+            # Native Secure Execution Sandbox events (Task 81)
+            EventRegistration("runtime.sandbox.requested", "v1", "Native sandbox execution requested", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.sandbox.accepted", "v1", "Native sandbox execution validated and accepted", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.sandbox.rejected", "v1", "Native sandbox execution rejected by admission control or preflight", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.sandbox.started", "v1", "Native sandbox execution process initiated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.sandbox.completed", "v1", "Native sandbox execution completed within bounds", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.sandbox.failed", "v1", "Native sandbox execution process failed or exited with error", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.sandbox.cancelled", "v1", "Native sandbox execution cancelled and terminated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.sandbox.timed_out", "v1", "Native sandbox execution exceeded deadline and was killed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.sandbox.killed", "v1", "Native sandbox execution forcefully terminated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.sandbox.resource_exceeded", "v1", "Native sandbox execution violated resource constraints", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.sandbox.cleanup_failed", "v1", "Native sandbox post-execution workspace or process cleanup failed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+
         ]
         for reg in defaults:
             self.register(reg)

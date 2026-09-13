@@ -10,11 +10,28 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 try:
-    from app.native.models import CapabilityDescriptor, ResponseStatus, RuntimeResponse
+    from app.native.models import (
+        CapabilityDescriptor,
+        ExecutionRequest,
+        ExecutionResult,
+        ExecutionState,
+        PreflightResult,
+        ResponseStatus,
+        RuntimeResponse,
+    )
     from app.native.service import NativeRuntimeService
 except ImportError:
-    from backend.app.native.models import CapabilityDescriptor, ResponseStatus, RuntimeResponse
+    from backend.app.native.models import (
+        CapabilityDescriptor,
+        ExecutionRequest,
+        ExecutionResult,
+        ExecutionState,
+        PreflightResult,
+        ResponseStatus,
+        RuntimeResponse,
+    )
     from backend.app.native.service import NativeRuntimeService
+
 
 router = APIRouter(prefix="/api/v1/native", tags=["Native Runtime"])
 
@@ -96,3 +113,85 @@ async def cancel(
         "cancellation_id": req.cancellation_id,
         "cancelled": cancelled,
     }
+
+
+# =============================================================================
+# Sandbox Endpoints (Task 81)
+# =============================================================================
+
+@router.post("/sandbox/preflight", summary="Preflight Sandbox Evaluation", response_model=PreflightResult)
+async def sandbox_preflight(
+    req: ExecutionRequest,
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> PreflightResult:
+    """
+    Perform dry-run preflight validation of an execution request.
+    Computes effective sandbox policy, checks capability bounds,
+    and returns whether execution would be admitted without running any code.
+    """
+    return await service.sandbox_preflight(req)
+
+
+@router.post("/sandbox/execute", summary="Execute Sandboxed Workload", response_model=ExecutionResult)
+async def sandbox_execute(
+    req: ExecutionRequest,
+    approval_id: Optional[str] = Query(default=None, description="Human approval ID if capability requires approval"),
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> ExecutionResult:
+    """
+    Execute a typed native capability within the isolated Rust execution sandbox.
+    Enforces EmergencyStop, SecurityCenter authorization, approval verification,
+    and strict resource and stream boundaries.
+    """
+    result = await service.sandbox_execute(req, approval_id=approval_id)
+    if result.state == ExecutionState.REJECTED and result.error:
+        if result.error.category.value == "AUTHORIZATION_REQUIRED":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=result.error.message,
+            )
+        elif result.error.category.value == "INVALID_REQUEST":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.error.message,
+            )
+    return result
+
+
+@router.post("/sandbox/cancel", summary="Cancel Active Sandbox Execution")
+async def sandbox_cancel(
+    req: CancelRequestSchema,
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    """
+    Cancel an active sandboxed workload by cancellation_id.
+    Escalates termination to kill the process tree and cleans up isolated workspaces.
+    """
+    cancelled = await service.cancel(req.cancellation_id)
+    return {
+        "cancellation_id": req.cancellation_id,
+        "cancelled": cancelled,
+    }
+
+
+@router.get("/sandbox/health", summary="Get Sandbox Platform Status")
+async def sandbox_health(
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    """
+    Inspect the host platform's sandbox isolation primitives,
+    job object support, stream bounding capability, and runtime health.
+    """
+    health = await service.get_health()
+    return {
+        "runtime_health": health,
+        "sandbox_ready": health.get("healthy", False),
+        "platform_capabilities": [
+            "isolated_workspaces_raii",
+            "win32_job_objects_process_tree_kill",
+            "bounded_output_streaming",
+            "sanitized_environment_allowlists",
+            "strict_policy_intersection",
+        ],
+    }
+

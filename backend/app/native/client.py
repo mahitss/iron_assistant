@@ -27,6 +27,10 @@ try:
         RuntimeMetadata,
         RuntimeRequest,
         RuntimeResponse,
+        ExecutionRequest,
+        ExecutionResult,
+        ExecutionState,
+        PreflightResult,
     )
 except ImportError:
     from backend.app.native.circuit_breaker import NativeCircuitBreaker
@@ -45,6 +49,10 @@ except ImportError:
         RuntimeMetadata,
         RuntimeRequest,
         RuntimeResponse,
+        ExecutionRequest,
+        ExecutionResult,
+        ExecutionState,
+        PreflightResult,
     )
 
 logger = logging.getLogger("kairo.native.client")
@@ -271,3 +279,54 @@ class NativeRuntimeClient:
             return resp.status == ResponseStatus.OK
         except Exception:
             return False
+
+    async def sandbox_preflight(self, req: ExecutionRequest) -> PreflightResult:
+        """Perform dry-run preflight evaluation without executing workload."""
+        runtime_req = RuntimeRequest(
+            request_id=req.request_id,
+            protocol_version=CURRENT_PROTOCOL_VERSION,
+            operation="sandbox.preflight",
+            deadline_ms=10000,
+            caller_context=req.authorization_context,
+            resource_budget=req.resource_budget,
+            payload=req.model_dump(mode="json"),
+        )
+        resp = await self.request(runtime_req)
+        if resp.status == ResponseStatus.OK and resp.result:
+            return PreflightResult.model_validate(resp.result)
+        
+        return PreflightResult(
+            accepted=False,
+            capability_id=req.capability_id,
+            effective_policy=req.sandbox_policy,
+            effective_budget=req.resource_budget,
+            rejection_reason=resp.error.message if resp.error else "Preflight rejected",
+        )
+
+    async def sandbox_execute(self, req: ExecutionRequest) -> ExecutionResult:
+        """Execute a typed sandboxed workload within the native substrate."""
+        runtime_req = RuntimeRequest(
+            request_id=req.request_id,
+            protocol_version=CURRENT_PROTOCOL_VERSION,
+            operation="sandbox.execute",
+            deadline_ms=req.resource_budget.max_execution_time_ms or 30000,
+            cancellation_id=req.cancellation_id,
+            correlation_id=req.correlation_id,
+            caller_context=req.authorization_context,
+            resource_budget=req.resource_budget,
+            payload=req.model_dump(mode="json"),
+        )
+        resp = await self.request(runtime_req)
+        if resp.status == ResponseStatus.OK and resp.result:
+            return ExecutionResult.model_validate(resp.result)
+
+        # Build fallback failure ExecutionResult
+        return ExecutionResult(
+            request_id=req.request_id,
+            execution_id=f"exec_err_{req.request_id[:8]}",
+            capability_id=req.capability_id,
+            state=ExecutionState.FAILED if resp.status != ResponseStatus.CANCELLED else ExecutionState.CANCELLED,
+            exit_code=1 if resp.status != ResponseStatus.CANCELLED else None,
+            stderr=resp.error.message if resp.error else "Execution failed",
+            error=resp.error,
+        )

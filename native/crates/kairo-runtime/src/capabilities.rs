@@ -83,6 +83,76 @@ impl CapabilityRegistry {
             supported_operations: vec!["sys.sleep".to_string()],
             default_budget: Some(ResourceBudget::default()),
         });
+
+        self.register(CapabilityDescriptor {
+            capability_id: "sandbox.preflight".to_string(),
+            name: "Sandbox Preflight & Dry Run".to_string(),
+            version: "1.0.0".to_string(),
+            description:
+                "Dry-run simulation calculating effective sandbox policy and validating constraints"
+                    .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::None,
+            supported_operations: vec!["sandbox.preflight".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        self.register(CapabilityDescriptor {
+            capability_id: "sandbox.echo".to_string(),
+            name: "Sandbox Safe Echo".to_string(),
+            version: "1.0.0".to_string(),
+            description:
+                "Deterministic echo capability for testing argument isolation and output capture"
+                    .to_string(),
+            available: true,
+            execution_class: ExecutionClass::PureCompute,
+            side_effect_class: SideEffectClass::None,
+            supported_operations: vec!["sandbox.echo".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        self.register(CapabilityDescriptor {
+            capability_id: "sandbox.hash".to_string(),
+            name: "Sandbox Cryptographic Hash".to_string(),
+            version: "1.0.0".to_string(),
+            description:
+                "Pure-compute cryptographic SHA-256 computation on payload or workspace file"
+                    .to_string(),
+            available: true,
+            execution_class: ExecutionClass::PureCompute,
+            side_effect_class: SideEffectClass::None,
+            supported_operations: vec!["sandbox.hash".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        self.register(CapabilityDescriptor {
+            capability_id: "sandbox.probe".to_string(),
+            name: "Sandbox Security & Adversarial Test Probe".to_string(),
+            version: "1.0.0".to_string(),
+            description:
+                "Deterministic probe to test timeouts, cooperative cancellation, output flood, and child containment"
+                    .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::None,
+            supported_operations: vec!["sandbox.probe".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
+
+        self.register(CapabilityDescriptor {
+            capability_id: "sandbox.execute".to_string(),
+            name: "Sandbox Governed Execution".to_string(),
+            version: "1.0.0".to_string(),
+            description:
+                "Secure governed execution for authorized capability workloads within isolated boundaries"
+                    .to_string(),
+            available: true,
+            execution_class: ExecutionClass::PrivilegedNative,
+            side_effect_class: SideEffectClass::StatefulLocal,
+            supported_operations: vec!["sandbox.execute".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+        });
     }
 
     pub fn register(&mut self, cap: CapabilityDescriptor) {

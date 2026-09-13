@@ -58,7 +58,13 @@ export class ObservabilityView {
             <span class="metric-value text-info" id="kpi-native-status">--</span>
             <span class="metric-trend" id="kpi-native-mode">Rust Runtime</span>
           </div>
+          <div class="metric-card" id="kpi-sandbox-card">
+            <span class="metric-label">Execution Sandbox</span>
+            <span class="metric-value text-success" id="kpi-sandbox-status">ISOLATED</span>
+            <span class="metric-trend" id="kpi-sandbox-mode">Job Objects + RAII</span>
+          </div>
         </div>
+
 
         <!-- Navigation Tabs -->
         <div class="tabs-nav" role="tablist" style="margin-top: 24px;">
@@ -140,7 +146,24 @@ export class ObservabilityView {
         kpiNative.className = 'metric-value text-muted';
       });
     }
+
+    const kpiSandbox = this.container.querySelector('#kpi-sandbox-status');
+    const kpiSandboxMode = this.container.querySelector('#kpi-sandbox-mode');
+    if (kpiSandbox) {
+      nativeRuntimeApi.sandboxHealth().then(res => {
+        const healthy = res?.sandbox_ready;
+        kpiSandbox.textContent = healthy ? 'READY' : 'STANDBY';
+        kpiSandbox.className = `metric-value ${healthy ? 'text-success' : 'text-warning'}`;
+        if (kpiSandboxMode) {
+          kpiSandboxMode.textContent = healthy ? 'Job Objects Active' : 'Restricted';
+        }
+      }).catch(() => {
+        kpiSandbox.textContent = 'STANDBY';
+        kpiSandbox.className = 'metric-value text-muted';
+      });
+    }
   }
+
 
   renderTabContent() {
     const content = this.container.querySelector('#observability-tab-content');

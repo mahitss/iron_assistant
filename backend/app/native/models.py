@@ -180,3 +180,187 @@ class HandshakeResponse(BaseModel):
     authenticated: bool
     error: Optional[str] = None
     capabilities: List[CapabilityDescriptor] = Field(default_factory=list)
+
+
+# =============================================================================
+# Sandbox Models (Task 81)
+# =============================================================================
+
+class SandboxProfile(str, Enum):
+    MINIMAL = "MINIMAL"
+    STANDARD = "STANDARD"
+    STRICT = "STRICT"
+
+
+class FilesystemMode(str, Enum):
+    NO_ACCESS = "NO_ACCESS"
+    READ_ONLY = "READ_ONLY"
+    READ_WRITE = "READ_WRITE"
+
+
+class FilesystemPolicy(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    mode: FilesystemMode = FilesystemMode.READ_ONLY
+    allowed_read_roots: List[str] = Field(default_factory=list)
+    allowed_write_roots: List[str] = Field(default_factory=list)
+    isolated_workspace: bool = True
+
+
+class NetworkMode(str, Enum):
+    NO_NETWORK = "NO_NETWORK"
+    LOOPBACK_ONLY = "LOOPBACK_ONLY"
+    ALLOWLIST = "ALLOWLIST"
+    CONTROLLED = "CONTROLLED"
+
+
+class NetworkPolicy(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    mode: NetworkMode = NetworkMode.NO_NETWORK
+    allowed_hosts: List[str] = Field(default_factory=list)
+
+
+class EnvironmentMode(str, Enum):
+    EMPTY = "EMPTY"
+    ALLOWLIST = "ALLOWLIST"
+    INHERIT_SAFE = "INHERIT_SAFE"
+    EXPLICIT = "EXPLICIT"
+
+
+class EnvironmentPolicy(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    mode: EnvironmentMode = EnvironmentMode.ALLOWLIST
+    allowed_variables: List[str] = Field(
+        default_factory=lambda: [
+            "PATH",
+            "SYSTEMROOT",
+            "TEMP",
+            "TMP",
+            "HOME",
+            "TMPDIR",
+        ]
+    )
+    explicit_variables: Dict[str, str] = Field(default_factory=dict)
+
+
+class ProcessTreePolicy(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    allow_child_processes: bool = False
+    max_children: int = 0
+    kill_on_parent_exit: bool = True
+
+
+class OutputLimits(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    max_stdout_bytes: int = 1024 * 1024       # 1 MiB
+    max_stderr_bytes: int = 1024 * 1024       # 1 MiB
+    max_combined_bytes: int = 2 * 1024 * 1024 # 2 MiB
+
+
+class SandboxPolicy(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    profile: SandboxProfile = SandboxProfile.STANDARD
+    filesystem: FilesystemPolicy = Field(default_factory=FilesystemPolicy)
+    network: NetworkPolicy = Field(default_factory=NetworkPolicy)
+    environment: EnvironmentPolicy = Field(default_factory=EnvironmentPolicy)
+    process_tree: ProcessTreePolicy = Field(default_factory=ProcessTreePolicy)
+    output_limits: OutputLimits = Field(default_factory=OutputLimits)
+    resource_budget: ResourceBudget = Field(default_factory=ResourceBudget)
+
+
+class ExecutionState(str, Enum):
+    QUEUED = "QUEUED"
+    STARTING = "STARTING"
+    RUNNING = "RUNNING"
+    CANCELLING = "CANCELLING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    TIMED_OUT = "TIMED_OUT"
+    CANCELLED = "CANCELLED"
+    KILLED = "KILLED"
+    REJECTED = "REJECTED"
+    RESOURCE_EXCEEDED = "RESOURCE_EXCEEDED"
+
+
+class ExecutionRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    capability_id: str
+    arguments: List[str] = Field(default_factory=list)
+    working_directory: Optional[str] = None
+    environment_policy: EnvironmentPolicy = Field(default_factory=EnvironmentPolicy)
+    resource_budget: ResourceBudget = Field(default_factory=ResourceBudget)
+    output_limits: OutputLimits = Field(default_factory=OutputLimits)
+    authorization_context: Optional[RequestContext] = None
+    sandbox_policy: SandboxPolicy = Field(default_factory=SandboxPolicy)
+    correlation_id: Optional[str] = None
+    cancellation_id: Optional[str] = None
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+
+class OutputMetadata(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    stdout_bytes: int = 0
+    stderr_bytes: int = 0
+    truncated: bool = False
+    output_limit_exceeded: bool = False
+
+
+class VerificationMetadata(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    process_exited: bool = True
+    descendants_cleaned: bool = True
+    workspace_cleaned: bool = True
+    resources_released: bool = True
+
+
+class ExecutionResult(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    request_id: str
+    execution_id: str
+    capability_id: str
+    state: ExecutionState
+    exit_code: Optional[int] = None
+    stdout: str = ""
+    stderr: str = ""
+    output_metadata: OutputMetadata = Field(default_factory=OutputMetadata)
+    duration_ms: int = 0
+    resource_usage: Optional[ResourceBudget] = None
+    cancellation_state: Optional[str] = None
+    timeout_state: bool = False
+    failure_classification: Optional[str] = None
+    verification_metadata: VerificationMetadata = Field(default_factory=VerificationMetadata)
+    error: Optional[RuntimeErrorModel] = None
+    timestamp: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+
+class PlatformSupportSummary(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    os: str
+    arch: str
+    job_objects_supported: bool
+    process_groups_supported: bool
+    isolated_temp_workspace: bool
+    stream_bounding_supported: bool
+    network_isolation_status: str
+
+
+class PreflightResult(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    accepted: bool
+    capability_id: str
+    effective_policy: SandboxPolicy
+    effective_budget: ResourceBudget
+    rejection_reason: Optional[str] = None
+    platform_support: Optional[PlatformSupportSummary] = None

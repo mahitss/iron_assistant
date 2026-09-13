@@ -122,6 +122,8 @@ impl IpcServer {
                 }
             };
 
+            tracing::info!(peer = %peer_addr, bytes = msg_bytes.len(), "IPC frame received from client");
+
             let req: RuntimeRequest = match serde_json::from_slice(&msg_bytes) {
                 Ok(r) => r,
                 Err(e) => {

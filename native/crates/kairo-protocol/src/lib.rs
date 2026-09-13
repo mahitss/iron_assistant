@@ -3,6 +3,7 @@ pub mod capabilities;
 pub mod envelope;
 pub mod error;
 pub mod health;
+pub mod sandbox;
 
 pub use budget::{
     ResourceBudget, MAX_ALLOWED_CONCURRENCY, MAX_ALLOWED_DURATION_MS, MAX_ALLOWED_MEMORY_BYTES,
@@ -15,3 +16,9 @@ pub use envelope::{
 };
 pub use error::{ErrorCategory, RuntimeError};
 pub use health::{HealthState, RuntimeHealth, RuntimeMetadata};
+pub use sandbox::{
+    EnvironmentMode, EnvironmentPolicy, ExecutionRequest, ExecutionResult, ExecutionState,
+    FilesystemMode, FilesystemPolicy, NetworkMode, NetworkPolicy, OutputLimits, OutputMetadata,
+    PlatformSupportSummary, PreflightResult, ProcessTreePolicy, SandboxPolicy, SandboxProfile,
+    VerificationMetadata,
+};

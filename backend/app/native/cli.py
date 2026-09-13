@@ -15,9 +15,12 @@ from typing import Optional
 import click
 
 try:
+    from app.native.models import ExecutionRequest, SandboxPolicy, SandboxProfile
     from app.native.service import NativeRuntimeService
 except ImportError:
+    from backend.app.native.models import ExecutionRequest, SandboxPolicy, SandboxProfile
     from backend.app.native.service import NativeRuntimeService
+
 
 
 @click.group(name="native")
@@ -86,5 +89,66 @@ def capabilities_cmd():
     asyncio.run(_run())
 
 
+# =============================================================================
+# Sandbox Subcommands (Task 81)
+# =============================================================================
+
+@native_cli.group(name="sandbox")
+def sandbox_group():
+    """Native Secure Execution Sandbox management commands."""
+    pass
+
+
+@sandbox_group.command(name="preflight")
+@click.argument("capability_id", default="sandbox.echo")
+@click.option("--profile", type=click.Choice(["MINIMAL", "STANDARD", "STRICT"]), default="STANDARD")
+def sandbox_preflight_cmd(capability_id: str, profile: str):
+    """Evaluate preflight dry-run and policy intersection for a capability."""
+    async def _run():
+        service = NativeRuntimeService.get_instance()
+        req = ExecutionRequest(
+            capability_id=capability_id,
+            sandbox_policy=SandboxPolicy(profile=SandboxProfile(profile)),
+        )
+        result = await service.sandbox_preflight(req)
+        click.echo(json.dumps(result.model_dump(), indent=2, default=str))
+
+    asyncio.run(_run())
+
+
+@sandbox_group.command(name="execute")
+@click.argument("capability_id", default="sandbox.echo")
+@click.option("--message", default="Hello from native sandbox CLI", help="Message for echo capability")
+@click.option("--profile", type=click.Choice(["MINIMAL", "STANDARD", "STRICT"]), default="STANDARD")
+@click.option("--approval-id", default=None, help="Approval ID if capability requires it")
+def sandbox_execute_cmd(capability_id: str, message: str, profile: str, approval_id: Optional[str]):
+    """Execute a sandboxed native capability within the Rust isolation environment."""
+    async def _run():
+        service = NativeRuntimeService.get_instance()
+        req = ExecutionRequest(
+            capability_id=capability_id,
+            arguments=[message] if capability_id == "sandbox.echo" else [],
+            payload={"message": message},
+            sandbox_policy=SandboxPolicy(profile=SandboxProfile(profile)),
+        )
+        result = await service.sandbox_execute(req, approval_id=approval_id)
+        click.echo(json.dumps(result.model_dump(), indent=2, default=str))
+
+    asyncio.run(_run())
+
+
+@sandbox_group.command(name="cancel")
+@click.argument("cancellation_id")
+def sandbox_cancel_cmd(cancellation_id: str):
+    """Cancel an active sandboxed workload by cancellation_id."""
+    async def _run():
+        service = NativeRuntimeService.get_instance()
+        success = await service.cancel(cancellation_id)
+        click.echo(json.dumps({"cancellation_id": cancellation_id, "cancelled": success}, indent=2))
+
+    asyncio.run(_run())
+
+
 if __name__ == "__main__":
     native_cli()
+

@@ -3952,7 +3952,15 @@ export const nativeRuntimeApi = {
   ping: (payload) => api.post('/api/v1/native/ping', payload),
   execute: (payload) => api.post('/api/v1/native/execute', payload),
   cancel: (cancellationId) => api.post('/api/v1/native/cancel', { cancellation_id: cancellationId }),
+  sandboxPreflight: (payload) => api.post('/api/v1/native/sandbox/preflight', payload),
+  sandboxExecute: (payload, approvalId = null) => {
+    const q = approvalId ? `?approval_id=${encodeURIComponent(approvalId)}` : '';
+    return api.post(`/api/v1/native/sandbox/execute${q}`, payload);
+  },
+  sandboxCancel: (cancellationId) => api.post('/api/v1/native/sandbox/cancel', { cancellation_id: cancellationId }),
+  sandboxHealth: () => api.get('/api/v1/native/sandbox/health'),
 };
+
 
 export const endpoints = Endpoints;
 

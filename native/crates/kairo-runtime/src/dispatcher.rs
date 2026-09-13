@@ -2,6 +2,7 @@ use crate::cancellation::CancellationRegistry;
 use crate::capabilities::CapabilityRegistry;
 use crate::lifecycle::LifecycleManager;
 use crate::metrics::RuntimeMetrics;
+use crate::sandbox::{SandboxCapabilityRegistry, SandboxExecutor};
 use crate::supervisor::run_with_panic_containment;
 use kairo_protocol::{RuntimeError, RuntimeRequest, RuntimeResponse, TimingMetadata};
 use serde_json::json;
@@ -14,6 +15,7 @@ pub struct RequestDispatcher {
     capabilities: Arc<CapabilityRegistry>,
     cancellation: Arc<CancellationRegistry>,
     metrics: Arc<RuntimeMetrics>,
+    sandbox: Arc<SandboxExecutor>,
 }
 
 impl RequestDispatcher {
@@ -23,11 +25,20 @@ impl RequestDispatcher {
         cancellation: Arc<CancellationRegistry>,
         metrics: Arc<RuntimeMetrics>,
     ) -> Self {
+        let sandbox_caps = Arc::new(SandboxCapabilityRegistry::new());
+        let sandbox = Arc::new(SandboxExecutor::new(
+            sandbox_caps,
+            cancellation.clone(),
+            metrics.clone(),
+            8,
+        ));
+
         Self {
             lifecycle,
             capabilities,
             cancellation,
             metrics,
+            sandbox,
         }
     }
 
@@ -68,8 +79,10 @@ impl RequestDispatcher {
 
     async fn execute_inner(&self, req: RuntimeRequest, start_time: Instant) -> RuntimeResponse {
         let request_id = req.request_id.clone();
+        tracing::info!(op = %req.operation, req_id = %request_id, "Dispatcher executing request");
 
         // 1. Envelope validation
+
         if let Err(err) = req.validate() {
             self.metrics.record_failure();
             return RuntimeResponse::error(&request_id, err, None);
@@ -245,6 +258,97 @@ impl RequestDispatcher {
                     "requested_ms": duration_ms
                 }))
             }
+            "sandbox.preflight" => {
+                let exec_req: kairo_protocol::sandbox::ExecutionRequest =
+                    if req.payload.is_object() && req.payload.get("request_id").is_some() {
+                        serde_json::from_value(req.payload.clone()).map_err(|e| {
+                            RuntimeError::invalid_request(
+                                "INVALID_EXECUTION_REQUEST",
+                                format!("Cannot parse ExecutionRequest: {}", e),
+                            )
+                        })?
+                    } else {
+                        let cap_id = req
+                            .payload
+                            .get("capability_id")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("sandbox.echo")
+                            .to_string();
+                        kairo_protocol::sandbox::ExecutionRequest {
+                            request_id: req.request_id.clone(),
+                            capability_id: cap_id,
+                            arguments: vec![],
+                            working_directory: None,
+                            environment_policy: Default::default(),
+                            resource_budget: req.resource_budget.clone().unwrap_or_default(),
+                            output_limits: Default::default(),
+                            authorization_context: req.caller_context.clone(),
+                            sandbox_policy: Default::default(),
+                            correlation_id: req.correlation_id.clone(),
+                            cancellation_id: req.cancellation_id.clone(),
+                            payload: req.payload.clone(),
+                        }
+                    };
+
+                let preflight = self.sandbox.preflight(&exec_req);
+                Ok(serde_json::to_value(preflight)
+                    .unwrap_or(json!({"error": "preflight_serialization_failed"})))
+            }
+            "sandbox.execute" | "sandbox.echo" | "sandbox.hash" | "sandbox.probe" => {
+                let mut exec_req: kairo_protocol::sandbox::ExecutionRequest =
+                    if req.payload.is_object() && req.payload.get("request_id").is_some() {
+                        serde_json::from_value(req.payload.clone()).map_err(|e| {
+                            RuntimeError::invalid_request(
+                                "INVALID_EXECUTION_REQUEST",
+                                format!("Cannot parse ExecutionRequest: {}", e),
+                            )
+                        })?
+                    } else {
+                        let args = req
+                            .payload
+                            .get("arguments")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                                    .collect()
+                            })
+                            .unwrap_or_default();
+
+                        let cap_id = if req.operation == "sandbox.execute" {
+                            req.payload
+                                .get("capability_id")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("sandbox.echo")
+                                .to_string()
+                        } else {
+                            req.operation.clone()
+                        };
+
+                        kairo_protocol::sandbox::ExecutionRequest {
+                            request_id: req.request_id.clone(),
+                            capability_id: cap_id,
+                            arguments: args,
+                            working_directory: None,
+                            environment_policy: Default::default(),
+                            resource_budget: req.resource_budget.clone().unwrap_or_default(),
+                            output_limits: Default::default(),
+                            authorization_context: req.caller_context.clone(),
+                            sandbox_policy: Default::default(),
+                            correlation_id: req.correlation_id.clone(),
+                            cancellation_id: req.cancellation_id.clone(),
+                            payload: req.payload.clone(),
+                        }
+                    };
+
+                if exec_req.cancellation_id.is_none() {
+                    exec_req.cancellation_id = req.cancellation_id.clone();
+                }
+
+                let result = self.sandbox.execute(exec_req).await;
+                Ok(serde_json::to_value(result)
+                    .unwrap_or(json!({"error": "result_serialization_failed"})))
+            }
             _ => Err(RuntimeError::unsupported_operation(
                 "UNSUPPORTED_OPERATION",
                 format!("Native operation '{}' is not supported", req.operation),
@@ -260,6 +364,7 @@ impl Clone for RequestDispatcher {
             capabilities: self.capabilities.clone(),
             cancellation: self.cancellation.clone(),
             metrics: self.metrics.clone(),
+            sandbox: self.sandbox.clone(),
         }
     }
 }

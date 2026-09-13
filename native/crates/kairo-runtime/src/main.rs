@@ -26,6 +26,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         "Starting Kairo Native Runtime Substrate Daemon..."
     );
 
+    // Prune stale sandbox workspaces from prior abnormal terminations
+    let stale_cleaned = kairo_runtime::clean_stale_workspaces();
+    if stale_cleaned > 0 {
+        tracing::info!(
+            "Cleaned {} stale sandbox workspaces on startup",
+            stale_cleaned
+        );
+    }
+
     let metrics = RuntimeMetrics::new();
     let cancellation = Arc::new(CancellationRegistry::new());
     let capabilities = Arc::new(CapabilityRegistry::new());

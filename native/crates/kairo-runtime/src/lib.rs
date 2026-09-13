@@ -5,6 +5,7 @@ pub mod dispatcher;
 pub mod ipc;
 pub mod lifecycle;
 pub mod metrics;
+pub mod sandbox;
 pub mod supervisor;
 
 pub use cancellation::CancellationRegistry;
@@ -16,3 +17,6 @@ pub use ipc::{
 };
 pub use lifecycle::{LifecycleManager, RUNTIME_VERSION};
 pub use metrics::{MetricsSnapshot, RuntimeMetrics};
+pub use sandbox::{
+    clean_stale_workspaces, IsolatedWorkspace, SandboxCapabilityRegistry, SandboxExecutor,
+};

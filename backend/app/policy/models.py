@@ -91,3 +91,23 @@ class PolicyEvaluationModel(Base):
     __table_args__ = (
         Index("ix_policy_evaluations_created_at", "created_at"),
     )
+
+
+# Re-export Task 78 Autonomous Governance models
+from app.policy.governance_models import (
+    AuthorityEscalationIncidentModel,
+    AuthorityGrantModel,
+    ConstitutionRecordModel,
+    ConstitutionalPrincipleModel,
+    GovernanceDecisionRecordModel,
+)
+
+__all__ = [
+    "GovernancePolicyModel",
+    "PolicyEvaluationModel",
+    "ConstitutionRecordModel",
+    "ConstitutionalPrincipleModel",
+    "AuthorityGrantModel",
+    "GovernanceDecisionRecordModel",
+    "AuthorityEscalationIncidentModel",
+]

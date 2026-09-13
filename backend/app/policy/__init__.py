@@ -17,6 +17,7 @@ from app.policy.governance_coordinator import (
     GovernanceIntelligenceCoordinator,
     default_governance_coordinator,
 )
+from app.policy.governance_router import router as governance_router
 from app.policy.governance_schemas import (
     AuthorityEscalationReport,
     AuthorityGrant,
@@ -62,6 +63,7 @@ __all__ = [
     "policy_registry",
     "policy_router",
     "admin_policy_router",
+    "governance_router",
     "PolicyContext",
     "PolicyDecision",
     "PolicyDecisionType",

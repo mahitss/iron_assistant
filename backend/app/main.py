@@ -70,7 +70,7 @@ from app.optimization.router import router as optimization_router
 from app.orchestration.router import router as orchestration_router
 from app.perception.router import router as perception_router
 from app.planning.router import router as planning_router
-from app.policy import admin_policy_router, policy_router
+from app.policy import admin_policy_router, governance_router, policy_router
 from app.prediction.router import router as prediction_router
 from app.propagation.router import router as propagation_router
 from app.reasoning import reasoning_router
@@ -169,6 +169,8 @@ def create_app() -> FastAPI:
     app.include_router(intent_router, prefix=settings.API_V1_STR)
     app.include_router(policy_router, prefix=settings.API_V1_STR)
     app.include_router(admin_policy_router, prefix=settings.API_V1_STR)
+    app.include_router(governance_router, prefix=settings.API_V1_STR)
+    app.include_router(governance_router)
     app.include_router(resilience_router, prefix=settings.API_V1_STR)
     app.include_router(resilience_router)
     app.include_router(recovery_router, prefix=settings.API_V1_STR)

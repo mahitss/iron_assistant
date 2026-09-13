@@ -262,6 +262,15 @@ class EventRegistry:
             EventRegistration("resilience.recovery_rolled_back", "v1", "Recovery actions rolled back to previous state", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("resilience.residual_risk_detected", "v1", "Post-recovery residual risk report formulated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
             EventRegistration("resilience.human_handoff_required", "v1", "Safe autonomous bounds exceeded, human handoff escalated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+
+            # Autonomous Governance, Constitutional Reasoning & Authority Engine events (Task 78)
+            EventRegistration("governance.policy.evaluated", "v1", "Governance review and constitutional evaluation conducted", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("governance.policy.denied", "v1", "Autonomous action denied by governance policy or constitution", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("governance.policy.approved", "v1", "Autonomous action approved and verified authorized", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("governance.authority.conflict", "v1", "Authority discrepancy or policy tier conflict identified", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("governance.approval.required", "v1", "Action requires elevated approval per policy hierarchy", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("governance.human_review.required", "v1", "High uncertainty or irreversible action requires human judgment", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("governance.override.attempt", "v1", "Privilege escalation or control weakening attempt detected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
         ]
         for reg in defaults:
             self.register(reg)

@@ -99,9 +99,11 @@ class GovernanceStateMachine:
         action: str,
         resource: str,
         risk_level: str,
-        uncertainty_score: float,
-        evidence: list[str],
-        reason: str,
+        uncertainty_score: float = 0.0,
+        evidence: list[str] | None = None,
+        reason: str = "",
+        constitutional_score: float = 1.0,
+        suggested_decision: Any = None,
     ) -> dict[str, Any]:
         """Construct structured handoff packet for operator intervention."""
         return {
@@ -111,8 +113,10 @@ class GovernanceStateMachine:
             "resource": resource,
             "risk_level": risk_level,
             "uncertainty_score": uncertainty_score,
-            "reason_for_human": reason,
-            "evidence": evidence,
+            "constitutional_score": constitutional_score,
+            "suggested_decision": getattr(suggested_decision, "value", str(suggested_decision)),
+            "reason_for_human": reason or "Action requires human oversight and sign-off.",
+            "evidence": evidence or [],
             "options": [
                 {"action": "APPROVE", "label": "Authorize Execution", "consequence": "Action will proceed to EXECUTABLE"},
                 {"action": "DENY", "label": "Reject Action", "consequence": "Action will terminate as DENIED"},

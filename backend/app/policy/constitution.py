@@ -209,7 +209,8 @@ class ConstitutionalEngine:
 
             is_compliant = score >= 0.70
             if not is_compliant and p.strictness == PrincipleStrictness.MANDATORY:
-                mandatory_violations.append(f"{p.name.value}: {findings}")
+                if p.name != PrincipleName.HUMAN_OVERSIGHT:
+                    mandatory_violations.append(f"{p.name.value}: {findings}")
 
             results.append(
                 PrincipleEvaluationResult(

@@ -26,6 +26,7 @@ from app.policy.governance_schemas import (
     GovernanceReviewRequest,
     GovernanceState,
     PolicyTier,
+    PrincipleName,
     PrincipleStrictness,
 )
 from app.policy.governance_state_machine import GovernanceStateMachine
@@ -57,7 +58,7 @@ class GovernanceIntelligenceCoordinator:
         self.authority_manager = authority_manager or default_authority_manager
         self.hierarchy_engine = hierarchy_engine or PolicyHierarchyEngine
         self.goal_alignment_engine = goal_alignment_engine or default_goal_alignment_engine
-        self.escalation_detector = escalation_detector or default_escalation_detector
+        self.escalation_detector = escalation_detector or AuthorityEscalationDetector()
 
         # Registered explicit policies: list of dicts for hierarchy resolution
         self._registered_policies: list[dict[str, Any]] = []
@@ -211,7 +212,11 @@ class GovernanceIntelligenceCoordinator:
         for mv in mand_viols:
             evidence.append(f"CONSTITUTIONAL_MANDATORY_VIOLATION: {mv}")
 
-        # Check for STRICT violations that mandate human oversight
+        # Check for STRICT violations or HUMAN_OVERSIGHT triggers that mandate human oversight
+        human_oversight_required = any(
+            ev.principle == PrincipleName.HUMAN_OVERSIGHT and not ev.compliant
+            for ev in p_evals
+        )
         strict_violations = [
             ev.principle.value
             for ev in p_evals
@@ -273,12 +278,13 @@ class GovernanceIntelligenceCoordinator:
                 f"Action '{request.action}' DENIED. Violates critical governance safeguards: "
                 + ("; ".join(mand_viols) if mand_viols else escalation_report.rationale)
             )
-        # Rule B: Unresolvable conflicting policy or strict constitutional violations -> REQUIRES_HUMAN
+        # Rule B: Unresolvable conflicting policy, human oversight trigger, or strict constitutional violations -> REQUIRES_HUMAN
         elif (
             winning_decision == GovernanceDecisionType.REQUIRES_HUMAN
+            or human_oversight_required
             or len(strict_violations) > 0
             or request.uncertainty_score >= 0.70
-            or (request.is_irreversible and request.is_destructive)
+            or (request.is_irreversible and (request.is_destructive or request.risk_level in ("R3_HIGH", "R4_CRITICAL")))
             or escalation_report.severity == "HIGH"
         ):
             final_decision = GovernanceDecisionType.REQUIRES_HUMAN
@@ -286,12 +292,14 @@ class GovernanceIntelligenceCoordinator:
             reasons = []
             if winning_decision == GovernanceDecisionType.REQUIRES_HUMAN and winning_policy:
                 reasons.append(winning_policy.get("reason", "Policy hierarchy requires human review."))
+            if human_oversight_required:
+                reasons.append("Constitutional principle HUMAN_OVERSIGHT mandates human deliberation.")
             if strict_violations:
                 reasons.append(f"Constitutional principles require oversight: {', '.join(strict_violations)}.")
             if request.uncertainty_score >= 0.70:
                 reasons.append(f"High operational uncertainty ({request.uncertainty_score:.2f}).")
-            if request.is_irreversible and request.is_destructive:
-                reasons.append("Irreversible destructive action.")
+            if request.is_irreversible and (request.is_destructive or request.risk_level in ("R3_HIGH", "R4_CRITICAL")):
+                reasons.append("Irreversible consequential action requires explicit human judgment.")
             explanation_parts.append(
                 f"Action '{request.action}' requires HUMAN REVIEW. Rationale: " + " ".join(reasons)
             )
@@ -350,8 +358,10 @@ class GovernanceIntelligenceCoordinator:
                 action=request.action,
                 resource=request.resource,
                 risk_level=request.risk_level,
-                constitutional_score=c_score,
+                uncertainty_score=request.uncertainty_score,
                 evidence=evidence,
+                reason=" ".join(explanation_parts),
+                constitutional_score=c_score,
                 suggested_decision=final_decision,
             )
 

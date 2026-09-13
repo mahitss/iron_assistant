@@ -3,7 +3,7 @@
  * Displays distributed traces, dynamic service topology, operational incidents, and evidence-backed RCA.
  */
 
-import { Endpoints } from '../../lib/api/endpoints.js';
+import { Endpoints, nativeRuntimeApi } from '../../lib/api/endpoints.js';
 import { store } from '../../state/store.js';
 
 export class ObservabilityView {
@@ -52,6 +52,11 @@ export class ObservabilityView {
             <span class="metric-label">Active Incidents</span>
             <span class="metric-value text-warning" id="kpi-incidents">0</span>
             <span class="metric-trend">Requiring Action</span>
+          </div>
+          <div class="metric-card" id="kpi-native-card">
+            <span class="metric-label">Native Substrate</span>
+            <span class="metric-value text-info" id="kpi-native-status">--</span>
+            <span class="metric-trend" id="kpi-native-mode">Rust Runtime</span>
           </div>
         </div>
 
@@ -119,6 +124,22 @@ export class ObservabilityView {
     if (kpiLat) kpiLat.textContent = `${health.latency_p95_ms || 25} ms`;
     if (kpiInc) kpiInc.textContent = this.dashboardData.active_incident_count || 0;
     if (kpiStatus) kpiStatus.textContent = health.overall_status || 'HEALTHY';
+
+    const kpiNative = this.container.querySelector('#kpi-native-status');
+    const kpiNativeMode = this.container.querySelector('#kpi-native-mode');
+    if (kpiNative) {
+      nativeRuntimeApi.getHealth().then(res => {
+        const st = res?.status || 'UNAVAILABLE';
+        kpiNative.textContent = st;
+        kpiNative.className = `metric-value ${st === 'READY' ? 'text-success' : (st === 'DISABLED' ? 'text-muted' : 'text-warning')}`;
+        if (kpiNativeMode) {
+          kpiNativeMode.textContent = res?.mode ? `Mode: ${res.mode}` : 'Rust Runtime';
+        }
+      }).catch(() => {
+        kpiNative.textContent = 'OFFLINE';
+        kpiNative.className = 'metric-value text-muted';
+      });
+    }
   }
 
   renderTabContent() {

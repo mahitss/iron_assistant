@@ -3946,6 +3946,14 @@ export const governanceApi = {
   getEscalations: (limit = 20) => api.get(`/api/v1/governance/escalations?limit=${limit}`),
 };
 
+export const nativeRuntimeApi = {
+  getHealth: () => api.get('/api/v1/native/health'),
+  listCapabilities: () => api.get('/api/v1/native/capabilities'),
+  ping: (payload) => api.post('/api/v1/native/ping', payload),
+  execute: (payload) => api.post('/api/v1/native/execute', payload),
+  cancel: (cancellationId) => api.post('/api/v1/native/cancel', { cancellation_id: cancellationId }),
+};
+
 export const endpoints = Endpoints;
 
 

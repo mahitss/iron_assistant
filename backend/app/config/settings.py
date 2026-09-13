@@ -300,6 +300,14 @@ class Settings(BaseSettings):
     KAIRO_NOTIFICATION_MAX_DELIVERY_RETRIES: int = 3
     KAIRO_NOTIFICATION_DEFAULT_EXPIRY_SECONDS: int = 86400  # 24 hours
 
+    # Native Runtime Substrate Configuration (Task 80)
+    KAIRO_NATIVE_RUNTIME_MODE: str = "OPTIONAL"  # OPTIONAL, REQUIRED, DISABLED
+    KAIRO_NATIVE_RUNTIME_HOST: str = "127.0.0.1"
+    KAIRO_NATIVE_RUNTIME_PORT: int = 8788
+    KAIRO_NATIVE_RUNTIME_SECRET: str | None = None
+    KAIRO_NATIVE_RUNTIME_MAX_MESSAGE_BYTES: int = 1048576  # 1MB
+    KAIRO_NATIVE_RUNTIME_TIMEOUT_SECONDS: float = 30.0
+
     @property
     def secret_key_str(self) -> str:
         """Safely retrieve raw secret key without exposing in repr."""

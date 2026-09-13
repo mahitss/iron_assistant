@@ -107,3 +107,12 @@ logs/
 
 # Docker
 .docker/
+
+# Rust / Cargo
+target/
+native/target/
+*.rs.bk
+Cargo.lock.bak
+scratch/
+
+

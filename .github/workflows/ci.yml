@@ -88,3 +88,27 @@ jobs:
         working-directory: ./frontend
         run: |
           npm run build
+
+  rust-substrate:
+    name: Native Rust Substrate Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Run Cargo Format Check
+        working-directory: ./native
+        run: cargo fmt --check
+
+      - name: Run Cargo Clippy
+        working-directory: ./native
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Run Cargo Tests
+        working-directory: ./native
+        run: cargo test --workspace

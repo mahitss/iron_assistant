@@ -271,6 +271,18 @@ class EventRegistry:
             EventRegistration("governance.approval.required", "v1", "Action requires elevated approval per policy hierarchy", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("governance.human_review.required", "v1", "High uncertainty or irreversible action requires human judgment", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("governance.override.attempt", "v1", "Privilege escalation or control weakening attempt detected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+
+            # Native Runtime Substrate & Security Boundary events (Task 80)
+            EventRegistration("runtime.started", "v1", "Native runtime daemon process initialized", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.ready", "v1", "Native runtime substrate transitioned to READY", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.degraded", "v1", "Native runtime substrate entered DEGRADED state", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.draining", "v1", "Native runtime entered DRAINING state", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.stopped", "v1", "Native runtime substrate stopped", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.request.dispatched", "v1", "Native operation dispatched to runtime socket", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.request.completed", "v1", "Native operation completed execution", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.request.cancelled", "v1", "Native operation cancelled via cancellation token", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("runtime.security.blocked_by_emergency_stop", "v1", "Native request blocked by active EmergencyStop", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("runtime.security.authorization_denied", "v1", "Native request denied by SecurityCenter policy", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
         ]
         for reg in defaults:
             self.register(reg)

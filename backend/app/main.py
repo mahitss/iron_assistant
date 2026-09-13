@@ -82,6 +82,7 @@ from app.situational_awareness.router import router as situations_router
 from app.state.router import router as state_router
 from app.swarm.router import router as swarm_router
 from app.verification.router import router as verification_router
+from app.native.router import router as native_router
 
 logger = logging.getLogger("kairo.main")
 
@@ -209,6 +210,7 @@ def create_app() -> FastAPI:
     app.include_router(experiments_router, prefix=settings.API_V1_STR)
     app.include_router(propagation_router, prefix=settings.API_V1_STR)
     app.include_router(propagation_router)
+    app.include_router(native_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

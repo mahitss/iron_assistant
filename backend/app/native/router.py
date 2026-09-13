@@ -243,3 +243,87 @@ async def get_enforcement_matrix() -> List[Dict[str, Any]]:
         },
     ]
 
+
+# =============================================================================
+# Task 83: Native Tool Execution Fabric Endpoints
+# =============================================================================
+
+class ToolExecuteRequestSchema(BaseModel):
+    arguments: Dict[str, Any] = Field(default_factory=dict, description="Tool input arguments")
+    user_id: str = Field(default="default_user", description="Caller user ID")
+    session_id: Optional[str] = Field(default=None, description="Session ID")
+    approval_id: Optional[str] = Field(default=None, description="Optional bound approval ID")
+    correlation_id: Optional[str] = Field(default=None, description="Correlation ID")
+
+
+@router.get("/tools", summary="List Registered Tools with Native Execution Metadata")
+async def list_tools(
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> List[Dict[str, Any]]:
+    from app.tools.executor import get_tool_executor
+    executor = get_tool_executor()
+    health = await service.get_health()
+    is_healthy = health.get("healthy", False)
+    return executor.registry.get_native_tool_catalog(
+        runtime_healthy=is_healthy,
+        runtime_mode=service.mode,
+    )
+
+
+@router.get("/tools/health", summary="Get Tool Health and Execution Statistics")
+async def get_tools_health() -> Dict[str, Any]:
+    from app.tools.executor import get_tool_executor
+    return get_tool_executor().registry.get_tool_metrics()
+
+
+@router.get("/tools/{tool_name}", summary="Get Tool Details and Schema")
+async def get_tool_detail(
+    tool_name: str,
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    from app.tools.executor import get_tool_executor
+    executor = get_tool_executor()
+    tool = executor.registry.get(tool_name)
+    if tool is None:
+        raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
+    health = await service.get_health()
+    status = executor.registry.get_tool_status(tool_name, health.get("healthy", False), service.mode)
+    metrics = executor.registry.get_tool_metrics(tool_name)
+    defn = tool.definition
+    return {
+        "name": defn.name,
+        "description": defn.description,
+        "version": defn.version,
+        "permission_level": defn.permission_level.value,
+        "execution_class": defn.execution_class.value,
+        "preference": defn.preference.value,
+        "capability_id": defn.capability_id,
+        "sandbox_profile": defn.sandbox_profile,
+        "availability": status.value,
+        "timeout_seconds": defn.timeout_seconds,
+        "idempotent": defn.idempotent,
+        "fallback_tool": defn.fallback_tool,
+        "parameters_schema": defn.parameters_schema,
+        "output_schema": defn.output_schema,
+        "metrics": metrics,
+    }
+
+
+@router.post("/tools/{tool_name}/execute", summary="Execute Tool via ToolExecutor Fabric")
+async def execute_tool_endpoint(
+    tool_name: str,
+    req: ToolExecuteRequestSchema,
+) -> Dict[str, Any]:
+    from app.tools.executor import get_tool_executor
+    executor = get_tool_executor()
+    res = await executor.execute_tool(
+        name=tool_name,
+        arguments=req.arguments,
+        user_id=req.user_id,
+        session_id=req.session_id,
+        approval_id=req.approval_id,
+        correlation_id=req.correlation_id,
+    )
+    return res.model_dump()
+
+

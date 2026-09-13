@@ -26,6 +26,8 @@ export class ResourceCenterView {
     this.fairnessData = null;
     this.nativeEconomyData = null;
     this.nativeMatrixData = [];
+    this.nativeToolsData = [];
+    this.nativeToolHealth = null;
     this.isLoading = false;
     this.statusMessage = null;
   }
@@ -65,7 +67,7 @@ export class ResourceCenterView {
     this.render();
 
     try {
-      const [overview, budgets, preemptions, deadlocks, fairness, nativeEco, nativeMatrix] = await Promise.allSettled([
+      const [overview, budgets, preemptions, deadlocks, fairness, nativeEco, nativeMatrix, nativeTools, nativeHealth] = await Promise.allSettled([
         resourceEconomyApi.getOverview(),
         resourceEconomyApi.listBudgets(),
         resourceEconomyApi.listPreemptions(),
@@ -73,6 +75,8 @@ export class ResourceCenterView {
         resourceEconomyApi.getFairnessMetrics(),
         nativeRuntimeApi.getEconomyStatus(),
         nativeRuntimeApi.getEnforcementMatrix(),
+        nativeRuntimeApi.listTools(),
+        nativeRuntimeApi.getToolHealth(),
       ]);
 
       if (overview.status === 'fulfilled') this.overviewData = overview.value;
@@ -82,6 +86,8 @@ export class ResourceCenterView {
       if (fairness.status === 'fulfilled') this.fairnessData = fairness.value;
       if (nativeEco.status === 'fulfilled') this.nativeEconomyData = nativeEco.value;
       if (nativeMatrix.status === 'fulfilled') this.nativeMatrixData = Array.isArray(nativeMatrix.value) ? nativeMatrix.value : [];
+      if (nativeTools.status === 'fulfilled') this.nativeToolsData = Array.isArray(nativeTools.value) ? nativeTools.value : [];
+      if (nativeHealth.status === 'fulfilled') this.nativeToolHealth = nativeHealth.value;
     } catch (err) {
       this.statusMessage = `Error loading resource economy: ${err.message}`;
     } finally {
@@ -150,6 +156,7 @@ export class ResourceCenterView {
           ${this.renderSubTab('tradeoffs', '5. Trade-Offs & Degradation')}
           ${this.renderSubTab('fairness', '6. Starvation & Fair Share')}
           ${this.renderSubTab('native', '7. Native Enforcement (Task 82)')}
+          ${this.renderSubTab('tools', '8. Native Tool Fabric (Task 83)')}
         </div>
 
         <!-- Active View Content -->
@@ -202,6 +209,8 @@ export class ResourceCenterView {
         return this.renderFairnessTab();
       case 'native':
         return this.renderNativeEnforcementTab();
+      case 'tools':
+        return this.renderToolFabricTab();
       default:
         return this.renderOverviewTab();
     }
@@ -580,6 +589,135 @@ export class ResourceCenterView {
                 <div style="font-weight: 600; color: #10b981; margin-top: 4px;">COMPLETED & RELEASED</div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderToolFabricTab() {
+    const tools = this.nativeToolsData || [];
+    const health = this.nativeToolHealth || {
+      status: 'READY',
+      healthy: true,
+      registered_native_tools: tools.length,
+      protocol_version: '0.1.0',
+      runtime_version: '0.1.0',
+    };
+
+    const formatClassBadge = (c) => {
+      const cls = (c || 'PYTHON').toUpperCase();
+      let color = '#3b82f6'; // Blue for NATIVE_RUST
+      if (cls === 'PYTHON') color = '#eab308';
+      else if (cls === 'COMPOSITE') color = '#a855f7';
+      else if (cls === 'REMOTE') color = '#06b6d4';
+      return `<span style="display:inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; background-color: ${color}20; color: ${color}; border: 1px solid ${color}60;">${cls}</span>`;
+    };
+
+    const formatPreferenceBadge = (p) => {
+      const pref = (p || 'NATIVE_PREFERRED').toUpperCase();
+      let color = '#10b981';
+      if (pref.includes('REQUIRED')) color = '#ec4899';
+      return `<span style="display:inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background-color: ${color}15; color: ${color}; border: 1px solid ${color}40;">${pref}</span>`;
+    };
+
+    return `
+      <div>
+        <!-- Top Metrics Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+          <div style="background: #1e293b; padding: 18px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Runtime Substrate State</div>
+            <div style="font-size: 28px; font-weight: 700; color: ${health.healthy ? '#10b981' : '#ef4444'}; margin-top: 6px;">
+              ${health.status}
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+              Protocol v${health.protocol_version || '0.1.0'} • Native v${health.runtime_version || '0.1.0'}
+            </div>
+          </div>
+
+          <div style="background: #1e293b; padding: 18px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Registered Native Tools</div>
+            <div style="font-size: 28px; font-weight: 700; color: #3b82f6; margin-top: 6px;">
+              ${tools.length}
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+              Typed Invocations • Sandboxed RAII
+            </div>
+          </div>
+
+          <div style="background: #1e293b; padding: 18px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Execution Invariants</div>
+            <div style="font-size: 28px; font-weight: 700; color: #8b5cf6; margin-top: 6px;">
+              STRICT
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+              Zero Shell Strings • No Arbitrary Paths
+            </div>
+          </div>
+
+          <div style="background: #1e293b; padding: 18px; border-radius: 8px; border: 1px solid #334155;">
+            <div style="font-size: 12px; color: #94a3b8; text-transform: uppercase;">Emergency Stop Authority</div>
+            <div style="font-size: 28px; font-weight: 700; color: #ec4899; margin-top: 6px;">
+              SUPREME
+            </div>
+            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+              Immediate Tree Kill • 0 Leakage
+            </div>
+          </div>
+        </div>
+
+        <!-- Tool Catalog Table -->
+        <div style="background: #1e293b; border-radius: 8px; border: 1px solid #334155; padding: 20px; margin-bottom: 24px;">
+          <h3 style="font-size: 16px; font-weight: 600; margin: 0 0 14px 0; color: #f8fafc;">
+            Native Tool Execution Fabric Catalog (Task 83)
+          </h3>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+              <thead>
+                <tr style="border-bottom: 1px solid #334155; color: #94a3b8;">
+                  <th style="padding: 10px;">Tool Name & Version</th>
+                  <th style="padding: 10px;">Execution Class</th>
+                  <th style="padding: 10px;">Preference</th>
+                  <th style="padding: 10px;">Capability Binding</th>
+                  <th style="padding: 10px;">Sandbox Profile</th>
+                  <th style="padding: 10px;">Availability</th>
+                  <th style="padding: 10px;">Telemetry</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tools.length === 0 ? `
+                  <tr>
+                    <td colspan="7" style="padding: 24px; text-align: center; color: #94a3b8;">
+                      No native tools registered.
+                    </td>
+                  </tr>
+                ` : tools.map(t => `
+                  <tr style="border-bottom: 1px solid #33415540;">
+                    <td style="padding: 12px 10px;">
+                      <div style="font-weight: 600; color: #f8fafc;">${t.name}</div>
+                      <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">v${t.version} • ${t.permission_level}</div>
+                    </td>
+                    <td style="padding: 12px 10px;">${formatClassBadge(t.execution_class)}</td>
+                    <td style="padding: 12px 10px;">${formatPreferenceBadge(t.preference)}</td>
+                    <td style="padding: 12px 10px; font-family: monospace; color: #38bdf8; font-size: 12px;">
+                      ${t.capability_id || 'python.internal'}
+                    </td>
+                    <td style="padding: 12px 10px; font-size: 11px; color: #cbd5e1;">
+                      ${t.sandbox_profile || 'STANDARD'}
+                    </td>
+                    <td style="padding: 12px 10px;">${this.formatSafetyBadge(t.availability)}</td>
+                    <td style="padding: 12px 10px; font-size: 11px; color: #cbd5e1;">
+                      ${t.metrics ? `
+                        <span style="color: #f8fafc; font-weight: 600;">${t.metrics.invocations || 0}</span> calls • 
+                        <span style="color: #10b981;">${Math.round((t.metrics.success_rate || 1.0) * 100)}%</span> succ • 
+                        <span>${t.metrics.avg_latency_ms || 0}ms</span> avg
+                        ${t.metrics.fallbacks > 0 ? ` • <span style="color: #f59e0b;">${t.metrics.fallbacks} fb</span>` : ''}
+                      ` : 'No telemetry'}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

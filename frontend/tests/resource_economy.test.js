@@ -4,7 +4,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { resourceEconomyApi } from '../lib/api/endpoints.js';
+import { resourceEconomyApi, nativeRuntimeApi } from '../lib/api/endpoints.js';
 import { ResourceCenterView } from '../components/orchestration/resourceCenterView.js';
 
 describe('Autonomous Resource Economy & Cognitive Budget API (Task 77)', () => {
@@ -106,6 +106,7 @@ describe('ResourceCenterView Component (Task 77)', () => {
     assert.match(htmlOutput, /5\. Trade-Offs & Degradation/);
     assert.match(htmlOutput, /6\. Starvation & Fair Share/);
     assert.match(htmlOutput, /7\. Native Enforcement/);
+    assert.match(htmlOutput, /8\. Native Tool Fabric/);
   });
 
   test('switches to native enforcement subtab and renders matrix and explanation', () => {
@@ -124,5 +125,48 @@ describe('ResourceCenterView Component (Task 77)', () => {
     assert.match(htmlOutput, /Execution Resource Lifecycle & Explanation/);
     assert.match(htmlOutput, /RUST NATIVE/);
   });
+
+  test('switches to native tool fabric subtab and renders tool catalog and invariants', () => {
+    let htmlOutput = '';
+    const mockContainer = {
+      set innerHTML(val) { htmlOutput = val; },
+      get innerHTML() { return htmlOutput; },
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    };
+    const view = new ResourceCenterView(mockContainer);
+    view.nativeToolsData = [
+      {
+        name: 'native_hash',
+        version: '1.0.0',
+        execution_class: 'NATIVE_RUST',
+        preference: 'NATIVE_PREFERRED',
+        capability_id: 'sandbox.hash',
+        sandbox_profile: 'STANDARD',
+        permission_level: 'READ',
+        availability: 'AVAILABLE',
+        metrics: { invocations: 12, success_rate: 1.0, avg_latency_ms: 4.2, fallbacks: 0 },
+      },
+    ];
+    view.setSubTab('tools');
+
+    assert.strictEqual(view.activeSubTab, 'tools');
+    assert.match(htmlOutput, /Native Tool Execution Fabric Catalog/);
+    assert.match(htmlOutput, /Runtime Substrate State/);
+    assert.match(htmlOutput, /Registered Native Tools/);
+    assert.match(htmlOutput, /Zero Shell Strings/);
+    assert.match(htmlOutput, /native_hash/);
+    assert.match(htmlOutput, /sandbox\.hash/);
+  });
 });
+
+describe('Native Tool Execution Fabric API (Task 83)', () => {
+  test('nativeRuntimeApi exposes all Task 83 tool fabric methods', () => {
+    assert.strictEqual(typeof nativeRuntimeApi.listTools, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.getToolHealth, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.getToolDetail, 'function');
+    assert.strictEqual(typeof nativeRuntimeApi.executeTool, 'function');
+  });
+});
+
 

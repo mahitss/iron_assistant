@@ -3961,6 +3961,14 @@ export const nativeRuntimeApi = {
   sandboxHealth: () => api.get('/api/v1/native/sandbox/health'),
   getEconomyStatus: () => api.get('/api/v1/native/economy/status'),
   getEnforcementMatrix: () => api.get('/api/v1/native/economy/matrix'),
+  // Task 83: Native Tool Execution Fabric
+  listTools: () => api.get('/api/v1/native/tools'),
+  getToolHealth: () => api.get('/api/v1/native/tools/health'),
+  getToolDetail: (toolName) => api.get(`/api/v1/native/tools/${encodeURIComponent(toolName)}`),
+  executeTool: (toolName, payload, approvalId = null) => {
+    const q = approvalId ? `?approval_id=${encodeURIComponent(approvalId)}` : '';
+    return api.post(`/api/v1/native/tools/${encodeURIComponent(toolName)}/execute${q}`, payload);
+  },
 };
 
 

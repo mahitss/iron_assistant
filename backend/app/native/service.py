@@ -629,7 +629,15 @@ class NativeRuntimeService:
     async def _verify_sandbox_authorization(self, capability_id: str, ctx: Optional[RequestContext]) -> bool:
         """Verify whether caller is authorized for sandboxed capability execution."""
         # Standard built-in capabilities are accessible to authenticated callers
-        if capability_id in ("sandbox.preflight", "sandbox.echo", "sandbox.hash", "sandbox.probe", "sandbox.execute"):
+        if capability_id in (
+            "sandbox.preflight",
+            "sandbox.echo",
+            "sandbox.hash",
+            "sandbox.probe",
+            "sandbox.execute",
+            "native.sysinfo",
+            "native.file.inspect",
+        ):
             return True
 
         user_id = ctx.user_id if ctx else None
@@ -648,3 +656,13 @@ class NativeRuntimeService:
                 await self.event_registry.emit(event_name, payload)
         except Exception as exc:
             logger.debug("native_service.audit_emit_ignored event=%s error=%s", event_name, exc)
+
+
+def get_native_service() -> NativeRuntimeService:
+    """Convenience getter for the NativeRuntimeService singleton."""
+    return NativeRuntimeService.get_instance()
+
+
+# Alias for tool fabric compatibility
+get_native_runtime_service = get_native_service
+

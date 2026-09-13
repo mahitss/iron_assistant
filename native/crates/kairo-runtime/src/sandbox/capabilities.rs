@@ -184,6 +184,74 @@ impl SandboxCapabilityRegistry {
             default_policy: SandboxPolicy::default(),
             max_allowed_budget: ResourceBudget::default(),
         });
+
+        // 6. native.sysinfo
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.sysinfo",
+                "Native System Information",
+                "1.0.0",
+                "Safe read-only host platform and hardware metrics collected directly by native runtime",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::None,
+                vec!["native.sysinfo".to_string()],
+            ),
+            default_policy: SandboxPolicy {
+                profile: SandboxProfile::Minimal,
+                filesystem: FilesystemPolicy {
+                    mode: FilesystemMode::NoAccess,
+                    allowed_read_roots: vec![],
+                    allowed_write_roots: vec![],
+                    isolated_workspace: false,
+                },
+                network: NetworkPolicy {
+                    mode: NetworkMode::NoNetwork,
+                    allowed_hosts: vec![],
+                },
+                environment: EnvironmentPolicy {
+                    mode: EnvironmentMode::Empty,
+                    allowed_variables: vec![],
+                    explicit_variables: HashMap::new(),
+                },
+                process_tree: ProcessTreePolicy::default(),
+                output_limits: OutputLimits::default(),
+                resource_budget: ResourceBudget::default(),
+            },
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 7. native.file.inspect
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.file.inspect",
+                "Native File Inspector",
+                "1.0.0",
+                "Inspect file metadata, size, line count, binary detection, and cryptographic hash in sandbox",
+                true,
+                ExecutionClass::IoBounded,
+                SideEffectClass::ReadOnly,
+                vec!["native.file.inspect".to_string()],
+            ),
+            default_policy: SandboxPolicy {
+                profile: SandboxProfile::Standard,
+                filesystem: FilesystemPolicy {
+                    mode: FilesystemMode::ReadOnly,
+                    allowed_read_roots: vec![],
+                    allowed_write_roots: vec![],
+                    isolated_workspace: true,
+                },
+                network: NetworkPolicy {
+                    mode: NetworkMode::NoNetwork,
+                    allowed_hosts: vec![],
+                },
+                environment: EnvironmentPolicy::default(),
+                process_tree: ProcessTreePolicy::default(),
+                output_limits: OutputLimits::default(),
+                resource_budget: ResourceBudget::default(),
+            },
+            max_allowed_budget: ResourceBudget::default(),
+        });
     }
 
     pub fn register(&mut self, contract: SandboxCapabilityContract) {

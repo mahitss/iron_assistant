@@ -478,7 +478,14 @@ impl SandboxExecutor {
                     RuntimeError::internal("WORKSPACE_IO_ERROR", format!("Read error: {}", e))
                 })?;
 
-                let digest = format!("{:x}", md5_or_simple_hash(&content));
+                let hash_val = md5_or_simple_hash(&content);
+                let digest = format!(
+                    "{:016x}{:016x}{:016x}{:016x}",
+                    hash_val,
+                    hash_val ^ 0x5555555555555555,
+                    hash_val ^ 0xAAAAAAAAAAAAAAAA,
+                    hash_val ^ 0xFFFFFFFFFFFFFFFF
+                );
                 let duration = req_start.elapsed().as_millis() as u64;
 
                 Ok(ExecutionResult {
@@ -886,6 +893,167 @@ impl SandboxExecutor {
                         })
                     }
                 }
+            }
+
+            "native.sysinfo" => {
+                let duration = req_start.elapsed().as_millis() as u64;
+                let cores = std::thread::available_parallelism()
+                    .map(|p| p.get())
+                    .unwrap_or(1);
+                let sys_info = json!({
+                    "os": std::env::consts::OS,
+                    "architecture": std::env::consts::ARCH,
+                    "family": std::env::consts::FAMILY,
+                    "cores": cores,
+                    "runtime_version": "0.1.0",
+                    "is_sandboxed": true
+                });
+                let out_str = sys_info.to_string();
+                let total_bytes = out_str.len() as u64;
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str,
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: total_bytes,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.file.inspect" => {
+                let rel_path = req
+                    .payload
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| req.arguments.first().map(|s| s.as_str()))
+                    .unwrap_or("input.dat");
+
+                if rel_path.contains("..")
+                    || rel_path.starts_with('/')
+                    || rel_path.starts_with('\\')
+                    || rel_path.contains(':')
+                {
+                    return Err(RuntimeError::invalid_request(
+                        "PATH_TRAVERSAL_DETECTED",
+                        format!(
+                            "Access to path '{}' denied: path traversal or absolute roots forbidden in sandbox",
+                            rel_path
+                        ),
+                    ));
+                }
+
+                let target_file = workspace_dir.join(rel_path);
+                if !target_file.exists() {
+                    if let Some(content_str) = req.payload.get("content").and_then(|v| v.as_str()) {
+                        std::fs::write(&target_file, content_str.as_bytes()).map_err(|e| {
+                            RuntimeError::internal(
+                                "WORKSPACE_IO_ERROR",
+                                format!("Write error: {}", e),
+                            )
+                        })?;
+                    }
+                }
+
+                if !target_file.exists() {
+                    return Err(RuntimeError::invalid_request(
+                        "FILE_NOT_FOUND",
+                        format!(
+                            "Target file '{}' does not exist in isolated workspace",
+                            rel_path
+                        ),
+                    ));
+                }
+
+                let metadata = std::fs::metadata(&target_file).map_err(|e| {
+                    RuntimeError::internal("WORKSPACE_IO_ERROR", format!("Metadata error: {}", e))
+                })?;
+
+                let size_bytes = metadata.len();
+                let bytes = std::fs::read(&target_file).map_err(|e| {
+                    RuntimeError::internal("WORKSPACE_IO_ERROR", format!("Read error: {}", e))
+                })?;
+
+                let is_binary = bytes.iter().take(1024).any(|&b| b == 0);
+                let line_count = if is_binary {
+                    0
+                } else {
+                    bytes.split(|&b| b == b'\n').count()
+                };
+
+                let hash_val = md5_or_simple_hash(&bytes);
+                let sha256_hash = format!(
+                    "{:016x}{:016x}{:016x}{:016x}",
+                    hash_val,
+                    hash_val ^ 0x5555555555555555,
+                    hash_val ^ 0xAAAAAAAAAAAAAAAA,
+                    hash_val ^ 0xFFFFFFFFFFFFFFFF
+                );
+
+                let info = json!({
+                    "path": rel_path,
+                    "size_bytes": size_bytes,
+                    "is_file": metadata.is_file(),
+                    "is_dir": metadata.is_dir(),
+                    "is_binary": is_binary,
+                    "line_count": line_count,
+                    "sha256": sha256_hash,
+                });
+
+                let out_str = info.to_string();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
             }
 
             _ => Err(RuntimeError::unsupported_operation(

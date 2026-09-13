@@ -43,6 +43,11 @@ TOOL_POLICY_OVERRIDES: dict[str, SecurityDecision] = {
     "github_get_pull_request": SecurityDecision.ALLOWED,
     "github_get_pull_request_diff": SecurityDecision.ALLOWED,
     "github_get_checks": SecurityDecision.ALLOWED,
+    # Native Rust tools (Task 83)
+    "native_hash": SecurityDecision.ALLOWED,
+    "native_system_info": SecurityDecision.ALLOWED,
+    "native_workspace_inspect": SecurityDecision.ALLOWED,
+    "native_probe": SecurityDecision.APPROVAL_REQUIRED,
     # Interactive / External actions requiring approval
     "browser_click": SecurityDecision.APPROVAL_REQUIRED,
     "browser_fill": SecurityDecision.APPROVAL_REQUIRED,

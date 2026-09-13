@@ -304,6 +304,14 @@ class EventRegistry:
             EventRegistration("runtime.economy.violation", "v1", "Native resource violation detected and enforced", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("runtime.economy.backpressure", "v1", "Workload rejected due to resource capacity exhaustion or pressure", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("runtime.economy.pressure_changed", "v1", "System resource pressure transitioned to new tier", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+
+            # Native Tool Execution Fabric events (Task 83)
+            EventRegistration("tool.native.routed", "v1", "Native tool execution routed to target substrate", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("tool.native.dispatched", "v1", "Native tool execution dispatched to Rust runtime", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("tool.native.completed", "v1", "Native tool execution completed successfully within sandbox", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("tool.native.fallback", "v1", "Native tool execution safely fell back to verified Python implementation", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("tool.native.rejected", "v1", "Native tool execution rejected by governance or admission control", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("tool.native.conformance_failed", "v1", "Native tool output verification or conformance check failed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
         ]
         for reg in defaults:
             self.register(reg)

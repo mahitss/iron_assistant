@@ -425,3 +425,51 @@ class PreflightResult(BaseModel):
     effective_budget: ResourceBudget
     rejection_reason: Optional[str] = None
     platform_support: Optional[PlatformSupportSummary] = None
+
+
+# =============================================================================
+# Native Tool Execution Fabric Models (Task 83)
+# =============================================================================
+
+class ToolExecutionClass(str, Enum):
+    PYTHON = "PYTHON"
+    NATIVE_RUST = "NATIVE_RUST"
+    REMOTE = "REMOTE"
+    COMPOSITE = "COMPOSITE"
+
+
+class ToolExecutionPreference(str, Enum):
+    NATIVE_REQUIRED = "NATIVE_REQUIRED"
+    NATIVE_PREFERRED = "NATIVE_PREFERRED"
+    PYTHON_PREFERRED = "PYTHON_PREFERRED"
+    PYTHON_REQUIRED = "PYTHON_REQUIRED"
+
+
+class ToolAvailability(str, Enum):
+    AVAILABLE = "AVAILABLE"
+    DEGRADED = "DEGRADED"
+    UNAVAILABLE = "UNAVAILABLE"
+    DISABLED = "DISABLED"
+    INCOMPATIBLE = "INCOMPATIBLE"
+
+
+class ToolInvocation(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    invocation_id: str
+    tool_name: str
+    tool_version: str = "1.0.0"
+    capability_id: Optional[str] = None
+    arguments: Dict[str, Any] = Field(default_factory=dict)
+    user_id: str = "default_user"
+    session_id: Optional[str] = None
+    approval_id: Optional[str] = None
+    deadline_ms: Optional[int] = 30000
+    cancellation_id: Optional[str] = None
+    correlation_id: Optional[str] = None
+
+
+# Alias for execution authorization context
+AuthorizationContext = RequestContext
+
+

@@ -115,6 +115,7 @@ async fn test_handshake_authentication() {
         secret: Some("wrong-secret".to_string()),
         client_id: "test".to_string(),
         client_version: "1.0.0".to_string(),
+        ..Default::default()
     };
     let bad_resp = authenticator.authenticate(&bad_req, vec![], "0.1.0");
     assert!(!bad_resp.authenticated);
@@ -124,6 +125,7 @@ async fn test_handshake_authentication() {
         secret: Some("secret-key-xyz".to_string()),
         client_id: "test".to_string(),
         client_version: "1.0.0".to_string(),
+        ..Default::default()
     };
     let good_resp = authenticator.authenticate(&good_req, vec![], "0.1.0");
     assert!(good_resp.authenticated);
@@ -172,6 +174,7 @@ async fn test_ipc_transport_tcp_roundtrip() {
         secret: Some("test-secret-123".to_string()),
         client_id: "test-client".to_string(),
         client_version: "1.0.0".to_string(),
+        ..Default::default()
     };
     framed
         .send(serde_json::to_vec(&handshake).unwrap())

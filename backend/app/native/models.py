@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 import uuid
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 CURRENT_PROTOCOL_VERSION = "1.0"
 
@@ -26,6 +26,139 @@ class ErrorCategory(str, Enum):
     RUNTIME_UNAVAILABLE = "RUNTIME_UNAVAILABLE"
     INTERNAL_ERROR = "INTERNAL_ERROR"
     SHUTTING_DOWN = "SHUTTING_DOWN"
+    # Task 87 Protocol Contract categories
+    SESSION_INVALID = "SESSION_INVALID"
+    REQUEST_EXPIRED = "REQUEST_EXPIRED"
+    REQUEST_REPLAYED = "REQUEST_REPLAYED"
+    REQUEST_DUPLICATE = "REQUEST_DUPLICATE"
+    TARGET_CHANGED = "TARGET_CHANGED"
+    EMERGENCY_STOPPED = "EMERGENCY_STOPPED"
+    UNKNOWN_OUTCOME = "UNKNOWN_OUTCOME"
+    PROTOCOL_BACKPRESSURE = "PROTOCOL_BACKPRESSURE"
+    INCOMPATIBLE_VERSION = "INCOMPATIBLE_VERSION"
+
+
+class ProtocolVersion(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    major: int = 1
+    minor: int = 0
+    patch: int = 0
+
+    @classmethod
+    def from_string(cls, version_str: str) -> "ProtocolVersion":
+        parts = version_str.strip().split(".")
+        try:
+            major = int(parts[0]) if len(parts) > 0 else 1
+            minor = int(parts[1]) if len(parts) > 1 else 0
+            patch = int(parts[2]) if len(parts) > 2 else 0
+            return cls(major=major, minor=minor, patch=patch)
+        except Exception:
+            return cls(major=1, minor=0, patch=0)
+
+    parse = from_string
+
+    def is_compatible_with(self, other: "ProtocolVersion") -> bool:
+        return self.major == other.major and self.minor >= other.minor
+
+    def negotiate(self, other: "ProtocolVersion") -> Optional["ProtocolVersion"]:
+        if self.major != other.major:
+            return None
+        min_minor = min(self.minor, other.minor)
+        min_patch = min(self.patch, other.patch) if self.minor == other.minor else 0
+        return ProtocolVersion(major=self.major, minor=min_minor, patch=min_patch)
+
+    def __str__(self) -> str:
+        return f"{self.major}.{self.minor}.{self.patch}"
+
+
+class ProtocolMessageType(str, Enum):
+    HANDSHAKE_HELLO = "HANDSHAKE_HELLO"
+    HANDSHAKE_RESPONSE = "HANDSHAKE_RESPONSE"
+    EXECUTION_REQUEST = "EXECUTION_REQUEST"
+    EXECUTION_RESPONSE = "EXECUTION_RESPONSE"
+    CANCEL_REQUEST = "CANCEL_REQUEST"
+    CANCEL_RESPONSE = "CANCEL_RESPONSE"
+    STOP_REQUEST = "STOP_REQUEST"
+    STOP_RESPONSE = "STOP_RESPONSE"
+    HEARTBEAT_PING = "HEARTBEAT_PING"
+    HEARTBEAT_PONG = "HEARTBEAT_PONG"
+    DRAIN_REQUEST = "DRAIN_REQUEST"
+    DRAIN_RESPONSE = "DRAIN_RESPONSE"
+
+
+class RuntimeState(str, Enum):
+    STARTING = "STARTING"
+    NEGOTIATING = "NEGOTIATING"
+    AUTHENTICATING = "AUTHENTICATING"
+    READY = "READY"
+    DEGRADED = "DEGRADED"
+    DRAINING = "DRAINING"
+    STOPPING = "STOPPING"
+    STOPPED = "STOPPED"
+    FAILED = "FAILED"
+    INCOMPATIBLE = "INCOMPATIBLE"
+    UNAUTHORIZED = "UNAUTHORIZED"
+
+    def accepts_requests(self) -> bool:
+        return self in (RuntimeState.READY, RuntimeState.DEGRADED)
+
+
+class ConnectionState(str, Enum):
+    DISCONNECTED = "DISCONNECTED"
+    CONNECTING = "CONNECTING"
+    CONNECTED = "CONNECTED"
+    ESTABLISHED = "CONNECTED"
+    AUTHENTICATING = "AUTHENTICATING"
+    READY = "READY"
+    DEGRADED = "DEGRADED"
+    DRAINING = "DRAINING"
+    CLOSING = "CLOSING"
+    CLOSED = "CLOSED"
+    FAILED = "FAILED"
+
+
+class MessageLifecycleState(str, Enum):
+    CREATED = "CREATED"
+    VALIDATING = "VALIDATING"
+    ACCEPTED = "ACCEPTED"
+    DISPATCHED = "DISPATCHED"
+    RUNNING = "RUNNING"
+    COMPLETING = "COMPLETING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    REJECTED = "REJECTED"
+    CANCELLED = "CANCELLED"
+    TIMED_OUT = "TIMED_OUT"
+    RESOURCE_EXCEEDED = "RESOURCE_EXCEEDED"
+    EMERGENCY_STOPPED = "EMERGENCY_STOPPED"
+    UNKNOWN_OUTCOME = "UNKNOWN_OUTCOME"
+
+    def is_terminal(self) -> bool:
+        return self in (
+            MessageLifecycleState.COMPLETED,
+            MessageLifecycleState.FAILED,
+            MessageLifecycleState.REJECTED,
+            MessageLifecycleState.CANCELLED,
+            MessageLifecycleState.TIMED_OUT,
+            MessageLifecycleState.RESOURCE_EXCEEDED,
+            MessageLifecycleState.EMERGENCY_STOPPED,
+            MessageLifecycleState.UNKNOWN_OUTCOME,
+        )
+
+
+class EnforcementLevel(str, Enum):
+    HARDWARE_MMU_JOB_OBJECT = "HARDWARE_MMU_JOB_OBJECT"
+    SOFTWARE_BOUNDED = "SOFTWARE_BOUNDED"
+    INSPECTION_ONLY = "INSPECTION_ONLY"
+    DEGRADED = "DEGRADED"
+    UNSUPPORTED = "UNSUPPORTED"
+
+
+class CapabilityStatus(str, Enum):
+    SUPPORTED = "SUPPORTED"
+    DEGRADED = "DEGRADED"
+    UNSUPPORTED = "UNSUPPORTED"
 
 
 class RuntimeErrorModel(BaseModel):
@@ -36,6 +169,21 @@ class RuntimeErrorModel(BaseModel):
     message: str
     details: Optional[Dict[str, Any]] = None
     retryable: bool = False
+
+
+class ProtocolErrorEnvelope(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    error_code: str
+    category: ErrorCategory
+    message: str
+    request_id: Optional[str] = None
+    correlation_id: Optional[str] = None
+    retryable: bool = False
+    terminal: bool = True
+    component: str = "native_runtime"
+    timestamp: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    details: Optional[Dict[str, Any]] = None
 
 
 class ExecutionClass(str, Enum):
@@ -64,6 +212,59 @@ class ResourceBudget(BaseModel):
     max_file_count: Optional[int] = Field(default=None, gt=0)
 
 
+class AuthorizationContext(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    decision_id: str = Field(default_factory=lambda: f"dec_{uuid.uuid4().hex[:12]}")
+    policy_id: Optional[str] = None
+    security_level: str = "standard"
+    approval_id: Optional[str] = None
+    approved_tool: Optional[str] = None
+    approved_target: Optional[str] = None
+    granted_at: datetime.datetime = Field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    expires_at: Optional[datetime.datetime] = None
+    signature_hash: Optional[str] = None
+
+    def is_expired(self, now: Optional[datetime.datetime] = None) -> bool:
+        if self.expires_at is None:
+            return False
+        n = now or datetime.datetime.now(datetime.timezone.utc)
+        return n > self.expires_at
+
+    def validates_binding(self, requested_tool: str, requested_target: Optional[str] = None) -> bool:
+        if self.approved_tool is not None and self.approved_tool != requested_tool:
+            return False
+        if self.approved_target is not None and requested_target is not None and self.approved_target != requested_target:
+            return False
+        return True
+
+
+class ResourceAllocationContext(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    allocation_id: str
+    request_id: str
+    capability_id: str
+    limits: ResourceBudget = Field(default_factory=ResourceBudget)
+    remaining_budget: Optional[ResourceBudget] = None
+    expires_at: datetime.datetime
+
+    def is_expired(self, now: Optional[datetime.datetime] = None) -> bool:
+        n = now or datetime.datetime.now(datetime.timezone.utc)
+        return n > self.expires_at
+
+    def matches_request(self, request_id: str, capability_id: str) -> bool:
+        return self.request_id == request_id and self.capability_id == capability_id
+
+
+class OperationTargetContext(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    target_type: str
+    target_identifier: str
+    expected_hash: Optional[str] = None
+
+
 class CapabilityDescriptor(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -76,6 +277,12 @@ class CapabilityDescriptor(BaseModel):
     side_effect_class: SideEffectClass
     supported_operations: List[str]
     default_budget: Optional[ResourceBudget] = None
+    enforcement_level: EnforcementLevel = EnforcementLevel.HARDWARE_MMU_JOB_OBJECT
+    platform: str = "windows"
+    resource_features: List[str] = Field(default_factory=list)
+    security_features: List[str] = Field(default_factory=list)
+    supported_protocol_versions: List[str] = Field(default_factory=lambda: ["1.0", "1.0.0"])
+    status: CapabilityStatus = CapabilityStatus.SUPPORTED
 
 
 class HealthState(str, Enum):
@@ -126,6 +333,8 @@ class ResponseStatus(str, Enum):
     ERROR = "ERROR"
     CANCELLED = "CANCELLED"
     SHUTTING_DOWN = "SHUTTING_DOWN"
+    EMERGENCY_STOPPED = "EMERGENCY_STOPPED"
+    UNKNOWN_OUTCOME = "UNKNOWN_OUTCOME"
 
 
 class TimingMetadata(BaseModel):
@@ -136,9 +345,97 @@ class TimingMetadata(BaseModel):
     total_time_ms: int = 0
 
 
+# =============================================================================
+# Telemetry & Observability Fabric Models (Task 86)
+# =============================================================================
+
+class NativeSeverity(str, Enum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARN = "WARN"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+
+class NativePrivacyClass(str, Enum):
+    PUBLIC = "PUBLIC"
+    INTERNAL = "INTERNAL"
+    RESTRICTED = "RESTRICTED"
+    CONFIDENTIAL = "CONFIDENTIAL"
+
+
+class NativeExecutionDomain(str, Enum):
+    NATIVE_RUNTIME = "NATIVE_RUNTIME"
+    SANDBOX = "SANDBOX"
+    COMPUTER_INTERACTION = "COMPUTER_INTERACTION"
+    NETWORK_FABRIC = "NETWORK_FABRIC"
+    TOOL_FABRIC = "TOOL_FABRIC"
+    HARDWARE_ISOLATION = "HARDWARE_ISOLATION"
+
+
+class NativeOutcome(str, Enum):
+    SUCCESS = "SUCCESS"
+    FAIL = "FAIL"
+    BLOCK = "BLOCK"
+    DENY = "DENY"
+    CANCEL = "CANCEL"
+    TIMEOUT = "TIMEOUT"
+    UNKNOWN = "UNKNOWN"
+
+
+class NativeEvent(BaseModel):
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    event_id: str
+    event_type: str
+    monotonic_timestamp_ns: int = 0
+    wall_timestamp_utc: Optional[Any] = None
+    correlation_id: Optional[str] = None
+    causation_id: Optional[str] = None
+    trace_id: Optional[str] = None
+    span_id: Optional[str] = None
+    parent_event_id: Optional[str] = None
+    execution_domain: Optional[str] = "RUNTIME"
+    domain: Optional[str] = None
+    severity: Optional[str] = "INFO"
+    privacy_class: Optional[str] = "INTERNAL"
+    outcome: Optional[str] = "SUCCESS"
+    component: Optional[str] = "rust_runtime"
+    source: Optional[str] = None
+    timestamp_nanos: Optional[int] = None
+    monotonic_nanos: Optional[int] = None
+    duration_nanos: Optional[int] = None
+    payload: Dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def populate_aliases(self) -> "NativeEvent":
+        if self.monotonic_nanos is None and self.monotonic_timestamp_ns:
+            self.monotonic_nanos = self.monotonic_timestamp_ns
+        elif not self.monotonic_timestamp_ns and self.monotonic_nanos:
+            self.monotonic_timestamp_ns = self.monotonic_nanos
+        if self.timestamp_nanos is None and self.monotonic_timestamp_ns:
+            self.timestamp_nanos = self.monotonic_timestamp_ns
+        return self
+
+    @property
+    def effective_domain(self) -> str:
+        return self.execution_domain or self.domain or "RUNTIME"
+
+    @property
+    def effective_source(self) -> str:
+        return self.component or self.source or "rust_runtime"
+
+    @property
+    def effective_monotonic_nanos(self) -> int:
+        return self.monotonic_timestamp_ns or self.monotonic_nanos or 0
+
+
+
 class RuntimeRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
+    message_type: ProtocolMessageType = ProtocolMessageType.EXECUTION_REQUEST
+    message_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     protocol_version: str = CURRENT_PROTOCOL_VERSION
     operation: str
@@ -146,6 +443,22 @@ class RuntimeRequest(BaseModel):
     deadline_ms: Optional[int] = 30000
     cancellation_id: Optional[str] = None
     correlation_id: Optional[str] = None
+    trace_id: Optional[str] = None
+    span_id: Optional[str] = None
+    causation_id: Optional[str] = None
+    parent_event_id: Optional[str] = None
+    runtime_instance_id: Optional[str] = None
+    client_instance_id: Optional[str] = None
+    session_id: Optional[str] = None
+    capability_id: Optional[str] = None
+    capability_version: Optional[str] = "1.0"
+    created_at: Optional[datetime.datetime] = None
+    deadline: Optional[datetime.datetime] = None
+    authorization_context: Optional[AuthorizationContext] = None
+    resource_context: Optional[ResourceAllocationContext] = None
+    target_context: Optional[OperationTargetContext] = None
+    nonce: Optional[str] = None
+    idempotency_key: Optional[str] = None
     caller_context: Optional[RequestContext] = None
     capability: Optional[str] = None
     resource_budget: Optional[ResourceBudget] = None
@@ -155,14 +468,26 @@ class RuntimeRequest(BaseModel):
 class RuntimeResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
+    message_type: Optional[ProtocolMessageType] = None
+    message_id: Optional[str] = None
     request_id: str
     protocol_version: str
     status: ResponseStatus
+    execution_state: Optional[MessageLifecycleState] = None
     result: Optional[Dict[str, Any]] = None
     error: Optional[RuntimeErrorModel] = None
+    error_envelope: Optional[ProtocolErrorEnvelope] = None
     runtime_metadata: Optional[RuntimeMetadata] = None
+    runtime_instance_id: Optional[str] = None
+    session_id: Optional[str] = None
     timing: Optional[TimingMetadata] = None
     correlation_id: Optional[str] = None
+    trace_id: Optional[str] = None
+    span_id: Optional[str] = None
+    causation_id: Optional[str] = None
+    parent_event_id: Optional[str] = None
+    native_events: Optional[List[NativeEvent]] = None
+
 
 
 class HandshakeRequest(BaseModel):
@@ -172,6 +497,9 @@ class HandshakeRequest(BaseModel):
     secret: Optional[str] = None
     client_id: str = "kairo-python-backend"
     client_version: str = "1.0.0"
+    client_instance_id: Optional[str] = None
+    nonce: Optional[str] = None
+    requested_capabilities: Optional[List[str]] = None
 
 
 class HandshakeResponse(BaseModel):
@@ -180,6 +508,10 @@ class HandshakeResponse(BaseModel):
     protocol_version: str
     runtime_version: str
     authenticated: bool
+    runtime_instance_id: Optional[str] = None
+    session_id: Optional[str] = None
+    capability_fingerprint: Optional[str] = None
+    configuration_fingerprint: Optional[str] = None
     error: Optional[str] = None
     capabilities: List[CapabilityDescriptor] = Field(default_factory=list)
 
@@ -469,9 +801,6 @@ class ToolInvocation(BaseModel):
     correlation_id: Optional[str] = None
 
 
-# Alias for execution authorization context
-AuthorizationContext = RequestContext
-
 
 # =============================================================================
 # Native Computer Interaction Substrate Models (Task 84)
@@ -573,6 +902,119 @@ class ComputerOperationResult(BaseModel):
     duration_ms: int
     error: Optional[str] = None
     details: Dict[str, Any] = Field(default_factory=dict)
+
+
+# ============================================================================
+# Task 85 — Native Network Execution & Connection Fabric Models
+# ============================================================================
+
+class NetworkOperationClass(str, Enum):
+    OBSERVE = "OBSERVE"
+    FETCH = "FETCH"
+    STREAM = "STREAM"
+    CONNECT = "CONNECT"
+    RESOLVE = "RESOLVE"
+    UPLOAD = "UPLOAD"
+    EXTERNAL_WRITE = "EXTERNAL_WRITE"
+    EXTERNAL_DESTRUCTIVE = "EXTERNAL_DESTRUCTIVE"
+
+
+class NetworkProtocol(str, Enum):
+    HTTP1 = "HTTP1"
+    HTTP2 = "HTTP2"
+    TCP = "TCP"
+    DNS = "DNS"
+    TLS = "TLS"
+    WEBSOCKET = "WEBSOCKET"
+
+
+class NetworkExecutionPolicy(BaseModel):
+    """Governed policy constraints applied to native network operations."""
+    model_config = ConfigDict(extra="ignore")
+
+    hostname_policy: List[str] = Field(default_factory=list)
+    denied_hostnames: List[str] = Field(default_factory=list)
+    port_policy: List[int] = Field(default_factory=lambda: [80, 443])
+    allow_private_ips: bool = False
+    dns_timeout_ms: int = 5000
+    connect_timeout_ms: int = 5000
+    request_timeout_ms: int = 15000
+    total_deadline_ms: int = 30000
+    max_redirects: int = 5
+    allow_cross_origin_redirects: bool = True
+    strip_credentials_cross_origin: bool = True
+    request_size_limit_bytes: int = 1048576  # 1MB
+    response_size_limit_bytes: int = 10485760  # 10MB
+    max_retries: int = 2
+    rate_limit_rpm: int = 120
+
+
+class DnsResolveRequest(BaseModel):
+    """Request payload for bounded DNS resolution."""
+    model_config = ConfigDict(extra="ignore")
+
+    hostname: str
+    policy: Optional[NetworkExecutionPolicy] = None
+
+
+class DnsResolveResult(BaseModel):
+    """Result payload from native bounded DNS resolution."""
+    model_config = ConfigDict(extra="ignore")
+
+    hostname: str
+    resolved_ips: List[str] = Field(default_factory=list)
+    is_public: bool = True
+    ttl_seconds: int = 60
+    duration_ms: int = 0
+    error: Optional[str] = None
+
+
+class HttpRequestDescriptor(BaseModel):
+    """Strongly-typed native HTTP request descriptor."""
+    model_config = ConfigDict(extra="ignore")
+
+    method: str = "GET"
+    url: str
+    headers: Dict[str, str] = Field(default_factory=dict)
+    body: Optional[str] = None
+    operation_class: NetworkOperationClass = NetworkOperationClass.FETCH
+    idempotency_key: Optional[str] = None
+    policy: Optional[NetworkExecutionPolicy] = None
+
+
+class HttpResponseResult(BaseModel):
+    """Strongly-typed native HTTP response result."""
+    model_config = ConfigDict(extra="ignore")
+
+    status_code: int
+    status_text: str = "OK"
+    headers: Dict[str, str] = Field(default_factory=dict)
+    body: str = ""
+    truncated: bool = False
+    raw_bytes_count: int = 0
+    duration_ms: int = 0
+    dns_latency_ms: int = 0
+    connect_latency_ms: int = 0
+    redirect_chain: List[str] = Field(default_factory=list)
+    remote_address: Optional[str] = None
+    protocol: str = "HTTP/1.1"
+    security_classification: str = "UNTRUSTED_REMOTE_CONTENT"
+    error: Optional[str] = None
+
+
+class NetworkHealthReport(BaseModel):
+    """Operational health and telemetry report for the native network substrate."""
+    model_config = ConfigDict(extra="ignore")
+
+    state: str = "HEALTHY"
+    active_connections: int = 0
+    idle_connections: int = 0
+    active_requests: int = 0
+    total_requests: int = 0
+    ssrf_blocks_count: int = 0
+    circuit_breaker_open: bool = False
+    pool_utilization: float = 0.0
+
 
 
 

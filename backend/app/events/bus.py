@@ -112,12 +112,26 @@ class EventBus:
             logger.debug("Event bus is disabled; ignoring event: %s", event.event_id)
             return event
 
+        try:
+            from app.observability.timeline import timeline_reconstructor
+
+            timeline_reconstructor.ingest_event(event)
+        except Exception as err:
+            logger.debug("Telemetry timeline ingest skipped: %s", err)
+
         return await self.publisher.publish(event, persist_log=persist_log)
 
     async def dispatch(self, event: Event) -> int:
         """Dispatch event directly to matching subscribers or enqueue if running worker pool."""
         if not self._enabled:
             return 0
+
+        try:
+            from app.observability.timeline import timeline_reconstructor
+
+            timeline_reconstructor.ingest_event(event)
+        except Exception as err:
+            logger.debug("Telemetry timeline ingest skipped: %s", err)
 
         if self.dispatcher.is_running:
             try:
@@ -142,6 +156,13 @@ class EventBus:
         """Reset deduplicator and subscriber state (used for test isolation)."""
         await self.deduplicator.clear()
         self.dispatcher._subscribers.clear()
+        try:
+            from app.observability.timeline import timeline_reconstructor
+
+            timeline_reconstructor._correlation_events.clear()
+            timeline_reconstructor._recent_events.clear()
+        except Exception:
+            pass
 
 
 event_bus = EventBus()

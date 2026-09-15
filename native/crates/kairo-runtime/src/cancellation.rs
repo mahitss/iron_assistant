@@ -40,4 +40,13 @@ impl CancellationRegistry {
         let mut map = self.tokens.write().await;
         map.remove(cancellation_id);
     }
+
+    pub async fn cancel_all(&self) -> usize {
+        let map = self.tokens.read().await;
+        let count = map.len();
+        for token in map.values() {
+            token.cancel();
+        }
+        count
+    }
 }

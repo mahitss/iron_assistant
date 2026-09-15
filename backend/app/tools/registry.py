@@ -243,6 +243,16 @@ def create_default_tool_registry() -> ToolRegistry:
     registry.register(NativeMouseActionTool())
     registry.register(NativeKeyboardActionTool())
 
+    # Register Native Network Execution & Connection Fabric Tools (Task 85)
+    from app.tools.builtin.network import (
+        NativeDnsResolveTool,
+        NativeHttpFetchTool,
+        NativeHttpRequestTool,
+    )
+    registry.register(NativeDnsResolveTool())
+    registry.register(NativeHttpFetchTool())
+    registry.register(NativeHttpRequestTool())
+
     if get_settings().KAIRO_BROWSER_ENABLED:
         from app.tools.browser.actions import (
             BrowserClickTool,

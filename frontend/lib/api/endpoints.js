@@ -982,6 +982,47 @@ export const Endpoints = {
     return api.post('/api/v1/observability/root-cause', { target_ref: targetRef });
   },
 
+  // Observability & Telemetry Fabric (Task 86)
+  async getComponentHealth() {
+    return api.get('/health/components');
+  },
+
+  async getObservabilitySubsystems() {
+    return api.get('/api/v1/observability/subsystems');
+  },
+
+  async getObservabilityTraces(limit = 50, projectId = null) {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+    if (projectId) params.append('project_id', projectId);
+    const q = params.toString() ? `?${params.toString()}` : '';
+    return api.get(`/api/v1/observability/traces${q}`);
+  },
+
+  async getObservabilityEvents(filters = {}) {
+    const params = new URLSearchParams();
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.severity) params.append('severity', filters.severity);
+    if (filters.event_type) params.append('event_type', filters.event_type);
+    if (filters.domain) params.append('domain', filters.domain);
+    if (filters.correlation_id) params.append('correlation_id', filters.correlation_id);
+    const q = params.toString() ? `?${params.toString()}` : '';
+    return api.get(`/api/v1/observability/events${q}`);
+  },
+
+  async getExecutionDetails(correlationId) {
+    return api.get(`/api/v1/observability/executions/${encodeURIComponent(correlationId)}`);
+  },
+
+  async getExecutionTimeline(correlationId) {
+    return api.get(`/api/v1/observability/timeline/${encodeURIComponent(correlationId)}`);
+  },
+
+  async replayExecution(correlationId) {
+    return api.get(`/api/v1/observability/replay/${encodeURIComponent(correlationId)}`);
+  },
+
+
   // --- State Fabric (Task 39) ---
   async getStateHealth() {
     return api.get('/api/v1/state/health');
@@ -3978,6 +4019,18 @@ export const nativeRuntimeApi = {
   writeClipboard: (text) => api.post('/api/v1/native/computer/clipboard', { text }),
   executeMouse: (payload) => api.post('/api/v1/native/computer/mouse', payload),
   executeKeyboard: (payload) => api.post('/api/v1/native/computer/keyboard', payload),
+  // Task 85: Native Network Execution & Connection Fabric
+  resolveDns: (payload) => api.post('/api/v1/native/network/resolve', payload),
+  httpFetch: (payload) => api.post('/api/v1/native/network/fetch', payload),
+  httpRequest: (payload, approvalId = null) => {
+    const q = approvalId ? `?approval_id=${encodeURIComponent(approvalId)}` : '';
+    return api.post(`/api/v1/native/network/request${q}`, payload);
+  },
+  getNetworkHealth: () => api.get('/api/v1/native/network/health'),
+  // Task 87: Native Runtime Protocol Hardening & Distributed Execution Contract
+  getProtocolContractStatus: () => api.get('/api/v1/native/contract'),
+  emergencyStop: (reason = 'Operator emergency stop') => api.post('/api/v1/native/emergency-stop', { reason }),
+  reconcileOrphans: () => api.post('/api/v1/native/orphans/reconcile'),
 };
 
 export const nativeComputerApi = {
@@ -3991,6 +4044,116 @@ export const nativeComputerApi = {
   executeKeyboard: nativeRuntimeApi.executeKeyboard,
 };
 
+export const nativeNetworkApi = {
+  resolveDns: nativeRuntimeApi.resolveDns,
+  httpFetch: nativeRuntimeApi.httpFetch,
+  httpRequest: nativeRuntimeApi.httpRequest,
+  getNetworkHealth: nativeRuntimeApi.getNetworkHealth,
+};
+
+export const observabilityApi = {
+  getHealth: () => Endpoints.getObservabilityHealth(),
+  getComponentHealth: () => Endpoints.getComponentHealth(),
+  getSubsystems: () => Endpoints.getObservabilitySubsystems(),
+  getDashboard: () => Endpoints.getObservabilityDashboard(),
+  getTraces: (limit, projectId) => Endpoints.getObservabilityTraces(limit, projectId),
+  getTrace: (traceId) => Endpoints.getTrace(traceId),
+  getEvents: (filters) => Endpoints.getObservabilityEvents(filters),
+  getExecutionDetails: (correlationId) => Endpoints.getExecutionDetails(correlationId),
+  getTimeline: (correlationId) => Endpoints.getExecutionTimeline(correlationId),
+  replayExecution: (correlationId) => Endpoints.replayExecution(correlationId),
+  listIncidents: (status) => Endpoints.listIncidents(status),
+  getIncident: (id) => Endpoints.getIncident(id),
+  acknowledgeIncident: (id, by) => Endpoints.acknowledgeIncident(id, by),
+  resolveIncident: (id, evidence) => Endpoints.resolveIncident(id, evidence),
+  getDependencies: () => Endpoints.getDependencies(),
+  diagnose: (ref) => Endpoints.runDiagnostics(ref),
+  rootCause: (ref) => Endpoints.runRootCauseAnalysis(ref),
+};
+
+// Task 88: Autonomous Runtime Reliability, Fault Injection & Self-Healing API
+export const reliabilityApi = {
+  getHealth: () => api.get('/api/v1/reliability/health'),
+  getIncidents: (state = null) => {
+    const q = state ? `?state=${encodeURIComponent(state)}` : '';
+    return api.get(`/api/v1/reliability/incidents${q}`);
+  },
+  getIncidentDetails: (id) => api.get(`/api/v1/reliability/incidents/${id}`),
+  recoverIncident: (id, dryRun = false) => api.post(`/api/v1/reliability/incidents/${id}/recover?dry_run=${dryRun}`),
+  getFailures: (component = null) => {
+    const q = component ? `?component=${encodeURIComponent(component)}` : '';
+    return api.get(`/api/v1/reliability/failures${q}`);
+  },
+  getRecoveryList: () => api.get('/api/v1/reliability/recovery'),
+  getRecoveryDetails: (id) => api.get(`/api/v1/reliability/recovery/${id}`),
+  approveRecovery: (id, approver = 'admin', notes = '') =>
+    api.post(`/api/v1/reliability/recovery/${id}/approve`, { approver_identity: approver, notes }),
+  getComponentsMatrix: () => api.get('/api/v1/reliability/components'),
+  triggerFault: (scenarioName, adminToken, params = {}) =>
+    api.post('/api/v1/reliability/fault-injection/trigger', {
+      scenario_name: scenarioName,
+      admin_token: adminToken,
+      override_params: params,
+    }),
+};
+
+// Task 89: Autonomous Recovery Simulation, Digital Twin & Counterfactual Engine API
+export const recoverySimulationApi = {
+  captureSnapshot: (overrides = null, consistency = 'BOUNDED') =>
+    api.post('/api/v1/simulation/snapshots', { custom_overrides: overrides, consistency }),
+  getLatestSnapshot: () => api.get('/api/v1/simulation/snapshots/latest'),
+  getSnapshot: (id) => api.get(`/api/v1/simulation/snapshots/${encodeURIComponent(id)}`),
+  runSimulation: ({ target_subsystem, hypothesis = '', description = '', snapshot_id = null, candidate_strategies = null, simulation_mode = 'ANALYTICAL' }) =>
+    api.post('/api/v1/simulation/run', {
+      target_subsystem,
+      hypothesis,
+      description,
+      snapshot_id,
+      candidate_strategies,
+      simulation_mode,
+    }),
+  listSimulations: (limit = 50) => api.get(`/api/v1/simulation/runs?limit=${limit}`),
+  getSimulation: (id) => api.get(`/api/v1/simulation/runs/${encodeURIComponent(id)}`),
+  listChaosScenarios: () => api.get('/api/v1/simulation/chaos/scenarios'),
+  runChaosDrill: (scenarioId) => api.post('/api/v1/simulation/chaos/run', { scenario_id: scenarioId }),
+  calibrateRecovery: (data) => api.post('/api/v1/simulation/calibrate', data),
+  getScorecards: () => api.get('/api/v1/simulation/scorecards'),
+  getBenchmarks: () => api.get('/api/v1/simulation/benchmarks'),
+  getRegressions: () => api.get('/api/v1/simulation/regressions'),
+  getComparisons: (limit = 50) => api.get(`/api/v1/simulation/comparisons?limit=${limit}`),
+};
+
+export const simulationTwinApi = recoverySimulationApi;
+
+// Task 90: Autonomous Reliability Intelligence & Predictive Prevention Engine API
+export const reliabilityIntelligenceApi = {
+  getSignals: () => api.get('/api/v1/reliability-intelligence/signals'),
+  getIncidents: () => api.get('/api/v1/reliability-intelligence/incidents'),
+  getIncidentDetails: (id) => api.get(`/api/v1/reliability-intelligence/incidents/${encodeURIComponent(id)}`),
+  getCandidateDetails: (id) => api.get(`/api/v1/reliability-intelligence/candidates/${encodeURIComponent(id)}`),
+  getScorecards: () => api.get('/api/v1/reliability-intelligence/scorecards'),
+  getCalibration: () => api.get('/api/v1/reliability-intelligence/calibration'),
+  evaluateTelemetry: (data) => api.post('/api/v1/reliability-intelligence/evaluate', data),
+};
+
+// Task 91: Autonomous Capability Lifecycle, Versioning & Safe Evolution Engine API
+export const capabilityLifecycleApi = {
+  listCapabilities: (params = {}) => api.get('/api/v1/capabilities', { params }),
+  getCapability: (id) => api.get(`/api/v1/capabilities/${encodeURIComponent(id)}`),
+  getVersions: (id) => api.get(`/api/v1/capabilities/${encodeURIComponent(id)}/versions`),
+  getHealth: (id) => api.get(`/api/v1/capabilities/${encodeURIComponent(id)}/health`),
+  getDependencies: (id) => api.get(`/api/v1/capabilities/${encodeURIComponent(id)}/dependencies`),
+  getLifecycle: (id) => api.get(`/api/v1/capabilities/${encodeURIComponent(id)}/lifecycle`),
+  discoverCapability: (data) => api.post('/api/v1/capabilities/discover', data),
+  validateCapability: (id) => api.post(`/api/v1/capabilities/${encodeURIComponent(id)}/validate`),
+  testConformance: (id) => api.post(`/api/v1/capabilities/${encodeURIComponent(id)}/conformance`),
+  simulateRollout: (id) => api.post(`/api/v1/capabilities/${encodeURIComponent(id)}/simulate`),
+  startCanary: (id, data) => api.post(`/api/v1/capabilities/${encodeURIComponent(id)}/canary`, data),
+  promoteCapability: (id, data) => api.post(`/api/v1/capabilities/${encodeURIComponent(id)}/promote`, data),
+  rollbackCapability: (id, data) => api.post(`/api/v1/capabilities/${encodeURIComponent(id)}/rollback`, data),
+  deprecateCapability: (id, data) => api.post(`/api/v1/capabilities/${encodeURIComponent(id)}/deprecate`, data),
+  retireCapability: (id, data) => api.post(`/api/v1/capabilities/${encodeURIComponent(id)}/retire`, data),
+};
 
 export const endpoints = Endpoints;
 

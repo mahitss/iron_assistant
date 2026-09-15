@@ -71,17 +71,56 @@ class EventDispatcher:
         return list(self._subscribers)
 
     async def enqueue(self, event: Event) -> None:
-        """Enqueue event into bounded queue. Raises BufferError if queue is full."""
+        """Enqueue event into bounded queue with priority-aware backpressure (Section 23 & 24).
+
+        P0 (Emergency / Critical) and P1 (Security / Error) are never dropped.
+        P3 (Debug) and P2 (Info) are shed under saturation.
+        """
         try:
             self._queue.put_nowait(event)
         except asyncio.QueueFull:
-            logger.error(
-                "Event queue full (%d items)! Dropping/rejecting event: %s",
-                self._queue.maxsize,
-                event.event_id,
-            )
-            await event_metrics.record_failed("queue_overflow")
-            raise BufferError(f"Event bus queue capacity reached ({self._queue.maxsize} items)")
+            tier = getattr(event, "priority_tier", 2)
+            if tier >= 2:
+                logger.warning(
+                    "Event queue full (%d items); shedding low-priority (P%d) event: %s",
+                    self._queue.maxsize,
+                    tier,
+                    event.event_id,
+                )
+                await event_metrics.record_failed("queue_shed_low_priority")
+                return
+
+            # For P0/P1, search and evict lower priority item to make room if possible
+            evicted = False
+            temp_items: list[Event] = []
+            while not self._queue.empty():
+                try:
+                    queued_item = self._queue.get_nowait()
+                    if not evicted and getattr(queued_item, "priority_tier", 2) >= 2:
+                        evicted = True
+                        await event_metrics.record_failed("queue_evicted_for_priority")
+                        continue
+                    temp_items.append(queued_item)
+                except asyncio.QueueEmpty:
+                    break
+
+            for item in temp_items:
+                try:
+                    self._queue.put_nowait(item)
+                except asyncio.QueueFull:
+                    break
+
+            try:
+                self._queue.put_nowait(event)
+                logger.info("Evicted lower-priority event to accommodate P%d event: %s", tier, event.event_id)
+            except asyncio.QueueFull:
+                logger.warning(
+                    "Event queue fully saturated with high-priority events; falling back to direct execution for P%d event: %s",
+                    tier,
+                    event.event_id,
+                )
+                await event_metrics.record_failed("queue_overflow_critical")
+                raise BufferError(f"Event bus queue capacity reached for critical event ({self._queue.maxsize} items)")
 
     async def _dispatch_to_subscriber(self, subscriber: EventSubscriber, event: Event) -> None:
         """Executes a single subscriber handler with metrics, retry, and dead letter capture."""
@@ -134,6 +173,10 @@ class EventDispatcher:
             return 0
 
         await self.deduplicator.mark_seen(idempotency_key)
+
+        from app.observability.sanitization import TelemetrySanitizer
+        if isinstance(event.payload, dict):
+            event.payload = TelemetrySanitizer.sanitize_dict(event.payload)
 
         # Find matching subscribers
         matching = [s for s in self._subscribers if s.matches(event)]

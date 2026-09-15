@@ -1,0 +1,57 @@
+"""Kairo Autonomous Capability Lifecycle, Versioning, Compatibility, and Safe Evolution Engine (Task 91)."""
+
+from app.capability_lifecycle.models import (
+    CanaryRolloutConfig,
+    CanaryRolloutState,
+    CapabilityDependency,
+    CapabilityMetadata,
+    CapabilityType,
+    CapabilityVersionRecord,
+    CompatibilityClassification,
+    CompatibilityReport,
+    ConformanceTestResult,
+    ConformanceTestVector,
+    DependencyType,
+    DeprecationPlan,
+    HealthStatus,
+    LifecycleState,
+    LifecycleTransitionEvent,
+    PromotionGateEvaluation,
+    ResourceProfile,
+    RollbackRecord,
+    RolloutState,
+    SecurityClassification,
+    SimulationStatus,
+)
+from app.capability_lifecycle.service import (
+    CapabilityLifecycleService,
+    get_capability_lifecycle_service,
+)
+from app.capability_lifecycle.router import router as capability_lifecycle_router
+
+__all__ = [
+    "CanaryRolloutConfig",
+    "CanaryRolloutState",
+    "CapabilityDependency",
+    "CapabilityLifecycleService",
+    "CapabilityMetadata",
+    "CapabilityType",
+    "CapabilityVersionRecord",
+    "CompatibilityClassification",
+    "CompatibilityReport",
+    "ConformanceTestResult",
+    "ConformanceTestVector",
+    "DependencyType",
+    "DeprecationPlan",
+    "HealthStatus",
+    "LifecycleState",
+    "LifecycleTransitionEvent",
+    "PromotionGateEvaluation",
+    "ResourceProfile",
+    "RollbackRecord",
+    "RolloutState",
+    "SecurityClassification",
+    "SimulationStatus",
+    "capability_lifecycle_router",
+    "get_capability_lifecycle_service",
+]

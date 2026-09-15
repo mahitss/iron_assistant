@@ -380,6 +380,70 @@ impl SandboxCapabilityRegistry {
             default_policy: SandboxPolicy::default(),
             max_allowed_budget: ResourceBudget::default(),
         });
+
+        // 16. native.net.resolve
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.net.resolve",
+                "Native Bounded DNS Resolution",
+                "1.0.0",
+                "Deterministic, bounded DNS resolution with strict SSRF and private IP rejection",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::ReadOnly,
+                vec!["native.net.resolve".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 17. native.net.fetch
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.net.fetch",
+                "Native HTTP Fetch Substrate",
+                "1.0.0",
+                "Bounded, SSRF-guarded HTTP GET/HEAD fetch with redirect defense and byte limit capping",
+                true,
+                ExecutionClass::IoBounded,
+                SideEffectClass::ReadOnly,
+                vec!["native.net.fetch".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 18. native.net.request
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.net.request",
+                "Native HTTP Request Substrate",
+                "1.0.0",
+                "General native HTTP execution with idempotency tracking and strict governance controls",
+                true,
+                ExecutionClass::IoBounded,
+                SideEffectClass::ExternalMutation,
+                vec!["native.net.request".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
+
+        // 19. native.net.health
+        self.register(SandboxCapabilityContract {
+            descriptor: CapabilityDescriptor::new(
+                "native.net.health",
+                "Native Network Health & Telemetry",
+                "1.0.0",
+                "Substrate connection pool, SSRF block metrics, and circuit breaker telemetry inspection",
+                true,
+                ExecutionClass::SystemInspection,
+                SideEffectClass::ReadOnly,
+                vec!["native.net.health".to_string()],
+            ),
+            default_policy: SandboxPolicy::default(),
+            max_allowed_budget: ResourceBudget::default(),
+        });
     }
 
     pub fn register(&mut self, contract: SandboxCapabilityContract) {

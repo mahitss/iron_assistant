@@ -439,4 +439,99 @@ async def execute_keyboard_endpoint(
     )
 
 
+# =============================================================================
+# Task 85: Native Network Execution & Connection Fabric Endpoints
+# =============================================================================
+
+class DnsResolveRequestSchema(BaseModel):
+    hostname: str = Field(..., description="Hostname or FQDN to resolve")
+    timeout_ms: Optional[int] = Field(default=5000, description="Resolution timeout in milliseconds")
+    network_policy: Optional[Dict[str, Any]] = Field(default=None, description="Optional network policy constraints")
+
+
+class HttpFetchRequestSchema(BaseModel):
+    url: str = Field(..., description="Target URL to fetch (HTTP/HTTPS)")
+    method: Optional[str] = Field(default="GET", description="HTTP method")
+    headers: Optional[Dict[str, str]] = Field(default_factory=dict, description="Request headers")
+    timeout_ms: Optional[int] = Field(default=30000, description="Fetch timeout in milliseconds")
+    network_policy: Optional[Dict[str, Any]] = Field(default=None, description="Optional network policy constraints")
+
+
+class HttpRequestRequestSchema(BaseModel):
+    request: Dict[str, Any] = Field(..., description="Full HTTP request descriptor")
+    approval_id: Optional[str] = Field(default=None, description="Governance approval ID if required")
+
+
+@router.post("/network/resolve", summary="Resolve Safe DNS IP Addresses")
+async def resolve_dns_endpoint(
+    req: DnsResolveRequestSchema,
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.resolve_dns(
+        hostname=req.hostname,
+        timeout_ms=req.timeout_ms or 5000,
+        network_policy=req.network_policy,
+    )
+
+
+@router.post("/network/fetch", summary="Fetch Remote Resource via Native Substrate")
+async def http_fetch_endpoint(
+    req: HttpFetchRequestSchema,
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.http_fetch(
+        url=req.url,
+        method=req.method or "GET",
+        headers=req.headers,
+        timeout_ms=req.timeout_ms or 30000,
+        network_policy=req.network_policy,
+    )
+
+
+@router.post("/network/request", summary="Execute Governed HTTP Request")
+async def http_request_endpoint(
+    req: HttpRequestRequestSchema,
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.http_request(
+        request_descriptor=req.request,
+        approval_id=req.approval_id,
+    )
+
+
+@router.get("/network/health", summary="Get Network Connection Fabric Health")
+async def get_network_health_endpoint(
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.get_network_health()
+
+
+# =========================================================================
+# Task 87: Protocol Hardening & Distributed Execution Contract Endpoints
+# =========================================================================
+
+class ProtocolEmergencyStopRequestSchema(BaseModel):
+    reason: Optional[str] = Field(default="Operator emergency stop via UI", description="Reason for stopping")
+
+
+@router.get("/contract", summary="Get Native Runtime Protocol Contract Status")
+async def get_contract_status_endpoint(
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.get_contract_diagnostics()
+
+
+@router.post("/emergency-stop", summary="Trigger Protocol-Level Emergency Stop")
+async def protocol_emergency_stop_endpoint(
+    req: ProtocolEmergencyStopRequestSchema = ProtocolEmergencyStopRequestSchema(),
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return await service.emergency_stop_runtime(reason=req.reason or "Operator emergency stop")
+
+
+@router.post("/orphans/reconcile", summary="Reconcile and Clean Up Orphaned In-Flight Executions")
+async def reconcile_orphans_endpoint(
+    service: NativeRuntimeService = Depends(get_native_service),
+) -> Dict[str, Any]:
+    return service.reconcile_orphans()
 

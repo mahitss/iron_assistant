@@ -84,6 +84,92 @@ class EventMetadata(BaseModel):
     emitted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
+import time
+
+
+class EventSeverity(str, Enum):
+    """Deterministic severity classification for events (Section 10)."""
+
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    NOTICE = "NOTICE"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    CRITICAL = "CRITICAL"
+
+    @property
+    def priority_tier(self) -> int:
+        if self == EventSeverity.CRITICAL:
+            return 0
+        if self in (EventSeverity.ERROR, EventSeverity.WARNING):
+            return 1
+        if self in (EventSeverity.NOTICE, EventSeverity.INFO):
+            return 2
+        return 3
+
+
+class EventClassification(str, Enum):
+    """Broad categorization dictating storage, redaction, and UI visibility (Section 11)."""
+
+    INTERNAL = "INTERNAL"
+    SECURITY = "SECURITY"
+    AUDIT = "AUDIT"
+    OPERATIONAL = "OPERATIONAL"
+    PERFORMANCE = "PERFORMANCE"
+    DIAGNOSTIC = "DIAGNOSTIC"
+    USER_VISIBLE = "USER_VISIBLE"
+    SYSTEM = "SYSTEM"
+
+
+class EventOutcome(str, Enum):
+    """Observability outcome classification. Observability reports, never decides auth (Section 1)."""
+
+    ALLOW = "ALLOW"
+    DENY = "DENY"
+    BLOCK = "BLOCK"
+    FAIL = "FAIL"
+    CANCEL = "CANCEL"
+    TIMEOUT = "TIMEOUT"
+    SUCCESS = "SUCCESS"
+    UNKNOWN = "UNKNOWN"
+
+
+class PrivacyClass(str, Enum):
+    """Explicit privacy sensitivity classification (Section 12)."""
+
+    PUBLIC_SAFE = "PUBLIC_SAFE"
+    INTERNAL = "INTERNAL"
+    SENSITIVE = "SENSITIVE"
+    SECRET = "SECRET"
+    RESTRICTED = "RESTRICTED"
+
+
+class RetentionClass(str, Enum):
+    """Lifecycle retention classification (Section 45)."""
+
+    AUDIT_CRITICAL = "AUDIT_CRITICAL"
+    OPERATIONAL = "OPERATIONAL"
+    DIAGNOSTIC = "DIAGNOSTIC"
+    EPHEMERAL = "EPHEMERAL"
+
+
+class ExecutionDomain(str, Enum):
+    """Unified execution domains across Python and Rust (Section 3)."""
+
+    RUNTIME = "runtime"
+    EXECUTION = "execution"
+    RESOURCE = "resource"
+    SECURITY = "security"
+    COMPUTER = "computer"
+    NETWORK = "network"
+    GOVERNANCE = "governance"
+    WORKFLOW = "workflow"
+    TOOL = "tool"
+    LEARNING = "learning"
+    HEALTH = "health"
+    SYSTEM = "system"
+
+
 class Event(BaseModel):
     """Canonical model for all Kairo internal events (Section 2, 3, 4, 5, 7, 8, 9)."""
 
@@ -105,6 +191,10 @@ class Event(BaseModel):
         default_factory=lambda: datetime.now(UTC),
         description="UTC timestamp when event occurred",
     )
+    monotonic_timestamp: float = Field(
+        default_factory=time.perf_counter,
+        description="Monotonic clock timestamp for precise duration measurement",
+    )
     source: EventSource | str = Field(
         ...,
         description="Trusted system component that emitted the event",
@@ -125,6 +215,78 @@ class Event(BaseModel):
         default=None,
         description="Event ID that directly triggered or caused this event",
     )
+    parent_event_id: str | None = Field(
+        default=None,
+        description="Parent event ID for hierarchical lifecycle relationships",
+    )
+    trace_id: str | None = Field(
+        default=None,
+        description="Distributed execution trace identifier",
+    )
+    span_id: str | None = Field(
+        default=None,
+        description="Distributed execution span identifier",
+    )
+    request_id: str | None = Field(
+        default=None,
+        description="Originating request identifier",
+    )
+    workflow_id: str | None = Field(
+        default=None,
+        description="Enclosing workflow identifier",
+    )
+    run_id: str | None = Field(
+        default=None,
+        description="Execution run identifier",
+    )
+    task_id: str | None = Field(
+        default=None,
+        description="Autonomous task identifier",
+    )
+    tool_id: str | None = Field(
+        default=None,
+        description="Active tool identifier",
+    )
+    capability_id: str | None = Field(
+        default=None,
+        description="Substrate capability identifier",
+    )
+    actor_type: str | None = Field(
+        default=None,
+        description="Type of actor (user, agent, system, native_runtime)",
+    )
+    actor_id: str | None = Field(
+        default=None,
+        description="Identifier of actor initiating action",
+    )
+    execution_domain: ExecutionDomain | str = Field(
+        default=ExecutionDomain.SYSTEM,
+        description="Subsystem execution domain",
+    )
+    severity: EventSeverity = Field(
+        default=EventSeverity.INFO,
+        description="Deterministic severity classification",
+    )
+    classification: EventClassification = Field(
+        default=EventClassification.INTERNAL,
+        description="Data classification level",
+    )
+    outcome: EventOutcome | None = Field(
+        default=None,
+        description="Outcome reported by the event (reports, never authorizes)",
+    )
+    provenance: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Subsystem provenance, host metadata, and runtime instance",
+    )
+    privacy_class: PrivacyClass = Field(
+        default=PrivacyClass.INTERNAL,
+        description="Privacy sensitivity classification",
+    )
+    retention_class: RetentionClass = Field(
+        default=RetentionClass.OPERATIONAL,
+        description="Retention lifecycle policy classification",
+    )
     payload: dict[str, Any] = Field(
         default_factory=dict,
         description="Domain-specific event data payload",
@@ -142,6 +304,50 @@ class Event(BaseModel):
                 f"Event type '{v}' must be namespaced lowercase dot-separated (e.g. 'github.ci.failed')."
             )
         return v
+
+    @field_validator("payload", mode="before")
+    @classmethod
+    def validate_and_bound_payload(cls, v: Any) -> dict[str, Any]:
+        if not isinstance(v, dict):
+            return {"value": str(v)[:2048]}
+
+        # Bound attribute count
+        if len(v) > 100:
+            truncated = dict(list(v.items())[:100])
+            truncated["_truncated_attributes"] = True
+            truncated["_original_attribute_count"] = len(v)
+            v = truncated
+
+        import json
+        try:
+            raw = json.dumps(v, default=str)
+            if len(raw) > 65_536:
+                import hashlib
+                payload_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+                return {
+                    "_payload_truncated": True,
+                    "_original_size_bytes": len(raw),
+                    "_payload_sha256": payload_hash,
+                    "preview": {k: str(val)[:256] for k, val in list(v.items())[:20]},
+                }
+        except Exception:
+            pass
+
+        return v
+
+    @property
+    def priority_tier(self) -> int:
+        """Priority tier 0 (P0 Critical), 1 (P1 Error/Security), 2 (P2 Info/Lifecycle), 3 (P3 Debug)."""
+        if self.event_type.startswith("emergency_stop.") or self.severity == EventSeverity.CRITICAL:
+            return 0
+        if self.severity in (EventSeverity.ERROR, EventSeverity.WARNING) or self.classification in (
+            EventClassification.SECURITY,
+            EventClassification.AUDIT,
+        ):
+            return 1
+        if self.severity in (EventSeverity.NOTICE, EventSeverity.INFO):
+            return 2
+        return 3
 
 
 # --- Typed Payloads for Canonical Event Types ---
@@ -279,3 +485,9 @@ class DeadLetterRecord(BaseModel):
     replay_safety: ReplaySafety = ReplaySafety.REPLAY_REQUIRES_REVIEW
     replayed_at: datetime | None = None
     replayed_by: str | None = None
+
+
+def validate_and_bound_payload(payload: Any, max_bytes: int = 65536, max_attributes: int = 100) -> dict[str, Any]:
+    """Helper function to validate and bound event payloads (Task 86)."""
+    return Event.validate_and_bound_payload(payload)
+

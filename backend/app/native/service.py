@@ -24,19 +24,29 @@ try:
     )
     from app.native.models import (
         CURRENT_PROTOCOL_VERSION,
+        AuthorizationContext,
         CapabilityDescriptor,
+        ConnectionState,
+        EnforcementLevel,
         ErrorCategory,
+        ExecutionRequest,
+        ExecutionResult,
+        ExecutionState,
+        MessageLifecycleState,
+        OperationTargetContext,
+        PreflightResult,
+        ProtocolErrorEnvelope,
+        ProtocolMessageType,
+        ProtocolVersion,
         RequestContext,
+        ResourceAllocationContext,
         ResourceBudget,
         ResponseStatus,
         RuntimeErrorModel,
         RuntimeHealth,
         RuntimeRequest,
         RuntimeResponse,
-        ExecutionRequest,
-        ExecutionResult,
-        ExecutionState,
-        PreflightResult,
+        RuntimeState,
     )
     from app.security.center import SecurityCenter
     from app.security.emergency_stop import EmergencyStopService
@@ -53,19 +63,29 @@ except ImportError:
     )
     from backend.app.native.models import (
         CURRENT_PROTOCOL_VERSION,
+        AuthorizationContext,
         CapabilityDescriptor,
+        ConnectionState,
+        EnforcementLevel,
         ErrorCategory,
+        ExecutionRequest,
+        ExecutionResult,
+        ExecutionState,
+        MessageLifecycleState,
+        OperationTargetContext,
+        PreflightResult,
+        ProtocolErrorEnvelope,
+        ProtocolMessageType,
+        ProtocolVersion,
         RequestContext,
+        ResourceAllocationContext,
         ResourceBudget,
         ResponseStatus,
         RuntimeErrorModel,
         RuntimeHealth,
         RuntimeRequest,
         RuntimeResponse,
-        ExecutionRequest,
-        ExecutionResult,
-        ExecutionState,
-        PreflightResult,
+        RuntimeState,
     )
     from backend.app.security.center import SecurityCenter
     from backend.app.security.emergency_stop import EmergencyStopService
@@ -101,6 +121,7 @@ class NativeRuntimeService:
         self.event_registry = event_registry or EventRegistry()
         self.resource_registry = resource_registry or default_resource_registry
         self.economy_coordinator = economy_coordinator or default_economy_coordinator
+        self._orphans: Dict[str, Dict[str, Any]] = {}
         self._ensure_native_resources()
 
     def _ensure_native_resources(self) -> None:
@@ -128,6 +149,14 @@ class NativeRuntimeService:
                     resource_id="native_workspace",
                     resource_type=ResourceType.STORAGE,
                     total_capacity=51200.0,  # 50 GiB
+                    environment="production",
+                ), allow_override=True)
+            if not self.resource_registry.has_resource("native_network"):
+                self.resource_registry.register(create_resource(
+                    name="Native Network Connection Fabric",
+                    resource_id="native_network",
+                    resource_type=ResourceType.NETWORK,
+                    total_capacity=1000.0,  # 1000 concurrent connection units
                     environment="production",
                 ), allow_override=True)
         except Exception as exc:
@@ -195,6 +224,11 @@ class NativeRuntimeService:
         cancellation_id: Optional[str] = None,
         correlation_id: Optional[str] = None,
         budget: Optional[ResourceBudget] = None,
+        auth_context: Optional[AuthorizationContext] = None,
+        resource_context: Optional[ResourceAllocationContext] = None,
+        target_context: Optional[OperationTargetContext] = None,
+        message_type: ProtocolMessageType = ProtocolMessageType.EXECUTION_REQUEST,
+        approval_id: Optional[str] = None,
     ) -> RuntimeResponse:
         """
         Execute a native operation through full SecurityCenter & EmergencyStop validation.
@@ -254,6 +288,11 @@ class NativeRuntimeService:
                 "operation": operation,
                 "user_id": user_id,
             })
+            await self._emit_audit("protocol.message.rejected", {
+                "request_id": request_id,
+                "operation": operation,
+                "reason": "Authorization denied by SecurityCenter",
+            })
             return RuntimeResponse(
                 request_id=request_id,
                 protocol_version=CURRENT_PROTOCOL_VERSION,
@@ -266,16 +305,45 @@ class NativeRuntimeService:
                 ),
             )
 
-        # 4. Construct validated RuntimeRequest
+        # 4. Construct validated RuntimeRequest with Task 87 contract headers
+        if not auth_context:
+            auth_context = AuthorizationContext(
+                subject=user_id or "system",
+                tenant_id=tenant_id,
+                approval_id=approval_id,
+                scopes=[f"native:{operation}"],
+                risk_level=security_level or "standard",
+                expires_at_ms=int((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)).timestamp() * 1000),
+            )
+        elif isinstance(auth_context, RequestContext):
+            auth_context = AuthorizationContext(
+                subject=auth_context.user_id or user_id or "system",
+                tenant_id=auth_context.tenant_id or tenant_id,
+                approval_id=approval_id,
+                scopes=[f"native:{operation}"],
+                risk_level=auth_context.security_level or security_level or "standard",
+                expires_at_ms=int((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=5)).timestamp() * 1000),
+            )
+        if not resource_context and budget:
+            resource_context = ResourceAllocationContext(
+                allocated_memory_bytes=budget.max_memory_bytes or 0,
+                allocated_cpu_shares=budget.max_cpu_percent or 100,
+                allocated_disk_bytes=budget.max_file_size_bytes or 0,
+            )
+
         req = RuntimeRequest(
             request_id=request_id,
             protocol_version=CURRENT_PROTOCOL_VERSION,
+            message_type=message_type,
             operation=operation,
             deadline_ms=deadline_ms,
             cancellation_id=cancellation_id,
             correlation_id=correlation_id,
             caller_context=caller_ctx,
             resource_budget=budget or ResourceBudget(),
+            authorization_context=auth_context,
+            resource_context=resource_context,
+            target_context=target_context,
             payload=payload,
         )
 
@@ -284,6 +352,11 @@ class NativeRuntimeService:
             "request_id": request_id,
             "operation": operation,
             "correlation_id": correlation_id,
+        })
+        await self._emit_audit("protocol.message.accepted", {
+            "request_id": request_id,
+            "operation": operation,
+            "message_type": message_type.value,
         })
 
         try:
@@ -304,7 +377,21 @@ class NativeRuntimeService:
                 ),
             )
 
-        # 6. Audit outcome
+        # 6. Audit outcome & orphan detection
+        tracked_id = response.request_id or request_id
+        if response.status == ResponseStatus.UNKNOWN_OUTCOME:
+            self._orphans[tracked_id] = {
+                "request_id": tracked_id,
+                "operation": operation,
+                "correlation_id": correlation_id,
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            }
+            await self._emit_audit("protocol.orphan.detected", {
+                "request_id": tracked_id,
+                "operation": operation,
+                "reason": "Execution outcome unconfirmed following connection drop",
+            })
+
         await self._emit_audit("runtime.request.completed", {
             "request_id": request_id,
             "operation": operation,
@@ -312,6 +399,63 @@ class NativeRuntimeService:
         })
 
         return response
+
+    async def emergency_stop_runtime(self, reason: str = "Emergency stop invoked") -> Dict[str, Any]:
+        """Trigger emergency stop at the native protocol contract layer."""
+        await self._emit_audit("protocol.runtime.draining", {
+            "reason": reason,
+            "initiated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        })
+        try:
+            resp = await self.client.emergency_stop(reason=reason)
+            await self._emit_audit("protocol.message.cancelled", {
+                "reason": reason,
+                "status": resp.status.value,
+            })
+            return {
+                "status": resp.status.value,
+                "reason": reason,
+                "drained": True,
+            }
+        except Exception as exc:
+            logger.error("native_service.emergency_stop_runtime_failed: %s", exc)
+            return {
+                "status": "ERROR",
+                "error": str(exc),
+                "drained": False,
+            }
+
+    def reconcile_orphans(self) -> Dict[str, Any]:
+        """Detect, log, and clean up orphaned executions following connection drops."""
+        orphans_count = len(self._orphans)
+        cleaned = []
+        for req_id, info in list(self._orphans.items()):
+            reservations = [
+                rsv.reservation_id
+                for rsv in getattr(self.resource_registry, "_reservations", {}).values()
+                if rsv.owner == req_id and rsv.is_active
+            ]
+            for rsv_id in reservations:
+                try:
+                    self.resource_registry.release_reservation(rsv_id)
+                except Exception:
+                    pass
+            cleaned.append(req_id)
+            del self._orphans[req_id]
+
+        return {
+            "detected_orphans": orphans_count,
+            "cleaned_orphans": len(cleaned),
+            "remaining_orphans": len(self._orphans),
+        }
+
+    async def get_contract_diagnostics(self) -> Dict[str, Any]:
+        """Retrieve full Task 87 protocol contract diagnostics, fingerprints, and invariant states."""
+        diag = await self.client.get_contract_diagnostics()
+        diag["orphans_tracked"] = len(self._orphans)
+        diag["emergency_stop_active"] = self.emergency_stop.is_stopped()
+        diag["service_mode"] = self.mode
+        return diag
 
     async def cancel(self, cancellation_id: str) -> bool:
         """Forward cancellation request to native runtime."""
@@ -326,8 +470,12 @@ class NativeRuntimeService:
 
     async def _verify_authorization(self, operation: str, ctx: RequestContext) -> bool:
         """Verify with SecurityCenter whether caller has permission for native operation."""
-        # System status and ping probes are accessible to all authenticated contexts
-        if operation in ("sys.ping", "sys.health", "sys.info", "sys.metrics", "sys.sleep", "sys.cancel"):
+        # System status, contract diagnostics, and ping probes are accessible to all authenticated contexts
+        if operation in ("sys.ping", "sys.health", "sys.info", "sys.metrics", "sys.sleep", "sys.cancel", "sys.stop", "sys.contract"):
+            return True
+
+        # Internal substrate operations without user context are permitted by default
+        if not ctx.user_id and (operation.startswith("native.") or operation.startswith("sandbox.") or operation.startswith("tool.")):
             return True
 
         # For future privileged native operations, enforce SecurityCenter policy evaluation
@@ -820,9 +968,111 @@ class NativeRuntimeService:
                 pass
         return {"error": res.stderr or "Keyboard action failed", "status": "FAILED"}
 
+    # =========================================================================
+    # Task 85: Native Network Execution & Connection Fabric APIs
+    # =========================================================================
+
+    async def resolve_dns(
+        self,
+        hostname: str,
+        timeout_ms: int = 5000,
+        network_policy: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Resolve hostname to safe, pre-validated IP addresses via native network substrate."""
+        import json
+        payload: Dict[str, Any] = {
+            "hostname": hostname,
+            "timeout_ms": timeout_ms,
+        }
+        if network_policy:
+            payload["network_policy"] = network_policy
+        req = ExecutionRequest(
+            request_id=f"net_dns_{uuid.uuid4().hex[:8]}",
+            capability_id="native.net.resolve",
+            arguments=[],
+            payload=payload,
+        )
+        res = await self.sandbox_execute(req)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                return json.loads(res.stdout)
+            except Exception:
+                pass
+        return {"error": res.stderr or "DNS resolution failed", "status": "FAILED"}
+
+    async def http_fetch(
+        self,
+        url: str,
+        method: str = "GET",
+        headers: Optional[Dict[str, str]] = None,
+        timeout_ms: int = 30000,
+        network_policy: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Fetch remote resource via native connection fabric with SSRF protection."""
+        import json
+        payload: Dict[str, Any] = {
+            "url": url,
+            "method": method,
+            "headers": headers or {},
+            "timeout_ms": timeout_ms,
+        }
+        if network_policy:
+            payload["network_policy"] = network_policy
+        req = ExecutionRequest(
+            request_id=f"net_fetch_{uuid.uuid4().hex[:8]}",
+            capability_id="native.net.fetch",
+            arguments=[],
+            payload=payload,
+        )
+        res = await self.sandbox_execute(req)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                return json.loads(res.stdout)
+            except Exception:
+                pass
+        return {"error": res.stderr or "HTTP fetch failed", "status": "FAILED"}
+
+    async def http_request(
+        self,
+        request_descriptor: Dict[str, Any],
+        approval_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Execute full HTTP request descriptor via native connection fabric with governance."""
+        import json
+        req = ExecutionRequest(
+            request_id=f"net_req_{uuid.uuid4().hex[:8]}",
+            capability_id="native.net.request",
+            arguments=[],
+            payload=request_descriptor,
+        )
+        res = await self.sandbox_execute(req, approval_id=approval_id)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                return json.loads(res.stdout)
+            except Exception:
+                pass
+        return {"error": res.stderr or "HTTP request failed", "status": "FAILED"}
+
+    async def get_network_health(self) -> Dict[str, Any]:
+        """Query real-time network substrate connection pool, circuit breaker, and SSRF statistics."""
+        import json
+        req = ExecutionRequest(
+            request_id=f"net_hlth_{uuid.uuid4().hex[:8]}",
+            capability_id="native.net.health",
+            arguments=[],
+            payload={},
+        )
+        res = await self.sandbox_execute(req)
+        if res.state == ExecutionState.COMPLETED and res.stdout:
+            try:
+                return json.loads(res.stdout)
+            except Exception:
+                pass
+        return {"error": res.stderr or "Network health check failed", "status": "FAILED"}
+
     async def _verify_sandbox_authorization(self, capability_id: str, ctx: Optional[RequestContext]) -> bool:
         """Verify whether caller is authorized for sandboxed capability execution."""
-        # Standard built-in and native computer capabilities are accessible to authorized callers
+        # Standard built-in, native computer, and native network capabilities are accessible to authorized callers
         if capability_id in (
             "sandbox.preflight",
             "sandbox.echo",
@@ -839,6 +1089,10 @@ class NativeRuntimeService:
             "native.clipboard.write",
             "native.input.mouse",
             "native.input.keyboard",
+            "native.net.resolve",
+            "native.net.fetch",
+            "native.net.request",
+            "native.net.health",
         ):
             return True
 

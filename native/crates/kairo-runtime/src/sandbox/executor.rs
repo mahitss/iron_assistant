@@ -2,6 +2,7 @@ use crate::cancellation::CancellationRegistry;
 use crate::metrics::RuntimeMetrics;
 use crate::sandbox::capabilities::SandboxCapabilityRegistry;
 use crate::sandbox::computer::{InputStateTracker, NativeComputerSubstrate};
+use crate::sandbox::network::NativeNetworkSubstrate;
 use crate::sandbox::policy::{calculate_effective_policy, validate_path_safety};
 use crate::sandbox::process::{build_sanitized_environment, ProcessJobContainer};
 use crate::sandbox::resources::{build_resource_telemetry, evaluate_resource_violations};
@@ -28,6 +29,7 @@ pub struct SandboxExecutor {
     metrics: Arc<RuntimeMetrics>,
     semaphore: Arc<Semaphore>,
     computer: Arc<NativeComputerSubstrate>,
+    network: Arc<NativeNetworkSubstrate>,
 }
 
 impl SandboxExecutor {
@@ -39,17 +41,26 @@ impl SandboxExecutor {
     ) -> Self {
         let tracker = Arc::new(InputStateTracker::new());
         let computer = Arc::new(NativeComputerSubstrate::new(tracker));
+        let network = Arc::new(NativeNetworkSubstrate::new(
+            cancellation.clone(),
+            max_concurrency,
+        ));
         Self {
             capabilities,
             cancellation,
             metrics,
             semaphore: Arc::new(Semaphore::new(max_concurrency)),
             computer,
+            network,
         }
     }
 
     pub fn computer(&self) -> &Arc<NativeComputerSubstrate> {
         &self.computer
+    }
+
+    pub fn network(&self) -> &Arc<NativeNetworkSubstrate> {
+        &self.network
     }
 
     /// Perform dry-run preflight evaluation without executing workload.
@@ -341,6 +352,12 @@ impl SandboxExecutor {
                             ExecutionState::Failed
                         };
 
+                        let err_msg = if err.message.contains(&err.code) {
+                            err.message.clone()
+                        } else {
+                            format!("{}: {}", err.code, err.message)
+                        };
+
                         let telemetry = build_resource_telemetry(duration, &job_metrics, ws_bytes, ws_files, 0);
 
                         ExecutionResult {
@@ -350,7 +367,7 @@ impl SandboxExecutor {
                             state,
                             exit_code: Some(1),
                             stdout: String::new(),
-                            stderr: err.message.clone(),
+                            stderr: err_msg,
                             output_metadata: OutputMetadata::default(),
                             duration_ms: duration,
                             resource_usage: Some(effective_policy.resource_budget.clone()),
@@ -1478,6 +1495,226 @@ impl SandboxExecutor {
                     };
 
                 let out_str = serde_json::to_string(&op_res).unwrap_or_default();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.net.resolve" => {
+                let dns_req: kairo_protocol::network::DnsResolveRequest =
+                    if req.payload.is_object() && req.payload.get("hostname").is_some() {
+                        serde_json::from_value(req.payload.clone()).map_err(|e| {
+                            RuntimeError::invalid_request(
+                                "INVALID_DNS_REQUEST",
+                                format!("Malformed DnsResolveRequest payload: {}", e),
+                            )
+                        })?
+                    } else {
+                        let host = req
+                            .arguments
+                            .first()
+                            .cloned()
+                            .or_else(|| req.payload.as_str().map(|s| s.to_string()))
+                            .unwrap_or_default();
+                        kairo_protocol::network::DnsResolveRequest {
+                            hostname: host,
+                            policy: None,
+                        }
+                    };
+
+                let dns_res = self.network.resolve_dns(dns_req).await?;
+                let out_str = serde_json::to_string(&dns_res).unwrap_or_default();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: false,
+                        output_limit_exceeded: false,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.net.fetch" => {
+                let mut http_req: kairo_protocol::network::HttpRequestDescriptor =
+                    if req.payload.is_object() && req.payload.get("url").is_some() {
+                        serde_json::from_value(req.payload.clone()).map_err(|e| {
+                            RuntimeError::invalid_request(
+                                "INVALID_HTTP_REQUEST",
+                                format!("Malformed HttpRequestDescriptor payload: {}", e),
+                            )
+                        })?
+                    } else {
+                        let url_str = req
+                            .arguments
+                            .first()
+                            .cloned()
+                            .or_else(|| req.payload.as_str().map(|s| s.to_string()))
+                            .unwrap_or_default();
+                        kairo_protocol::network::HttpRequestDescriptor {
+                            method: "GET".to_string(),
+                            url: url_str,
+                            headers: std::collections::HashMap::new(),
+                            body: None,
+                            operation_class: kairo_protocol::network::NetworkOperationClass::Fetch,
+                            idempotency_key: None,
+                            policy: None,
+                        }
+                    };
+
+                if http_req.method.is_empty() {
+                    http_req.method = "GET".to_string();
+                }
+
+                let http_res = self
+                    .network
+                    .execute_http(http_req, req.cancellation_id.clone())
+                    .await?;
+                let out_str = serde_json::to_string(&http_res).unwrap_or_default();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: http_res.truncated,
+                        output_limit_exceeded: http_res.truncated,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.net.request" => {
+                let http_req: kairo_protocol::network::HttpRequestDescriptor =
+                    if req.payload.is_object() && req.payload.get("url").is_some() {
+                        serde_json::from_value(req.payload.clone()).map_err(|e| {
+                            RuntimeError::invalid_request(
+                                "INVALID_HTTP_REQUEST",
+                                format!("Malformed HttpRequestDescriptor payload: {}", e),
+                            )
+                        })?
+                    } else {
+                        return Err(RuntimeError::invalid_request(
+                        "MISSING_HTTP_PAYLOAD",
+                        "native.net.request requires an HttpRequestDescriptor object in payload",
+                    ));
+                    };
+
+                let http_res = self
+                    .network
+                    .execute_http(http_req, req.cancellation_id.clone())
+                    .await?;
+                let out_str = serde_json::to_string(&http_res).unwrap_or_default();
+                let duration = req_start.elapsed().as_millis() as u64;
+
+                Ok(ExecutionResult {
+                    request_id: req.request_id.clone(),
+                    execution_id: format!("exec_{}", Uuid::new_v4().simple()),
+                    capability_id: req.capability_id.clone(),
+                    state: ExecutionState::Completed,
+                    exit_code: Some(0),
+                    stdout: out_str.clone(),
+                    stderr: String::new(),
+                    output_metadata: OutputMetadata {
+                        stdout_bytes: out_str.len() as u64,
+                        stderr_bytes: 0,
+                        truncated: http_res.truncated,
+                        output_limit_exceeded: http_res.truncated,
+                    },
+                    duration_ms: duration,
+                    resource_usage: Some(policy.resource_budget.clone()),
+                    resource_telemetry: None,
+                    resource_violation: None,
+                    cancellation_state: None,
+                    timeout_state: false,
+                    failure_classification: None,
+                    verification_metadata: VerificationMetadata {
+                        process_exited: true,
+                        descendants_cleaned: true,
+                        workspace_cleaned: false,
+                        resources_released: true,
+                    },
+                    error: None,
+                    timestamp: Utc::now(),
+                })
+            }
+
+            "native.net.health" => {
+                let health_report = self.network.get_health();
+                let out_str = serde_json::to_string(&health_report).unwrap_or_default();
                 let duration = req_start.elapsed().as_millis() as u64;
 
                 Ok(ExecutionResult {

@@ -847,7 +847,16 @@ mod win32_backend {
 
     pub fn get_clipboard_text() -> Result<String, RuntimeError> {
         unsafe {
-            if OpenClipboard(std::ptr::null_mut()) == FALSE {
+            let mut opened = false;
+            let hwnd = GetForegroundWindow();
+            for _ in 0..10 {
+                if OpenClipboard(hwnd) == TRUE || OpenClipboard(std::ptr::null_mut()) == TRUE {
+                    opened = true;
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(15));
+            }
+            if !opened {
                 return Err(RuntimeError::unavailable(
                     "CLIPBOARD_OPEN_FAILED",
                     "Failed to open system clipboard",
@@ -905,7 +914,16 @@ mod win32_backend {
             std::ptr::copy_nonoverlapping(utf16.as_ptr(), p_mem, utf16.len());
             GlobalUnlock(h_mem);
 
-            if OpenClipboard(std::ptr::null_mut()) == FALSE {
+            let mut opened = false;
+            let hwnd = GetForegroundWindow();
+            for _ in 0..10 {
+                if OpenClipboard(hwnd) == TRUE || OpenClipboard(std::ptr::null_mut()) == TRUE {
+                    opened = true;
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(15));
+            }
+            if !opened {
                 return Err(RuntimeError::unavailable(
                     "CLIPBOARD_OPEN_FAILED",
                     "OpenClipboard failed",

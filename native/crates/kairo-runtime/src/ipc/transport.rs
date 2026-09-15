@@ -95,13 +95,37 @@ impl IpcServer {
 
         let authenticator = HandshakeAuthenticator::new(self.config.secret.clone());
         let caps = self.dispatcher_capabilities();
-        let handshake_resp =
-            authenticator.authenticate(&handshake_req, caps, crate::lifecycle::RUNTIME_VERSION);
+        let session_id = self
+            .lifecycle
+            .create_session(&handshake_req.client_id)
+            .await;
+        self.lifecycle
+            .set_capabilities_and_fingerprints(
+                &caps,
+                &format!(
+                    "port={}:max_concurrency={}",
+                    self.config.port, self.config.max_concurrency
+                ),
+            )
+            .await;
+        let cap_fp = self.lifecycle.capability_fingerprint().await;
+        let cfg_fp = self.lifecycle.configuration_fingerprint().await;
+
+        let handshake_resp = authenticator.authenticate_with_session(
+            &handshake_req,
+            caps,
+            crate::lifecycle::RUNTIME_VERSION,
+            Some(self.lifecycle.runtime_instance_id().to_string()),
+            Some(session_id),
+            Some(cap_fp),
+            Some(cfg_fp),
+        );
 
         let resp_bytes = serde_json::to_vec(&handshake_resp)?;
         framed.send(resp_bytes).await?;
 
         if !handshake_resp.authenticated {
+            self.lifecycle.invalidate_session().await;
             tracing::warn!(peer = %peer_addr, "Handshake authentication rejected");
             return Ok(());
         }

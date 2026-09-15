@@ -57,6 +57,10 @@ TOOL_POLICY_OVERRIDES: dict[str, SecurityDecision] = {
     "native_clipboard_write": SecurityDecision.APPROVAL_REQUIRED,
     "native_mouse_action": SecurityDecision.APPROVAL_REQUIRED,
     "native_keyboard_action": SecurityDecision.APPROVAL_REQUIRED,
+    # Native Network Execution & Connection Fabric tools (Task 85)
+    "native_dns_resolve": SecurityDecision.ALLOWED,
+    "native_http_fetch": SecurityDecision.ALLOWED,
+    "native_http_request": SecurityDecision.APPROVAL_REQUIRED,
     # Interactive / External actions requiring approval
     "browser_click": SecurityDecision.APPROVAL_REQUIRED,
     "browser_fill": SecurityDecision.APPROVAL_REQUIRED,

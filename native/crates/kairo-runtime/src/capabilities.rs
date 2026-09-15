@@ -31,6 +31,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::None,
             supported_operations: vec!["sys.ping".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         self.register(CapabilityDescriptor {
@@ -43,6 +44,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::None,
             supported_operations: vec!["sys.health".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         self.register(CapabilityDescriptor {
@@ -55,6 +57,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::None,
             supported_operations: vec!["sys.info".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         self.register(CapabilityDescriptor {
@@ -68,6 +71,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::None,
             supported_operations: vec!["sys.metrics".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         self.register(CapabilityDescriptor {
@@ -82,6 +86,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::None,
             supported_operations: vec!["sys.sleep".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         self.register(CapabilityDescriptor {
@@ -96,6 +101,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::None,
             supported_operations: vec!["sandbox.preflight".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         self.register(CapabilityDescriptor {
@@ -110,6 +116,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::None,
             supported_operations: vec!["sandbox.echo".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         self.register(CapabilityDescriptor {
@@ -124,6 +131,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::None,
             supported_operations: vec!["sandbox.hash".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         self.register(CapabilityDescriptor {
@@ -138,6 +146,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::None,
             supported_operations: vec!["sandbox.probe".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         self.register(CapabilityDescriptor {
@@ -152,6 +161,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::StatefulLocal,
             supported_operations: vec!["sandbox.execute".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         // 9. native.window.inspect
@@ -166,6 +176,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::ReadOnly,
             supported_operations: vec!["native.window.inspect".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         // 10. native.process.inspect
@@ -180,6 +191,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::ReadOnly,
             supported_operations: vec!["native.process.inspect".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         // 11. native.display.inspect
@@ -194,6 +206,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::ReadOnly,
             supported_operations: vec!["native.display.inspect".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         // 12. native.screen.capture
@@ -208,6 +221,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::ReadOnly,
             supported_operations: vec!["native.screen.capture".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         // 13. native.clipboard.read
@@ -222,6 +236,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::ReadOnly,
             supported_operations: vec!["native.clipboard.read".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         // 14. native.clipboard.write
@@ -236,6 +251,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::StatefulLocal,
             supported_operations: vec!["native.clipboard.write".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         // 15. native.input.mouse
@@ -250,6 +266,7 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::StatefulLocal,
             supported_operations: vec!["native.input.mouse".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
 
         // 16. native.input.keyboard
@@ -263,6 +280,156 @@ impl CapabilityRegistry {
             side_effect_class: SideEffectClass::StatefulLocal,
             supported_operations: vec!["native.input.keyboard".to_string()],
             default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 17. native.net.resolve
+        self.register(CapabilityDescriptor {
+            capability_id: "native.net.resolve".to_string(),
+            name: "Native Bounded DNS Resolution".to_string(),
+            version: "1.0.0".to_string(),
+            description:
+                "Deterministic, bounded DNS resolution with strict SSRF and private IP rejection"
+                    .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["native.net.resolve".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 18. native.net.fetch
+        self.register(CapabilityDescriptor {
+            capability_id: "native.net.fetch".to_string(),
+            name: "Native HTTP Fetch Substrate".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Bounded, SSRF-guarded HTTP GET/HEAD fetch with redirect defense and byte limit capping".to_string(),
+            available: true,
+            execution_class: ExecutionClass::IoBounded,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["native.net.fetch".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 19. native.net.request
+        self.register(CapabilityDescriptor {
+            capability_id: "native.net.request".to_string(),
+            name: "Native HTTP Request Substrate".to_string(),
+            version: "1.0.0".to_string(),
+            description: "General native HTTP execution with idempotency tracking and strict governance controls".to_string(),
+            available: true,
+            execution_class: ExecutionClass::IoBounded,
+            side_effect_class: SideEffectClass::ExternalMutation,
+            supported_operations: vec!["native.net.request".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 20. native.net.health
+        self.register(CapabilityDescriptor {
+            capability_id: "native.net.health".to_string(),
+            name: "Native Network Health & Telemetry".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Substrate connection pool, SSRF block metrics, and circuit breaker telemetry inspection".to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["native.net.health".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 21. obs.events
+        self.register(CapabilityDescriptor {
+            capability_id: "obs.events".to_string(),
+            name: "Native Telemetry & Event Ingestion".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Query and drain factual low-level native execution events".to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["obs.events".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 22. obs.stats
+        self.register(CapabilityDescriptor {
+            capability_id: "obs.stats".to_string(),
+            name: "Native Event Buffer Statistics".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Inspect ring-buffer capacity, emitted event totals, and queue backpressure drop counters".to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["obs.stats".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 23. sys.stop (Emergency Stop)
+        self.register(CapabilityDescriptor {
+            capability_id: "sys.stop".to_string(),
+            name: "System Emergency Stop".to_string(),
+            version: "1.0.0".to_string(),
+            description:
+                "Immediately cancel all active executions and enter draining/stopped state"
+                    .to_string(),
+            available: true,
+            execution_class: ExecutionClass::PrivilegedNative,
+            side_effect_class: SideEffectClass::StatefulLocal,
+            supported_operations: vec!["sys.stop".to_string(), "sys.emergency_stop".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 24. sys.capabilities
+        self.register(CapabilityDescriptor {
+            capability_id: "sys.capabilities".to_string(),
+            name: "System Capabilities Discovery".to_string(),
+            version: "1.0.0".to_string(),
+            description: "Query full list of attested native capabilities and feature descriptors"
+                .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["sys.capabilities".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 25. sys.contract
+        self.register(CapabilityDescriptor {
+            capability_id: "sys.contract".to_string(),
+            name: "Protocol Contract Diagnostics".to_string(),
+            version: "1.0.0".to_string(),
+            description:
+                "Inspect active runtime protocol contract, session ID, and attestation fingerprints"
+                    .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["sys.contract".to_string(), "obs.contract".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
+        });
+
+        // 26. sys.snapshot
+        self.register(CapabilityDescriptor {
+            capability_id: "sys.snapshot".to_string(),
+            name: "Native Runtime State Snapshot".to_string(),
+            version: "1.0.0".to_string(),
+            description:
+                "Capture low-level native runtime execution, resource, and process state snapshot"
+                    .to_string(),
+            available: true,
+            execution_class: ExecutionClass::SystemInspection,
+            side_effect_class: SideEffectClass::ReadOnly,
+            supported_operations: vec!["sys.snapshot".to_string(), "sys.twin".to_string()],
+            default_budget: Some(ResourceBudget::default()),
+            ..Default::default()
         });
     }
 

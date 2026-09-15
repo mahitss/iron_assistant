@@ -14,6 +14,16 @@ pub enum ErrorCategory {
     RuntimeUnavailable,
     InternalError,
     ShuttingDown,
+    SessionInvalid,
+    RequestExpired,
+    RequestReplayed,
+    RequestDuplicate,
+    TargetChanged,
+    EmergencyStopped,
+    UnknownOutcome,
+    ProtocolBackpressure,
+    IncompatibleVersion,
+    SimulationMutationBlocked,
 }
 
 impl std::fmt::Display for ErrorCategory {
@@ -96,5 +106,45 @@ impl RuntimeError {
 
     pub fn shutting_down(code: impl Into<String>, msg: impl Into<String>) -> Self {
         Self::new(ErrorCategory::ShuttingDown, code, msg, false)
+    }
+
+    pub fn session_invalid(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::SessionInvalid, code, msg, false)
+    }
+
+    pub fn request_expired(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::RequestExpired, code, msg, false)
+    }
+
+    pub fn request_replayed(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::RequestReplayed, code, msg, false)
+    }
+
+    pub fn request_duplicate(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::RequestDuplicate, code, msg, false)
+    }
+
+    pub fn target_changed(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::TargetChanged, code, msg, false)
+    }
+
+    pub fn emergency_stopped(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::EmergencyStopped, code, msg, false)
+    }
+
+    pub fn unknown_outcome(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::UnknownOutcome, code, msg, true)
+    }
+
+    pub fn backpressure(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::ProtocolBackpressure, code, msg, true)
+    }
+
+    pub fn incompatible_version(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::IncompatibleVersion, code, msg, false)
+    }
+
+    pub fn simulation_mutation_blocked(code: impl Into<String>, msg: impl Into<String>) -> Self {
+        Self::new(ErrorCategory::SimulationMutationBlocked, code, msg, false)
     }
 }

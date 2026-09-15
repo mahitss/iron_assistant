@@ -1,278 +1,179 @@
-"""FastAPI REST API router for Kairo Simulation & Counterfactual Planning Engine (Task 56)."""
+"""REST API Router for Task 89 Autonomous Recovery Simulation & Digital Twin.
+
+Exposes endpoints for:
+- Operational Snapshot Capture & Inspection
+- Pre-Recovery Consequence Simulation & Pareto Ranking
+- Stale Simulation Drift Detection
+- Chaos Resiliency Drills (14 canonical scenarios)
+- Prediction vs Reality Metacognitive Calibration
+- Strategy Scorecards & Multi-dimensional Resilience Benchmarks
+"""
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from app.simulation.calibration import calibrator
-from app.simulation.safety import (
-    ProductionMutationBlockedError,
-    SimulationResourceBudgetExceededError,
-    SimulationSideEffectError,
+from app.simulation.recovery_models import (
+    ConsistencyLevel,
+    PredictionVsRealityRecord,
+    RecoveryCandidate,
+    RecoverySimulationResult,
+    RecoveryStrategyScorecard,
+    ResilienceBenchmark,
+    SimulationMode,
 )
-from app.simulation.schemas import (
-    CalibrationMetric,
-    ExecutionGate,
-    Scenario,
-    ScenarioComparison,
-    ScenarioType,
-    SimulatedIntervention,
-    Simulation,
-    SimulationObjective,
-    SimulationSnapshot,
-)
-from app.simulation.service import simulation_service
+from app.simulation.recovery_service import get_recovery_service
 
-router = APIRouter(prefix="/api/v1/simulation", tags=["simulation"])
+logger = logging.getLogger("kairo.simulation.router")
+
+router = APIRouter(prefix="/api/v1/simulation", tags=["Autonomous Recovery Simulation"])
 
 
-# Request schemas
-class CaptureSnapshotRequest(BaseModel):
-    source_entity: str = "digital_twin"
-    world_state: dict[str, Any] | None = None
-    digital_twin_state: dict[str, Any] | None = None
-    telemetry_state: dict[str, Any] | None = None
-    provenance: dict[str, Any] | None = None
-
-
-class CreateScenarioRequest(BaseModel):
-    name: str
-    scenario_type: ScenarioType | str = "CUSTOM"
-    baseline_snapshot_id: str
-    interventions: list[SimulatedIntervention] = Field(default_factory=list)
-    objectives: list[SimulationObjective] = Field(default_factory=list)
-    horizon: str = "SHORT_TERM"
+class SnapshotCaptureRequest(BaseModel):
+    custom_overrides: dict[str, Any] | None = None
+    consistency: ConsistencyLevel = ConsistencyLevel.BOUNDED
 
 
 class RunSimulationRequest(BaseModel):
-    scenario_id: str
-    creator: str = "kairo_autonomous_supervisor"
+    target_subsystem: str
+    hypothesis: str = "Simulate candidate recovery strategies to evaluate optimal Pareto trade-off"
+    description: str = "Pre-recovery consequence simulation"
+    snapshot_id: str | None = None
+    candidate_strategies: list[str] | None = None
+    simulation_mode: SimulationMode = SimulationMode.ANALYTICAL
 
 
-class CompareSimulationsRequest(BaseModel):
-    simulation_ids: list[str]
-
-
-class RankSimulationsRequest(BaseModel):
-    simulation_ids: list[str]
-    user_priorities: dict[str, float] | None = None
-
-
-class CounterfactualRequest(BaseModel):
-    query_type: str = "WHAT_IF_WE_WAIT"  # WHAT_IF_WE_WAIT, WHAT_IF_PLAN_B
-    baseline_state: dict[str, Any] = Field(default_factory=dict)
-    wait_seconds: int = 300
-    plan_b_interventions: list[SimulatedIntervention] = Field(default_factory=list)
-
-
-class MonteCarloRequest(BaseModel):
-    metric_name: str
-    base_value: float
-    distribution_type: str = "NORMAL"
-    std_dev: float = 5.0
-    iterations: int = 100
-    seed: int = 42
-
-
-class ReplayRequest(BaseModel):
-    snapshot_id: str
+class RunChaosRequest(BaseModel):
     scenario_id: str
 
 
-class EvaluateGateRequest(BaseModel):
+class CalibrateRecoveryRequest(BaseModel):
     simulation_id: str
-    current_real_state: dict[str, Any] | None = None
-    user_approved: bool = False
-    user_roles: list[str] = Field(default_factory=list)
+    recovery_id: str
+    strategy: str
+    actual_duration_seconds: float
+    actual_resource_cost: dict[str, Any] = Field(default_factory=dict)
+    actual_risk_score: float = 0.1
+    actual_blast_radius: float = 0.2
+    verification_passed: bool = True
 
 
-class CalibrateRequest(BaseModel):
-    simulation_id: str
-    metric_name: str
-    predicted_value: float
-    actual_value: float
+@router.post("/snapshots", summary="Capture immutable operational digital twin snapshot")
+async def capture_snapshot(payload: SnapshotCaptureRequest) -> dict[str, Any]:
+    svc = get_recovery_service()
+    snapshot = await svc.capture_snapshot(
+        custom_overrides=payload.custom_overrides,
+        consistency=payload.consistency,
+    )
+    return snapshot.model_dump()
 
 
-# Routes: Snapshots
-@router.post("/snapshots", response_model=SimulationSnapshot)
-def capture_snapshot(req: CaptureSnapshotRequest) -> SimulationSnapshot:
-    try:
-        if req.digital_twin_state is None and req.world_state is None:
-            return simulation_service.capture_snapshot_from_environment(
-                source_entity=req.source_entity,
-                provenance=req.provenance,
-            )
-        return simulation_service.capture_snapshot(
-            source_entity=req.source_entity,
-            world_state=req.world_state,
-            digital_twin_state=req.digital_twin_state,
-            telemetry_state=req.telemetry_state,
-            provenance=req.provenance,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.get("/snapshots", response_model=list[SimulationSnapshot])
-def list_snapshots() -> list[SimulationSnapshot]:
-    return simulation_service.list_snapshots()
-
-
-@router.get("/snapshots/{snapshot_id}", response_model=SimulationSnapshot)
-def get_snapshot(snapshot_id: str) -> SimulationSnapshot:
-    snap = simulation_service.get_snapshot(snapshot_id)
+@router.get("/snapshots/latest", summary="Retrieve most recent operational snapshot")
+async def get_latest_snapshot() -> dict[str, Any]:
+    svc = get_recovery_service()
+    snap = svc.twin.get_latest_snapshot()
     if not snap:
-        raise HTTPException(status_code=404, detail=f"Snapshot '{snapshot_id}' not found.")
-    return snap
+        snap = await svc.capture_snapshot()
+    return snap.model_dump()
 
 
-# Routes: Scenarios
-@router.post("/scenarios", response_model=Scenario)
-def create_scenario(req: CreateScenarioRequest) -> Scenario:
-    try:
-        return simulation_service.create_scenario(
-            name=req.name,
-            scenario_type=req.scenario_type,
-            baseline_snapshot_id=req.baseline_snapshot_id,
-            interventions=req.interventions,
-            objectives=req.objectives,
-            horizon=req.horizon,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@router.get("/snapshots/{snapshot_id}", summary="Retrieve operational snapshot by ID")
+async def get_snapshot_by_id(snapshot_id: str) -> dict[str, Any]:
+    svc = get_recovery_service()
+    snap = svc.get_snapshot(snapshot_id)
+    if not snap:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Snapshot '{snapshot_id}' not found")
+    return snap.model_dump()
 
 
-@router.get("/scenarios", response_model=list[Scenario])
-def list_scenarios(baseline_snapshot_id: str | None = None) -> list[Scenario]:
-    return simulation_service.list_scenarios(baseline_snapshot_id)
+@router.post("/run", summary="Run pre-recovery consequence simulation across candidate strategies")
+async def run_simulation(payload: RunSimulationRequest) -> dict[str, Any]:
+    svc = get_recovery_service()
+    result = await svc.run_simulation(
+        target_subsystem=payload.target_subsystem,
+        hypothesis=payload.hypothesis,
+        description=payload.description,
+        snapshot_id=payload.snapshot_id,
+        candidate_strategies=payload.candidate_strategies,
+        simulation_mode=payload.simulation_mode,
+    )
+    return result.model_dump()
 
 
-@router.get("/scenarios/{scenario_id}", response_model=Scenario)
-def get_scenario(scenario_id: str) -> Scenario:
-    scen = simulation_service.get_scenario(scenario_id)
-    if not scen:
-        raise HTTPException(status_code=404, detail=f"Scenario '{scenario_id}' not found.")
-    return scen
+@router.get("/runs", summary="List historical recovery simulations")
+async def list_simulations(limit: int = Query(50, ge=1, le=100)) -> list[dict[str, Any]]:
+    svc = get_recovery_service()
+    runs = svc.list_simulations(limit=limit)
+    return [r.model_dump() for r in runs]
 
 
-# Routes: Simulations
-@router.post("/run", response_model=Simulation)
-def run_simulation(req: RunSimulationRequest) -> Simulation:
-    try:
-        return simulation_service.run_simulation(
-            scenario_id=req.scenario_id,
-            creator=req.creator,
-        )
-    except (SimulationSideEffectError, ProductionMutationBlockedError) as e:
-        raise HTTPException(status_code=403, detail=f"FIREWALL BLOCKED: {e}")
-    except SimulationResourceBudgetExceededError as e:
-        raise HTTPException(status_code=429, detail=str(e))
-    except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@router.get("/runs", response_model=list[Simulation])
-def list_simulations() -> list[Simulation]:
-    return simulation_service.list_simulations()
-
-
-@router.get("/runs/{simulation_id}", response_model=Simulation)
-def get_simulation(simulation_id: str) -> Simulation:
-    sim = simulation_service.get_simulation(simulation_id)
-    if not sim:
-        raise HTTPException(status_code=404, detail=f"Simulation '{simulation_id}' not found.")
-    return sim
-
-
-# Routes: Comparison & Ranking
-@router.post("/compare", response_model=ScenarioComparison)
-def compare_simulations(req: CompareSimulationsRequest) -> ScenarioComparison:
-    return simulation_service.compare_simulations(req.simulation_ids)
-
-
-@router.post("/rank")
-def rank_simulations(req: RankSimulationsRequest) -> list[dict[str, Any]]:
-    explanations = simulation_service.rank_simulations(req.simulation_ids, req.user_priorities)
-    return [e.model_dump() for e in explanations]
-
-
-# Routes: Counterfactuals & Forecasting
-@router.post("/counterfactual")
-def explore_counterfactual(req: CounterfactualRequest) -> dict[str, Any]:
-    if req.query_type == "WHAT_IF_PLAN_B":
-        res = simulation_service.explore_counterfactual_plan_b(
-            baseline_state=req.baseline_state,
-            plan_b_interventions=req.plan_b_interventions,
-        )
-    else:
-        res = simulation_service.explore_counterfactual_what_if_wait(
-            baseline_state=req.baseline_state,
-            wait_seconds=req.wait_seconds,
-        )
+@router.get("/runs/{simulation_id}", summary="Retrieve recovery simulation result by ID")
+async def get_simulation_by_id(simulation_id: str) -> dict[str, Any]:
+    svc = get_recovery_service()
+    res = svc.get_simulation(simulation_id)
+    if not res:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Simulation '{simulation_id}' not found")
     return res.model_dump()
 
 
-@router.post("/monte-carlo")
-def run_monte_carlo(req: MonteCarloRequest) -> dict[str, Any]:
+@router.get("/chaos/scenarios", summary="List catalog of 14 canonical chaos drill scenarios")
+async def list_chaos_scenarios() -> list[dict[str, Any]]:
+    svc = get_recovery_service()
+    return svc.list_chaos_scenarios()
+
+
+@router.post("/chaos/run", summary="Execute an isolated chaos drill in digital twin simulation mode")
+async def run_chaos_drill(payload: RunChaosRequest) -> dict[str, Any]:
+    svc = get_recovery_service()
     try:
-        res = simulation_service.run_monte_carlo(
-            metric_name=req.metric_name,
-            base_value=req.base_value,
-            distribution_type=req.distribution_type,
-            std_dev=req.std_dev,
-            iterations=req.iterations,
-            seed=req.seed,
-        )
-        return res.model_dump()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        result = await svc.run_chaos_drill(payload.scenario_id)
+        return result.model_dump()
+    except ValueError as err:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
 
 
-@router.post("/replay")
-def replay_scenario(req: ReplayRequest) -> dict[str, Any]:
-    try:
-        result, was_cached = simulation_service.replay_scenario(
-            snapshot_id=req.snapshot_id,
-            scenario_id=req.scenario_id,
-        )
-        return {"run_result": result.model_dump(), "was_cached": was_cached}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-# Routes: ExecutionGate & Transition
-@router.post("/gates/evaluate", response_model=ExecutionGate)
-def evaluate_gate(req: EvaluateGateRequest) -> ExecutionGate:
-    try:
-        return simulation_service.evaluate_execution_gate(
-            simulation_id=req.simulation_id,
-            current_real_state=req.current_real_state,
-            user_approved=req.user_approved,
-            user_roles=req.user_roles,
-        )
-    except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-# Routes: Calibration
-@router.post("/calibrate", response_model=CalibrationMetric)
-def record_calibration(req: CalibrateRequest) -> CalibrationMetric:
-    return simulation_service.record_actual_outcome(
-        simulation_id=req.simulation_id,
-        metric_name=req.metric_name,
-        predicted_value=req.predicted_value,
-        actual_value=req.actual_value,
+@router.post("/calibrate", summary="Calibrate simulation predictions against empirical post-recovery reality")
+async def calibrate_recovery(payload: CalibrateRecoveryRequest) -> dict[str, Any]:
+    svc = get_recovery_service()
+    record = svc.record_actual_recovery(
+        simulation_id=payload.simulation_id,
+        recovery_id=payload.recovery_id,
+        strategy=payload.strategy,
+        actual_duration_seconds=payload.actual_duration_seconds,
+        actual_resource_cost=payload.actual_resource_cost,
+        actual_risk_score=payload.actual_risk_score,
+        actual_blast_radius=payload.actual_blast_radius,
+        verification_passed=payload.verification_passed,
     )
+    return record.model_dump()
 
 
-@router.get("/calibrations/report")
-def get_calibration_report(metric_name: str = Query(..., description="Metric name to report on")) -> dict[str, Any]:
-    rep = calibrator.evaluate_model_calibration(metric_name)
-    return rep.model_dump()
+@router.get("/scorecards", summary="Retrieve historical recovery strategy scorecards")
+async def get_scorecards() -> list[dict[str, Any]]:
+    svc = get_recovery_service()
+    cards = svc.get_scorecards()
+    return [c.model_dump() for c in cards]
+
+
+@router.get("/benchmarks", summary="Retrieve system-level resilience benchmarks (MTTR, MTBF, radar dimensions)")
+async def get_benchmarks() -> dict[str, Any]:
+    svc = get_recovery_service()
+    bmk = svc.get_resilience_benchmark()
+    return bmk.model_dump()
+
+
+@router.get("/regressions", summary="Detect recovery strategies exhibiting performance degradation")
+async def get_regressions() -> list[dict[str, Any]]:
+    svc = get_recovery_service()
+    return svc.get_regressions()
+
+
+@router.get("/comparisons", summary="Retrieve prediction vs reality calibration history")
+async def get_comparisons(limit: int = Query(50, ge=1, le=100)) -> list[dict[str, Any]]:
+    svc = get_recovery_service()
+    records = svc.get_comparisons(limit=limit)
+    return [r.model_dump() for r in records]

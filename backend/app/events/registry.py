@@ -462,6 +462,31 @@ class EventRegistry:
             EventRegistration("system_state.reconciliation_started", "v1", "Startup or on-demand state reconciliation initiated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
             EventRegistration("system_state.reconciliation_completed", "v1", "State reconciliation completed with repaired/orphaned entity audit", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
             EventRegistration("system_state.reconciliation_failed", "v1", "State reconciliation failed or encountered irreconcilable drift", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+
+            # Task 94: Autonomous Decision Intelligence, Option Evaluation & Decision Memory
+            EventRegistration("decision.created", "v1", "Decision request initialized under deliberate tracking", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.evaluation_started", "v1", "Multi-criteria candidate evaluation initiated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.evaluation_completed", "v1", "Candidate evaluation and Pareto analysis completed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.option_added", "v1", "Candidate option registered in decision context", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.option_blocked", "v1", "Candidate option blocked by hard constraint, security or governance", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("decision.constraint_detected", "v1", "Active hard/soft constraint evaluated against option", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.risk_evaluated", "v1", "Risk exposure and worst-case blast radius evaluated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.simulation_required", "v1", "Pre-execution digital twin simulation mandated by policy", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("decision.simulation_completed", "v1", "Digital twin simulation completed and verified", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.awaiting_approval", "v1", "Decision suspended pending formal authorization from ApprovalRegistry", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("decision.approved", "v1", "Formal approval granted by authorized actor", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("decision.rejected", "v1", "Decision rejected by approving authority", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("decision.selected", "v1", "Option selected for guarded execution handoff", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.execution_started", "v1", "Action dispatched to ToolExecutor", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.execution_completed", "v1", "Guarded action completed by execution substrate", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.verification_started", "v1", "Post-execution telemetry and invariant verification initiated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.verified", "v1", "Action verified successful against predicted outcomes", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.failed", "v1", "Execution or verification failed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("decision.rolled_back", "v1", "Rollback procedure executed to restore safe state", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("decision.deferred", "v1", "Decision deferred by operator or system policy", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.superseded", "v1", "Decision superseded by newer context or objective", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.re_evaluation_required", "v1", "Decision invalidated by assumption or context drift", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("decision.expired", "v1", "Decision validity TTL expired; marked stale", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
         ]
         for reg in defaults:
             self.register(reg)

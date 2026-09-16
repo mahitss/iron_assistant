@@ -49,6 +49,7 @@ from app.cognition.router import router as cognition_router
 from app.communication import communication_router
 from app.config.settings import get_settings
 from app.decision.router import router as decision_router
+from app.decision.v2_router import router as decision_v2_router
 from app.environment.router import router as environment_router
 from app.executive_memory.router import router as executive_memory_router
 from app.foresight.router import router as foresight_router
@@ -199,6 +200,8 @@ def create_app() -> FastAPI:
     app.include_router(causal_router)
     app.include_router(simulation_router)
     app.include_router(decision_router)
+    app.include_router(decision_v2_router, prefix=settings.API_V1_STR)
+    app.include_router(decision_v2_router)
     app.include_router(planning_router)
     app.include_router(orchestration_router)
     app.include_router(situations_router)

@@ -59,6 +59,16 @@ class EmergencyStopService:
 
         return True
 
+    @classmethod
+    def engage(cls, reason: str = "Emergency stop engaged") -> None:
+        """Convenience classmethod to engage global emergency stop."""
+        get_emergency_stop_service().trigger_emergency_stop(reason=reason)
+
+    @classmethod
+    def disengage(cls) -> None:
+        """Convenience classmethod to reset global emergency stop."""
+        get_emergency_stop_service().reset_emergency_stop(is_human_user=True)
+
     def is_stopped(self, user_id: str | None = None) -> bool:
         """Check whether emergency stop is currently active."""
         if self._global_stopped:

@@ -24,6 +24,7 @@ import { EvaluationView } from '../components/evaluation/evaluationView.js';
 import { TasksView } from '../components/tasks/tasksView.js';
 import { EnvironmentView } from '../components/environment/environmentView.js';
 import { SystemStateView } from '../components/system_state/systemStateView.js';
+import { DecisionIntelligenceView } from '../components/decision/decisionIntelligenceView.js';
 import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
@@ -193,6 +194,10 @@ export class KairoApp {
         return;
       case 'system-state':
         this.currentViewInstance = new SystemStateView({ container: viewport });
+        break;
+      case 'decision-intelligence':
+      case 'decision':
+        this.currentViewInstance = new DecisionIntelligenceView({ container: viewport });
         break;
       default:
         this.currentViewInstance = new HomeView(viewport);

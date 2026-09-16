@@ -449,6 +449,19 @@ class EventRegistry:
             EventRegistration("memory.hypothesis_created", "v1", "Empirical hypothesis registered under tentative validation", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
             EventRegistration("memory.hypothesis_verified", "v1", "Hypothesis confirmed by empirical evidence and promoted", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
             EventRegistration("memory.hypothesis_rejected", "v1", "Hypothesis disproven by empirical evidence and rejected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+
+            # Task 93: Autonomous System State Graph, Self-Modeling & Operational Digital Twin
+            EventRegistration("system_state.snapshot_created", "v1", "Immutable operational state snapshot captured with deterministic hash", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("system_state.delta_detected", "v1", "Operational state delta detected between consecutive snapshots", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("system_state.component_changed", "v1", "Operational component status, health score, or metadata updated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("system_state.health_changed", "v1", "System composite health or degraded component status changed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("system_state.dependency_changed", "v1", "Operational dependency topology or reachability modified", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("system_state.incident_impact_changed", "v1", "Active incident cascade or affected objectives updated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("system_state.goal_blocked", "v1", "Active strategic goal blocked by degraded capability or resource constraint", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("system_state.goal_unblocked", "v1", "Strategic goal unblocked following dependency or resource recovery", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("system_state.reconciliation_started", "v1", "Startup or on-demand state reconciliation initiated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("system_state.reconciliation_completed", "v1", "State reconciliation completed with repaired/orphaned entity audit", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("system_state.reconciliation_failed", "v1", "State reconciliation failed or encountered irreconcilable drift", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
         ]
         for reg in defaults:
             self.register(reg)

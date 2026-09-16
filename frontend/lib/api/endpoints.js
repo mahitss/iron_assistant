@@ -4155,10 +4155,25 @@ export const capabilityLifecycleApi = {
   retireCapability: (id, data) => api.post(`/api/v1/capabilities/${encodeURIComponent(id)}/retire`, data),
 };
 
+// Task 93: Autonomous System State Graph, Self-Modeling & Operational Digital Twin API
+export const systemStateApi = {
+  getSummary: () => api.get('/api/v1/system-state/summary'),
+  getHealth: () => api.get('/api/v1/system-state/health'),
+  getGraph: () => api.get('/api/v1/system-state/graph'),
+  getDiagnostics: () => api.get('/api/v1/system-state/diagnostics'),
+  getSelfModel: () => api.get('/api/v1/system-state/self-model'),
+  getResources: () => api.get('/api/v1/system-state/resources'),
+  getDependencies: () => api.get('/api/v1/system-state/dependencies'),
+  getIncidents: () => api.get('/api/v1/system-state/incidents'),
+  getChanges: (limit = 50) => api.get(`/api/v1/system-state/changes?limit=${limit}`),
+  getSnapshots: (limit = 20) => api.get(`/api/v1/system-state/snapshots?limit=${limit}`),
+  getSnapshotDetail: (id) => api.get(`/api/v1/system-state/snapshots/${encodeURIComponent(id)}`),
+  createSnapshot: (data = {}) => api.post('/api/v1/system-state/snapshot', data),
+  reconcile: (data = {}) => api.post('/api/v1/system-state/reconcile', data),
+  getImpact: (componentId) => api.get(`/api/v1/system-state/impact/${encodeURIComponent(componentId)}`),
+  getDependents: (componentId) => api.get(`/api/v1/system-state/dependents/${encodeURIComponent(componentId)}`),
+  getGoal: (goalId) => api.get(`/api/v1/system-state/goals/${encodeURIComponent(goalId)}`),
+  getTask: (taskId) => api.get(`/api/v1/system-state/tasks/${encodeURIComponent(taskId)}`),
+};
+
 export const endpoints = Endpoints;
-
-
-
-
-
-

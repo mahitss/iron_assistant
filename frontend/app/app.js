@@ -23,6 +23,7 @@ import { KnowledgeView } from '../components/knowledge/knowledgeView.js';
 import { EvaluationView } from '../components/evaluation/evaluationView.js';
 import { TasksView } from '../components/tasks/tasksView.js';
 import { EnvironmentView } from '../components/environment/environmentView.js';
+import { SystemStateView } from '../components/system_state/systemStateView.js';
 import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
@@ -190,6 +191,9 @@ export class KairoApp {
         this.currentViewInstance = new EvaluationView({ container: viewport });
         await this.currentViewInstance.init();
         return;
+      case 'system-state':
+        this.currentViewInstance = new SystemStateView({ container: viewport });
+        break;
       default:
         this.currentViewInstance = new HomeView(viewport);
     }

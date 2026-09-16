@@ -153,6 +153,10 @@ export class AppShell {
                 <span class="nav-icon">📈</span>
                 <span class="nav-text">System Status</span>
               </button>
+              <button class="nav-item ${state.currentView === 'system-state' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('system-state')">
+                <span class="nav-icon">🕸️</span>
+                <span class="nav-text">System State Graph</span>
+              </button>
               <button class="nav-item ${state.currentView === 'evaluation' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('evaluation')">
                 <span class="nav-icon">🧪</span>
                 <span class="nav-text">Evaluation</span>

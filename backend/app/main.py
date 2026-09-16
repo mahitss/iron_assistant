@@ -89,6 +89,7 @@ from app.reliability.router import router as reliability_router
 from app.reliability_intelligence import reliability_intelligence_router
 from app.capability_lifecycle import capability_lifecycle_router
 from app.system_state.router import router as system_state_router
+from app.execution import execution_router
 
 logger = logging.getLogger("kairo.main")
 
@@ -225,6 +226,8 @@ def create_app() -> FastAPI:
     app.include_router(capability_lifecycle_router)
     app.include_router(system_state_router, prefix=settings.API_V1_STR)
     app.include_router(system_state_router)
+    app.include_router(execution_router, prefix=settings.API_V1_STR)
+    app.include_router(execution_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

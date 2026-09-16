@@ -54,6 +54,10 @@ class ToolRegistry:
         """Check whether a tool with the given name exists."""
         return name in self._tools
 
+    def has(self, name: str) -> bool:
+        """Alias for has_tool."""
+        return self.has_tool(name)
+
     def list_tools(self) -> list[BaseTool]:
         """Return all currently registered tools."""
         return list(self._tools.values())
@@ -306,3 +310,15 @@ def create_default_tool_registry() -> ToolRegistry:
         registry.register(TestRunnerTool())
 
     return registry
+
+
+_default_tool_registry: ToolRegistry | None = None
+
+
+def get_tool_registry() -> ToolRegistry:
+    """Retrieve or initialize the default ToolRegistry singleton."""
+    global _default_tool_registry
+    if _default_tool_registry is None:
+        _default_tool_registry = create_default_tool_registry()
+    return _default_tool_registry
+

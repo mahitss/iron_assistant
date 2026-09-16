@@ -141,6 +141,10 @@ export class AppShell {
                 <span class="nav-icon">🧠</span>
                 <span class="nav-text">Memory</span>
               </button>
+              <button class="nav-item ${state.currentView === 'memory-evolution' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('memory-evolution')">
+                <span class="nav-icon">🧬</span>
+                <span class="nav-text">Memory Evolution</span>
+              </button>
               <button class="nav-item ${state.currentView === 'notifications' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('notifications')">
                 <span class="nav-icon">🔔</span>
                 <span class="nav-text">Notifications</span>

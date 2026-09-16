@@ -15,6 +15,7 @@ import { AutomationsView } from '../components/automations/automationsView.js';
 import { ActivityView } from '../components/activity/activityView.js';
 import { SecurityView } from '../components/security/securityView.js';
 import { MemoryView } from '../components/memory/memoryView.js';
+import { MemoryEvolutionView } from '../components/memory/memoryEvolutionView.js';
 import { NotificationsView } from '../components/notifications/notificationsView.js';
 import { StatusView } from '../components/status/statusView.js';
 import { SettingsView } from '../components/settings/settingsView.js';
@@ -165,6 +166,10 @@ export class KairoApp {
         break;
       case 'memory':
         this.currentViewInstance = new MemoryView(viewport);
+        break;
+      case 'memory-evolution':
+        this.currentViewInstance = new MemoryEvolutionView(viewport);
+        await this.currentViewInstance.loadData();
         break;
       case 'notifications':
         this.currentViewInstance = new NotificationsView(viewport);

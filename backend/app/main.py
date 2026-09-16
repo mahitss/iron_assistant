@@ -58,6 +58,7 @@ from app.incident_response.router import router as incidents_router
 from app.intent import commands_router, intent_router
 from app.knowledge_graph import knowledge_graph_router
 from app.learning.router import router as learning_router
+from app.knowledge_consolidation import knowledge_consolidation_router
 from app.lifecycle import shutdown_lifecycle, startup_lifecycle
 from app.memory_consolidation import memory_consolidation_router
 from app.metacognition import metacognition_router
@@ -146,6 +147,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, prefix=settings.API_V1_STR)
     app.include_router(chat_router, prefix=settings.API_V1_STR)
     app.include_router(memory_consolidation_router, prefix=settings.API_V1_STR)
+    app.include_router(knowledge_consolidation_router, prefix=settings.API_V1_STR)
     app.include_router(memory_router, prefix=settings.API_V1_STR)
     app.include_router(memory_api_router, prefix=settings.API_V1_STR)
     app.include_router(user_memory_router, prefix=settings.API_V1_STR)

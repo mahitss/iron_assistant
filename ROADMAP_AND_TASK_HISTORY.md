@@ -101,18 +101,34 @@
   - Metacognitive calibration tracking false positives, false negatives (blind spots), scorecards, and degraded strategies (< 80% SLA).
 - **E2E Script**: `scripts/verify_reliability_intelligence_e2e.py` (6/6 scenarios passed 100%).
 
+### Task 91: Autonomous Capability Lifecycle, Versioning & Safe Evolution
+- **Goal**: Autonomous capability lifecycle management, SemVer immutability, fingerprinting, progressive canaries, compatibility analysis, and safe deprecation.
+- **Key Invariants**:
+  - 12-state state machine (`DISCOVERED` to `RETIRED`).
+  - 4 SHA-256 fingerprints (`cfp_`, `ifp_`, `dfp_`, `cmp_`).
+  - 6-tier compatibility evaluator and reverse dependency degradation propagation.
+  - 11 mandatory safety promotion gates.
+  - EmergencyStop fail-closed override.
+- **E2E Script**: `scripts/verify_capability_lifecycle_e2e.py` (6/6 passed).
+
+### Task 92: Autonomous Knowledge Consolidation, Memory Reconstruction & Context Evolution
+- **Goal**: Autonomous knowledge consolidation, continuous memory evolution, calibrated certainty, multi-factor conflict preservation & resolution, and forensic timeline reconstruction without fabrication.
+- **Key Invariants**:
+  - 12-category memory taxonomy and 10 explicit lifecycle states.
+  - `MEMORY != TRUTH`, `CONFIDENCE != CERTAINTY`, `HYPOTHESIS != BELIEF`, `BELIEF != VERIFIED FACT`.
+  - Non-collapsing grounding evidence model (`SUPPORT`, `CONTRADICT`, `QUALIFY`, `EXPIRE`, `REVALIDATE`).
+  - 8-dimension conflict detection strictly preserving `CONFLICTED` status without hallucinating consensus.
+  - Temporal validity intervals (`valid_from`, `valid_until`) and volatility decay staleness.
+  - Hypothesis empirical validation barrier strictly blocking premature promotion to verified fact.
+  - Derived knowledge dependency DAG with automatic cascade invalidation.
+  - Context assembly explicitly surfacing active contradictions to reasoning prompts.
+  - Forensic timeline reconstruction without hallucinating missing events.
+  - EmergencyStop kill-switch primacy halting all mutating operations fail-closed.
+- **E2E Script**: `scripts/verify_knowledge_consolidation_e2e.py` (10/10 passed).
+
 ---
 
 ## 3. Forward Proceeding: Suggested Next Tasks
-
-### Option A: Task 91 — Advanced Sandbox Hardening & Kernel Security Profiles
-- Add OS-level sandboxing profiles:
-  - Windows: Job Object limits + Low-Integrity AppContainer token restrictions.
-  - Linux: Landlock LSM, user namespaces, and seccomp-bpf syscall filtering.
-
-### Option B: Task 92 — Distributed Node Mesh & Remote Runtime Clustering
-- Extend the native protocol contract to allow Python to orchestrate multiple distributed `kairo-runtime` daemons across heterogeneous nodes.
-- TLS mutual authentication, node health gossip, remote process migration, and global emergency stop fan-out.
 
 ### Option C: Task 93 — Continuous Metacognitive Policy Tuning & Autonomous SLA Optimization
 - Feed empirical Task 90 calibration metrics and Task 89 simulation scorecards back into Task 78 governance intelligence.

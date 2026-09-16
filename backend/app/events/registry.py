@@ -431,6 +431,24 @@ class EventRegistry:
             EventRegistration("simulation.chaos_injected", "v1", "Isolated chaos drill scenario executed in digital twin", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
             EventRegistration("simulation.recovery_simulated", "v1", "Target subsystem recovery counterfactual simulated", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
             EventRegistration("simulation.regression_detected", "v1", "Recovery strategy effectiveness degraded below threshold", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+
+            # Task 92: Autonomous Knowledge Consolidation, Memory Reconstruction & Context Evolution
+            EventRegistration("memory.candidate_created", "v1", "New candidate memory ingested and awaiting validation", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.activated", "v1", "Memory validated and activated into operational context", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.updated", "v1", "Memory content or structured payload updated to new version", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.merged", "v1", "Repeated observation or duplicate merged into existing memory with preserved provenance", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.superseded", "v1", "Memory superseded by newer verified authoritative truth", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.conflicted", "v1", "Contradiction detected between competing assertions; CONFLICTED state recorded", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("memory.conflict_resolved", "v1", "Contradiction resolved through decisive evidence or authoritative correction", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("memory.marked_stale", "v1", "Memory exceeded volatility decay threshold; marked stale", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.invalidated", "v1", "Memory invalidated following parent disproval or cascade", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
+            EventRegistration("memory.archived", "v1", "Memory archived under retention policy", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.forgotten", "v1", "Memory safely deleted or tombstoned under compliance forgetting", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL, retention_days=365),
+            EventRegistration("memory.revalidated", "v1", "Autonomous revalidation scan or empirical test executed", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.consolidated", "v1", "Episodic memories clustered and abstracted into semantic knowledge", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.hypothesis_created", "v1", "Empirical hypothesis registered under tentative validation", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.hypothesis_verified", "v1", "Hypothesis confirmed by empirical evidence and promoted", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.INTERNAL_OPERATIONAL),
+            EventRegistration("memory.hypothesis_rejected", "v1", "Hypothesis disproven by empirical evidence and rejected", ReplaySafety.NON_REPLAYABLE, EventSecurityClass.AUDIT_CRITICAL),
         ]
         for reg in defaults:
             self.register(reg)

@@ -24,6 +24,7 @@ from app.api.routes.chat import router as chat_router
 from app.api.routes.context import router as context_router
 from app.api.routes.devices import router as devices_router
 from app.api.routes.evaluation import router as evaluation_router
+from app.evaluation.router import router as continuous_eval_router
 from app.api.routes.events import router as events_router
 from app.api.routes.experience import router as experience_router
 from app.api.routes.feedback import router as feedback_router
@@ -249,6 +250,8 @@ def create_app() -> FastAPI:
     app.include_router(self_model_router)
     app.include_router(control_plane_router)
     app.include_router(cognitive_memory_router)
+    app.include_router(continuous_eval_router, prefix=settings.API_V1_STR)
+    app.include_router(continuous_eval_router, prefix="/api")
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

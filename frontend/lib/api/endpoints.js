@@ -433,6 +433,82 @@ export const Endpoints = {
     return api.get('/api/v1/evaluation/security');
   },
 
+  // --- Continuous Evaluation & Improvement Governance (Task 104) ---
+  async getContinuousEvaluationDashboard() {
+    return api.get('/api/v1/evaluations/dashboard');
+  },
+
+  async listContinuousEvaluationSuites() {
+    return api.get('/api/v1/evaluations/suites');
+  },
+
+  async listContinuousEvaluationScenarios(category = null, includeHoldout = false) {
+    let q = `?include_holdout=${includeHoldout}`;
+    if (category) q += `&category=${encodeURIComponent(category)}`;
+    return api.get(`/api/v1/evaluations/scenarios${q}`);
+  },
+
+  async getContinuousEvaluationScenario(scenarioId) {
+    return api.get(`/api/v1/evaluations/scenarios/${encodeURIComponent(scenarioId)}`);
+  },
+
+  async triggerContinuousEvaluationRun(suite = 'security_resilience', scenarioId = null, mode = 'REAL', baselineId = 'v1.0.0') {
+    return api.post('/api/v1/evaluations/runs', {
+      suite,
+      scenario_id: scenarioId,
+      execution_mode: mode,
+      baseline_id: baselineId,
+    });
+  },
+
+  async listContinuousEvaluationRuns() {
+    return api.get('/api/v1/evaluations/runs');
+  },
+
+  async getContinuousEvaluationRunDetail(runId) {
+    return api.get(`/api/v1/evaluations/runs/${encodeURIComponent(runId)}`);
+  },
+
+  async listContinuousEvaluationComparisons() {
+    return api.get('/api/v1/evaluations/comparisons');
+  },
+
+  async listContinuousEvaluationRegressions() {
+    return api.get('/api/v1/evaluations/regressions');
+  },
+
+  async getContinuousEvaluationCalibration() {
+    return api.get('/api/v1/evaluations/calibration');
+  },
+
+  async getContinuousEvaluationSafety() {
+    return api.get('/api/v1/evaluations/safety');
+  },
+
+  async listImprovementProposals() {
+    return api.get('/api/v1/evaluations/proposals');
+  },
+
+  async createImprovementProposal(payload) {
+    return api.post('/api/v1/evaluations/proposals', payload);
+  },
+
+  async reviewImprovementProposal(proposalId, decision, rationale = '', reviewer = 'governance_authority') {
+    return api.post(`/api/v1/evaluations/proposals/${encodeURIComponent(proposalId)}/review`, {
+      reviewer,
+      decision,
+      rationale,
+    });
+  },
+
+  async listImprovementExperiments() {
+    return api.get('/api/v1/evaluations/experiments');
+  },
+
+  async getEvaluationEngineHealth() {
+    return api.get('/api/v1/evaluations/health');
+  },
+
   // --- Unified Event Bus (Task 28) ---
   async getEventRegistryCatalog() {
     return api.get('/api/v1/events/registry');

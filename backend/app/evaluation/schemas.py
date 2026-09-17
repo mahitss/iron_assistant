@@ -271,3 +271,53 @@ class BaselineComparisonResult(BaseModel):
     @property
     def status(self) -> str:
         return "RELEASE BLOCKED" if self.release_blocked else "RELEASE APPROVED"
+
+
+class ContinuousEvaluationDashboardDTO(BaseModel):
+    """Aggregate dashboard view across continuous evaluation, calibration, and governance."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    active_runs_count: int = 0
+    completed_runs_count: int = 0
+    total_scenarios_evaluated: int = 0
+    overall_quality_score: float = 0.0
+    security_gate_intact: bool = True
+    active_regressions_count: int = 0
+    critical_regressions_count: int = 0
+    calibration_status: str = "CALIBRATED"  # CALIBRATED, DEGRADED, UNCALIBRATED
+    brier_score_avg: float = 0.0
+    proposals_pending_review: int = 0
+    active_experiments_count: int = 0
+    recent_runs: list[dict[str, Any]] = Field(default_factory=list)
+    active_regressions: list[dict[str, Any]] = Field(default_factory=list)
+    safety_controls: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ImprovementProposalCreateRequest(BaseModel):
+    """Payload to create an improvement proposal."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    title: str
+    problem_statement: str
+    target_area: str
+    baseline_id: str
+    proposed_change: dict[str, Any] = Field(default_factory=dict)
+    expected_benefit: str = ""
+    expected_risks: list[str] = Field(default_factory=list)
+    rollback_plan: str = ""
+    validation_plan: str = ""
+    affected_capabilities: list[str] = Field(default_factory=list)
+    affected_metrics: list[str] = Field(default_factory=list)
+
+
+class ImprovementReviewRequest(BaseModel):
+    """Payload to submit a review for an improvement proposal."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    reviewer: str = Field(default="governance_authority")
+    decision: str = Field(..., description="'APPROVED', 'REJECTED', 'REQUESTED_CHANGES'")
+    rationale: str = ""
+

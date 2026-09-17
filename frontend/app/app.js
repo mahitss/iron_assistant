@@ -34,6 +34,7 @@ import { ControlPlaneView } from '../components/control_plane/controlPlaneView.j
 import { CognitiveMemoryView } from '../components/cognitive_memory/cognitiveMemoryView.js';
 import { AdaptationView } from '../components/adaptation/adaptationView.js';
 import { StrategyView } from '../components/strategy/strategyView.js';
+import { BeliefView } from '../components/belief/beliefView.js';
 import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
@@ -256,6 +257,14 @@ export class KairoApp {
       case 'strategy-synthesis':
       case 'policy-learning':
         this.currentViewInstance = new StrategyView({ container: viewport });
+        await this.currentViewInstance.init();
+        return;
+      case 'belief':
+      case 'beliefs':
+      case 'belief-engine':
+      case 'evidence-arbitration':
+      case 'world-model-revision':
+        this.currentViewInstance = new BeliefView({ container: viewport });
         await this.currentViewInstance.init();
         return;
       default:

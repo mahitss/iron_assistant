@@ -102,6 +102,7 @@ from app.control_plane import router as control_plane_router
 from app.cognitive_memory import router as cognitive_memory_router
 from app.adaptation.router import router as adaptation_router
 from app.strategy.router import router as strategy_router
+from app.belief.router import router as belief_router
 
 logger = logging.getLogger("kairo.main")
 
@@ -258,6 +259,8 @@ def create_app() -> FastAPI:
     app.include_router(adaptation_router, prefix="/api")
     app.include_router(strategy_router, prefix=settings.API_V1_STR)
     app.include_router(strategy_router, prefix="/api")
+    app.include_router(belief_router, prefix=settings.API_V1_STR)
+    app.include_router(belief_router, prefix="/api")
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

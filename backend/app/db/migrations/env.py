@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 
 import app.adaptation.models  # noqa: F401
 import app.agents.models  # noqa: F401
+import app.belief.models  # noqa: F401
 import app.attention.models  # noqa: F401
 import app.automation.models  # noqa: F401
 import app.autonomy.models  # noqa: F401

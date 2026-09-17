@@ -4572,5 +4572,39 @@ export const strategyApi = {
     api.post(`/api/v1/strategies/proposals/${encodeURIComponent(id)}/review`, payload),
 };
 
+// Task 107: Autonomous Belief, Evidence Arbitration, Conflict Resolution & World-Model Revision Engine API
+export const beliefApi = {
+  getDashboard: () => api.get('/api/v1/beliefs/dashboard'),
+  listBeliefs: (scope = null, status = null, isStale = null, limit = 100) => {
+    let q = `?limit=${limit}`;
+    if (scope) q += `&scope=${encodeURIComponent(scope)}`;
+    if (status) q += `&status=${encodeURIComponent(status)}`;
+    if (isStale !== null) q += `&is_stale=${encodeURIComponent(isStale)}`;
+    return api.get(`/api/v1/beliefs${q}`);
+  },
+  createBelief: (payload) => api.post('/api/v1/beliefs', payload),
+  getBelief: (id) => api.get(`/api/v1/beliefs/${encodeURIComponent(id)}`),
+  getVersions: (id) => api.get(`/api/v1/beliefs/${encodeURIComponent(id)}/versions`),
+  explainBelief: (id) => api.get(`/api/v1/beliefs/${encodeURIComponent(id)}/explain`),
+  getEvidencePack: (id) => api.get(`/api/v1/beliefs/${encodeURIComponent(id)}/pack`),
+  reviseBelief: (id, payload) =>
+    api.post(`/api/v1/beliefs/${encodeURIComponent(id)}/revise`, payload),
+  recordCorrection: (id, statement) =>
+    api.post(`/api/v1/beliefs/${encodeURIComponent(id)}/correct?statement=${encodeURIComponent(statement)}`),
+  getConflicts: (id) => api.get(`/api/v1/beliefs/${encodeURIComponent(id)}/conflicts`),
+  listConflicts: () => api.get('/api/v1/conflicts'),
+  getDependencies: (id) => api.get(`/api/v1/beliefs/${encodeURIComponent(id)}/dependencies`),
+  createDependency: (payload) => api.post('/api/v1/beliefs/dependencies', payload),
+  captureSnapshot: (payload = {}) => api.post('/api/v1/beliefs/snapshots', payload),
+  getSnapshot: (id) => api.get(`/api/v1/beliefs/snapshots/${encodeURIComponent(id)}`),
+  ingestEvidence: (payload) => api.post('/api/v1/evidence', payload),
+  listEvidence: (limit = 100) => api.get(`/api/v1/evidence?limit=${limit}`),
+  getEvidence: (id) => api.get(`/api/v1/evidence/${encodeURIComponent(id)}`),
+  listRevisions: (beliefId = null) => {
+    const q = beliefId ? `?belief_id=${encodeURIComponent(beliefId)}` : '';
+    return api.get(`/api/v1/belief-revisions${q}`);
+  },
+};
+
 export const endpoints = Endpoints;
 

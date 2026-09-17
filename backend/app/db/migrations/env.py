@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 # Add backend directory to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
 
+import app.adaptation.models  # noqa: F401
 import app.agents.models  # noqa: F401
 import app.attention.models  # noqa: F401
 import app.automation.models  # noqa: F401
@@ -59,6 +60,7 @@ import app.self_model.models  # noqa: F401
 import app.simulation.models  # noqa: F401
 import app.situational_awareness.models  # noqa: F401
 import app.state.models  # noqa: F401
+import app.strategy.models  # noqa: F401
 import app.swarm.models  # noqa: F401
 import app.verification.models  # noqa: F401
 from app.core.config import get_settings

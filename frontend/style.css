@@ -3575,3 +3575,333 @@ button, input, select, textarea {
   background: rgba(56, 189, 248, 0.1);
 }
 
+/* ==========================================================================
+   Task 105: Autonomous Adaptation & Governed Evolution Styles
+   ========================================================================== */
+
+.adaptation-console {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: #0b0f19;
+  min-height: 100vh;
+  color: #f1f5f9;
+  font-family: 'Outfit', sans-serif;
+}
+
+.console-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 1rem;
+}
+
+.header-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.console-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: #f8fafc;
+}
+
+.console-sub {
+  font-size: 0.9rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.console-tabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.5rem;
+  overflow-x: auto;
+}
+
+.console-tabs .tab-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.console-tabs .tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+}
+
+.console-tabs .tab-btn.active {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  font-weight: 600;
+  border-bottom: 2px solid #818cf8;
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.kpi-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.kpi-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.active-card .kpi-value { color: #38bdf8; }
+.blocked-card .kpi-value { color: #fb7185; }
+.failed-card .kpi-value { color: #f43f5e; }
+.inconclusive-card .kpi-value { color: #f59e0b; }
+.improving-card .kpi-value { color: #34d399; }
+.regressing-card .kpi-value { color: #ef4444; }
+.review-card .kpi-value { color: #a78bfa; }
+.approval-card .kpi-value { color: #60a5fa; }
+.validating-card .kpi-value { color: #f472b6; }
+
+.dash-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.section-card {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.5rem;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  margin-bottom: 0.5rem;
+}
+
+.item-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #f8fafc;
+}
+
+.item-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.meta-tag {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+}
+
+.cap-tag {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+}
+
+.estop-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.estop-pill.safe {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.estop-pill.danger {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+}
+
+.hypothesis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 1rem;
+}
+
+.hypothesis-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hyp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hyp-id {
+  font-size: 0.85rem;
+  color: #38bdf8;
+}
+
+.confidence-badge {
+  font-size: 0.75rem;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+}
+
+.hyp-clause {
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+}
+
+.hyp-clause strong {
+  display: inline-block;
+  width: 70px;
+  color: #818cf8;
+}
+
+.comparison-card, .proposal-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.cmp-header, .prop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.verdict-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.verdict-improved {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.verdict-regressed {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.verdict-tradeoff {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.verdict-inconclusive {
+  background: rgba(100, 116, 139, 0.2);
+  color: #94a3b8;
+}
+
+.dimension-table, .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.dimension-table th, .dimension-table td,
+.data-table th, .data-table td {
+  padding: 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dimension-table th, .data-table th {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.text-success { color: #34d399; }
+.text-danger { color: #f87171; }
+
+

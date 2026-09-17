@@ -32,6 +32,8 @@ import { WorldStateReconciliationView } from '../components/world_state/worldSta
 import { SelfModelView } from '../components/self_model/selfModelView.js';
 import { ControlPlaneView } from '../components/control_plane/controlPlaneView.js';
 import { CognitiveMemoryView } from '../components/cognitive_memory/cognitiveMemoryView.js';
+import { AdaptationView } from '../components/adaptation/adaptationView.js';
+import { StrategyView } from '../components/strategy/strategyView.js';
 import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
@@ -241,6 +243,19 @@ export class KairoApp {
       case 'memory-fabric':
       case 'lifelong-learning':
         this.currentViewInstance = new CognitiveMemoryView(viewport);
+        await this.currentViewInstance.init();
+        return;
+      case 'adaptation':
+      case 'evolution':
+      case 'adaptation-evolution':
+        this.currentViewInstance = new AdaptationView({ container: viewport });
+        await this.currentViewInstance.init();
+        return;
+      case 'strategy':
+      case 'strategies':
+      case 'strategy-synthesis':
+      case 'policy-learning':
+        this.currentViewInstance = new StrategyView({ container: viewport });
         await this.currentViewInstance.init();
         return;
       default:

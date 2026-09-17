@@ -509,6 +509,72 @@ export const Endpoints = {
     return api.get('/api/v1/evaluations/health');
   },
 
+  // --- Task 105: Autonomous Adaptation & Governed Evolution ---
+  async getAdaptationDashboard() {
+    return api.get('/api/v1/adaptation/dashboard');
+  },
+  async listAdaptationPrograms(status = null) {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return api.get(`/api/v1/adaptation/programs${q}`);
+  },
+  async createAdaptationProgram(payload) {
+    return api.post('/api/v1/adaptation/programs', payload);
+  },
+  async getAdaptationProgram(programId) {
+    return api.get(`/api/v1/adaptation/programs/${encodeURIComponent(programId)}`);
+  },
+  async listAdaptationHypotheses() {
+    return api.get('/api/v1/adaptation/hypotheses');
+  },
+  async createAdaptationHypothesis(payload, programId) {
+    return api.post(`/api/v1/adaptation/hypotheses?program_id=${encodeURIComponent(programId)}`, payload);
+  },
+  async listAdaptationExperiments(status = null) {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return api.get(`/api/v1/adaptation/experiments${q}`);
+  },
+  async createAdaptationExperiment(payload) {
+    return api.post('/api/v1/adaptation/experiments', payload);
+  },
+  async startAdaptationExperiment(planId, stage = 1, samples = 20) {
+    return api.post(`/api/v1/adaptation/experiments/${encodeURIComponent(planId)}/start?stage_number=${stage}&target_samples=${samples}`);
+  },
+  async stopAdaptationExperiment(runId, reason = 'User requested') {
+    return api.post(`/api/v1/adaptation/experiments/${encodeURIComponent(runId)}/stop`, { action: 'stop', reason });
+  },
+  async getAdaptationResults(runId) {
+    return api.get(`/api/v1/adaptation/experiments/${encodeURIComponent(runId)}/results`);
+  },
+  async getAdaptationEvidence(runId) {
+    return api.get(`/api/v1/adaptation/experiments/${encodeURIComponent(runId)}/evidence`);
+  },
+  async listAdaptationComparisons() {
+    return api.get('/api/v1/adaptation/comparisons');
+  },
+  async listAdaptationGates(runId = null) {
+    const q = runId ? `?run_id=${encodeURIComponent(runId)}` : '';
+    return api.get(`/api/v1/adaptation/gates${q}`);
+  },
+  async listEvolutionProposals(status = null) {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return api.get(`/api/v1/evolution/proposals${q}`);
+  },
+  async createEvolutionProposal(programId, runId, targetVersion = '1.1.0') {
+    return api.post(`/api/v1/evolution/proposals?program_id=${encodeURIComponent(programId)}&run_id=${encodeURIComponent(runId)}&target_version=${encodeURIComponent(targetVersion)}`);
+  },
+  async reviewEvolutionProposal(proposalId, payload) {
+    return api.post(`/api/v1/evolution/proposals/${encodeURIComponent(proposalId)}/review`, payload);
+  },
+  async listEvolutionReviews() {
+    return api.get('/api/v1/evolution/reviews');
+  },
+  async listEvolutionChangesets() {
+    return api.get('/api/v1/evolution/changesets');
+  },
+  async validateEvolution(payload) {
+    return api.post('/api/v1/evolution/validation', payload);
+  },
+
   // --- Unified Event Bus (Task 28) ---
   async getEventRegistryCatalog() {
     return api.get('/api/v1/events/registry');
@@ -4433,6 +4499,77 @@ export const cognitiveMemoryApi = {
   replayMemories: (experienceIds = null) =>
     api.post('/api/v1/memory/replay', { experience_ids: experienceIds }),
   createSnapshot: () => api.post('/api/v1/memory/snapshot'),
+};
+
+// Task 105: Autonomous Adaptation & Governed Evolution API
+export const adaptationApi = {
+  getDashboard: () => api.get('/api/v1/adaptation/dashboard'),
+  listPrograms: (status = null) => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return api.get(`/api/v1/adaptation/programs${q}`);
+  },
+  createProgram: (payload) => api.post('/api/v1/adaptation/programs', payload),
+  getProgram: (id) => api.get(`/api/v1/adaptation/programs/${encodeURIComponent(id)}`),
+  listHypotheses: () => api.get('/api/v1/adaptation/hypotheses'),
+  createHypothesis: (payload, programId) =>
+    api.post(`/api/v1/adaptation/hypotheses?program_id=${encodeURIComponent(programId)}`, payload),
+  listExperiments: (status = null) => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return api.get(`/api/v1/adaptation/experiments${q}`);
+  },
+  createExperiment: (payload) => api.post('/api/v1/adaptation/experiments', payload),
+  startExperiment: (planId, stage = 1, samples = 20) =>
+    api.post(`/api/v1/adaptation/experiments/${encodeURIComponent(planId)}/start?stage_number=${stage}&target_samples=${samples}`),
+  stopExperiment: (runId, reason = 'User requested') =>
+    api.post(`/api/v1/adaptation/experiments/${encodeURIComponent(runId)}/stop`, { action: 'stop', reason }),
+  getResults: (runId) => api.get(`/api/v1/adaptation/experiments/${encodeURIComponent(runId)}/results`),
+  getEvidence: (runId) => api.get(`/api/v1/adaptation/experiments/${encodeURIComponent(runId)}/evidence`),
+  listComparisons: () => api.get('/api/v1/adaptation/comparisons'),
+  listGates: (runId = null) => {
+    const q = runId ? `?run_id=${encodeURIComponent(runId)}` : '';
+    return api.get(`/api/v1/adaptation/gates${q}`);
+  },
+  listProposals: (status = null) => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return api.get(`/api/v1/evolution/proposals${q}`);
+  },
+  createProposal: (programId, runId, targetVersion = '1.1.0') =>
+    api.post(`/api/v1/evolution/proposals?program_id=${encodeURIComponent(programId)}&run_id=${encodeURIComponent(runId)}&target_version=${encodeURIComponent(targetVersion)}`),
+  reviewProposal: (proposalId, payload) =>
+    api.post(`/api/v1/evolution/proposals/${encodeURIComponent(proposalId)}/review`, payload),
+  listReviews: () => api.get('/api/v1/evolution/reviews'),
+  listChangesets: () => api.get('/api/v1/evolution/changesets'),
+};
+
+// Task 106: Autonomous Knowledge-to-Action Learning, Strategy Synthesis & Adaptive Operating Policy Engine API
+export const strategyApi = {
+  getDashboard: () => api.get('/api/v1/strategies/dashboard'),
+  getCoverage: () => api.get('/api/v1/strategies/coverage'),
+  listStrategies: (category = null, status = null, isStale = null) => {
+    let q = '?limit=100';
+    if (category) q += `&category=${encodeURIComponent(category)}`;
+    if (status) q += `&status=${encodeURIComponent(status)}`;
+    if (isStale !== null) q += `&is_stale=${encodeURIComponent(isStale)}`;
+    return api.get(`/api/v1/strategies${q}`);
+  },
+  getStrategy: (id) => api.get(`/api/v1/strategies/${encodeURIComponent(id)}`),
+  createStrategy: (payload) => api.post('/api/v1/strategies', payload),
+  updateStrategy: (id, payload) => api.patch(`/api/v1/strategies/${encodeURIComponent(id)}`, payload),
+  getVersions: (id) => api.get(`/api/v1/strategies/${encodeURIComponent(id)}/versions`),
+  createVersion: (id, payload) => api.post(`/api/v1/strategies/${encodeURIComponent(id)}/versions`, payload),
+  getEvidence: (id) => api.get(`/api/v1/strategies/${encodeURIComponent(id)}/evidence`),
+  checkApplicability: (id, context) =>
+    api.post(`/api/v1/strategies/${encodeURIComponent(id)}/applicability`, { context }),
+  getCandidates: (context, category = null) =>
+    api.post('/api/v1/strategies/candidates', { context, category }),
+  submitFeedback: (id, payload) =>
+    api.post(`/api/v1/strategies/${encodeURIComponent(id)}/feedback`, payload),
+  revalidateStrategy: (id) =>
+    api.post(`/api/v1/strategies/${encodeURIComponent(id)}/revalidate`),
+  getConflicts: (id) => api.get(`/api/v1/strategies/${encodeURIComponent(id)}/conflicts`),
+  createProposal: (payload) => api.post('/api/v1/strategies/proposals', payload),
+  reviewProposal: (id, payload) =>
+    api.post(`/api/v1/strategies/proposals/${encodeURIComponent(id)}/review`, payload),
 };
 
 export const endpoints = Endpoints;

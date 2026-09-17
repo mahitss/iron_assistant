@@ -185,6 +185,10 @@ export class AppShell {
                 <span class="nav-icon">🎮</span>
                 <span class="nav-text">Control Plane</span>
               </button>
+              <button class="nav-item ${['cognitive-memory', 'memory-fabric', 'lifelong-learning'].includes(state.currentView) ? 'active' : ''}" onclick="window.kairoApp.navigateTo('cognitive-memory')">
+                <span class="nav-icon">🧠</span>
+                <span class="nav-text">Cognitive Memory</span>
+              </button>
               <button class="nav-item ${state.currentView === 'evaluation' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('evaluation')">
                 <span class="nav-icon">🧪</span>
                 <span class="nav-text">Evaluation</span>

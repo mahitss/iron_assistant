@@ -98,6 +98,7 @@ from app.knowledge_graph.router import router as graph_router
 from app.world_state.router import router as world_state_router
 from app.self_model import router as self_model_router
 from app.control_plane import router as control_plane_router
+from app.cognitive_memory import router as cognitive_memory_router
 
 logger = logging.getLogger("kairo.main")
 
@@ -247,6 +248,7 @@ def create_app() -> FastAPI:
     app.include_router(world_state_router)
     app.include_router(self_model_router)
     app.include_router(control_plane_router)
+    app.include_router(cognitive_memory_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

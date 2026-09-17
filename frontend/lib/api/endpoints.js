@@ -4330,5 +4330,34 @@ export const controlPlaneApi = {
   reassess: (scope = 'SYSTEM') => api.post(`/api/v1/control/reassess?scope=${encodeURIComponent(scope)}`),
 };
 
+// Task 103: Autonomous Cognitive Memory, Experience Consolidation & Lifelong Learning Fabric API
+export const cognitiveMemoryApi = {
+  getStatus: () => api.get('/api/v1/memory/status'),
+  listMemories: (scope = null, lifecycleState = null, memoryType = null, limit = 50) => {
+    let q = `?limit=${limit}`;
+    if (scope) q += `&scope=${encodeURIComponent(scope)}`;
+    if (lifecycleState) q += `&lifecycle_state=${encodeURIComponent(lifecycleState)}`;
+    if (memoryType) q += `&memory_type=${encodeURIComponent(memoryType)}`;
+    return api.get(`/api/v1/memory${q}`);
+  },
+  getMemory: (memoryId) => api.get(`/api/v1/memory/${encodeURIComponent(memoryId)}`),
+  getMemoryHistory: (memoryId) => api.get(`/api/v1/memory/${encodeURIComponent(memoryId)}/history`),
+  getMemoryEvidence: (memoryId) => api.get(`/api/v1/memory/${encodeURIComponent(memoryId)}/evidence`),
+  captureExperience: (payload) => api.post('/api/v1/memory/experiences', payload),
+  searchMemories: (payload) => api.post('/api/v1/memory/search', payload),
+  assembleContextPack: (payload) => api.post('/api/v1/memory/context-pack', payload),
+  listConflicts: () => api.get('/api/v1/memory/conflicts'),
+  listPatterns: () => api.get('/api/v1/memory/patterns'),
+  listStale: () => api.get('/api/v1/memory/stale'),
+  revalidateMemory: (memoryId) => api.post(`/api/v1/memory/${encodeURIComponent(memoryId)}/revalidate`),
+  invalidateMemory: (memoryId, reason = 'MANUAL_UI_INVALIDATION') =>
+    api.post(`/api/v1/memory/${encodeURIComponent(memoryId)}/invalidate`, { reason }),
+  supersedeMemory: (memoryId, payload) =>
+    api.post(`/api/v1/memory/${encodeURIComponent(memoryId)}/supersede`, payload),
+  replayMemories: (experienceIds = null) =>
+    api.post('/api/v1/memory/replay', { experience_ids: experienceIds }),
+  createSnapshot: () => api.post('/api/v1/memory/snapshot'),
+};
+
 export const endpoints = Endpoints;
 

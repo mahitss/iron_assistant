@@ -31,6 +31,7 @@ import { GraphReasoningView } from '../components/knowledge_graph/graphReasoning
 import { WorldStateReconciliationView } from '../components/world_state/worldStateReconciliationView.js';
 import { SelfModelView } from '../components/self_model/selfModelView.js';
 import { ControlPlaneView } from '../components/control_plane/controlPlaneView.js';
+import { CognitiveMemoryView } from '../components/cognitive_memory/cognitiveMemoryView.js';
 import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
@@ -234,6 +235,12 @@ export class KairoApp {
       case 'control':
       case 'operating-loop':
         this.currentViewInstance = new ControlPlaneView(viewport);
+        await this.currentViewInstance.init();
+        return;
+      case 'cognitive-memory':
+      case 'memory-fabric':
+      case 'lifelong-learning':
+        this.currentViewInstance = new CognitiveMemoryView(viewport);
         await this.currentViewInstance.init();
         return;
       default:

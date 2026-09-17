@@ -4311,5 +4311,24 @@ export const selfModelApi = {
   getSummary: () => api.get('/api/v1/self-model/summary'),
 };
 
+// Task 102: Autonomous Cognitive Control Plane & Unified Operating Loop API
+export const controlPlaneApi = {
+  getStatus: () => api.get('/api/v1/control/status'),
+  getMode: () => api.get('/api/v1/control/mode'),
+  getHealth: () => api.get('/api/v1/control/health'),
+  listCycles: (limit = 50, status = null, triggerType = null) => {
+    let q = `?limit=${limit}`;
+    if (status) q += `&status=${encodeURIComponent(status)}`;
+    if (triggerType) q += `&trigger_type=${encodeURIComponent(triggerType)}`;
+    return api.get(`/api/v1/control/cycles${q}`);
+  },
+  getCycle: (cycleId) => api.get(`/api/v1/control/cycles/${encodeURIComponent(cycleId)}`),
+  getTimeline: (cycleId) => api.get(`/api/v1/control/cycles/${encodeURIComponent(cycleId)}/timeline`),
+  getSnapshot: (cycleId) => api.get(`/api/v1/control/cycles/${encodeURIComponent(cycleId)}/snapshot`),
+  getQueue: () => api.get('/api/v1/control/queue'),
+  replayCycle: (cycleId) => api.get(`/api/v1/control/cycles/${encodeURIComponent(cycleId)}/replay`),
+  reassess: (scope = 'SYSTEM') => api.post(`/api/v1/control/reassess?scope=${encodeURIComponent(scope)}`),
+};
+
 export const endpoints = Endpoints;
 

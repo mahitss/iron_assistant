@@ -689,6 +689,15 @@ class WorldStateReconciliationEngine:
         self._snapshots[snap_id] = snap
         return snap
 
+    def reconcile(
+        self,
+        scope: Union[WorldScope, str] = WorldScope.SYSTEM,
+        trigger: str = "cycle",
+    ) -> WorldStateSnapshot:
+        """Convenience reality reconciliation pass capturing a fresh snapshot."""
+        sc = WorldScope(scope) if isinstance(scope, str) and scope in [s.value for s in WorldScope] else (scope if isinstance(scope, WorldScope) else WorldScope.SYSTEM)
+        return self.create_snapshot(scope=sc, description=f"Reconciliation triggered by {trigger}")
+
     def compute_diff(self, snapshot_a_id: str, snapshot_b_id: str) -> WorldStateDiff:
         """Computes structural differential (ADDED, REMOVED, CHANGED, UNCHANGED) between two snapshots."""
         snap_a = self._snapshots.get(snapshot_a_id)

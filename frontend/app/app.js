@@ -30,6 +30,7 @@ import { SwarmOrchestrationView } from '../components/swarm/swarmOrchestrationVi
 import { GraphReasoningView } from '../components/knowledge_graph/graphReasoningView.js';
 import { WorldStateReconciliationView } from '../components/world_state/worldStateReconciliationView.js';
 import { SelfModelView } from '../components/self_model/selfModelView.js';
+import { ControlPlaneView } from '../components/control_plane/controlPlaneView.js';
 import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
@@ -227,6 +228,12 @@ export class KairoApp {
       case 'self':
       case 'capability-awareness':
         this.currentViewInstance = new SelfModelView(viewport);
+        await this.currentViewInstance.init();
+        return;
+      case 'control-plane':
+      case 'control':
+      case 'operating-loop':
+        this.currentViewInstance = new ControlPlaneView(viewport);
         await this.currentViewInstance.init();
         return;
       default:

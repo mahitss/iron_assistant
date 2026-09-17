@@ -81,4 +81,42 @@ describe('SituationsView Component', () => {
     assert.strictEqual(view.selectedSituation.status, 'CONFIRMED');
     assert.strictEqual(view.selectedSituation.severity, 'HIGH');
   });
+
+  test('filters situations by state, severity, and search query', () => {
+    const view = new SituationsView('mock-container');
+    view.situations = [
+      { id: 'sit_1', title: 'Database latency spike', lifecycle_state: 'ACTIVE', severity: 'HIGH', summary: 'DB pool latency' },
+      { id: 'sit_2', title: 'Worker queue congestion', lifecycle_state: 'ESCALATING', severity: 'CRITICAL', summary: 'Queue backlog' },
+      { id: 'sit_3', title: 'Memory leak resolved', lifecycle_state: 'RESOLVED', severity: 'LOW', summary: 'Resolved leak' },
+    ];
+
+    // Filter by state
+    view.filterState = 'ACTIVE';
+    assert.strictEqual(view.getFilteredSituations().length, 1);
+    assert.strictEqual(view.getFilteredSituations()[0].id, 'sit_1');
+
+    // Filter by severity
+    view.filterState = 'ALL';
+    view.filterSeverity = 'CRITICAL';
+    assert.strictEqual(view.getFilteredSituations().length, 1);
+    assert.strictEqual(view.getFilteredSituations()[0].id, 'sit_2');
+
+    // Search query
+    view.filterSeverity = 'ALL';
+    view.searchQuery = 'pool';
+    assert.strictEqual(view.getFilteredSituations().length, 1);
+    assert.strictEqual(view.getFilteredSituations()[0].id, 'sit_1');
+  });
+
+  test('situationsApi exposes all Task 99 methods', () => {
+    assert.strictEqual(typeof situationsApi.getSignals, 'function');
+    assert.strictEqual(typeof situationsApi.getEvidence, 'function');
+    assert.strictEqual(typeof situationsApi.getInterventions, 'function');
+    assert.strictEqual(typeof situationsApi.suppress, 'function');
+    assert.strictEqual(typeof situationsApi.reopen, 'function');
+    assert.strictEqual(typeof situationsApi.refresh, 'function');
+    assert.strictEqual(typeof situationsApi.investigate, 'function');
+    assert.strictEqual(typeof situationsApi.getStats, 'function');
+    assert.strictEqual(typeof situationsApi.ingestSignal, 'function');
+  });
 });

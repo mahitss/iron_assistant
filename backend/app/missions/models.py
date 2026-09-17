@@ -1,4 +1,4 @@
-"""SQLAlchemy database models for Kairo Autonomous Goal Management & Self-Directed Mission Engine (Task 66)."""
+"""SQLAlchemy database models for Kairo Autonomous Goal Management & Mission Control (Task 66 & Task 100)."""
 
 from __future__ import annotations
 
@@ -48,28 +48,47 @@ class GoalModel(Base):
 
     __table_args__ = (
         Index("ix_mission_goals_tenant_status", "tenant_id", "status"),
-        Index("ix_mission_goals_origin", "origin"),
     )
 
 
 class MissionModel(Base):
-    """Persistent mission execution record."""
+    """Persistent mission execution record (Task 66 & Task 100)."""
 
     __tablename__ = "mission_records"
 
     mission_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     title: Mapped[str] = mapped_column(String(256), nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    objective: Mapped[str | None] = mapped_column(Text, nullable=True)
+    scope: Mapped[str] = mapped_column(String(64), default="SYSTEM", nullable=False)
     goal_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     authority_scope: Mapped[str] = mapped_column(String(64), default="EXECUTE_LOW_RISK", nullable=False)
+    autonomy_level: Mapped[str] = mapped_column(String(32), default="BOUNDED_AUTONOMY", nullable=False)
     status: Mapped[str] = mapped_column(String(64), default="DRAFT", nullable=False, index=True)
     health: Mapped[str] = mapped_column(String(64), default="ON_TRACK", nullable=False, index=True)
+    health_dimensions_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    strategic_importance: Mapped[float] = mapped_column(Float, default=0.5, nullable=False)
     active_plan_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     plan_versions_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     progress_pct: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    progress_confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    uncertainty: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    risk_summary_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    active_situations_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    active_decisions_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    active_actions_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    active_workflows_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    active_agents_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     budget_limits_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     budget_consumed_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    next_review_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    current_context_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     checkpoints_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     blockers_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
@@ -82,8 +101,133 @@ class MissionModel(Base):
 
     __table_args__ = (
         Index("ix_mission_records_tenant_status", "tenant_id", "status"),
-        Index("ix_mission_records_health", "health"),
     )
+
+
+class MissionObjectiveModel(Base):
+    """Persistent hierarchical objective tier (Task 100)."""
+
+    __tablename__ = "mission_objectives"
+
+    objective_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    mission_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    parent_objective_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="PENDING", nullable=False, index=True)
+    ordering: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    success_criteria_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    progress_pct: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now_utc, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now_utc, onupdate=_now_utc, nullable=False
+    )
+
+
+class MissionMilestoneModel(Base):
+    """Persistent evidence-backed milestone records (Task 100)."""
+
+    __tablename__ = "mission_milestones"
+
+    milestone_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    mission_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    objective_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(256), nullable=False)
+    description: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="PENDING", nullable=False, index=True)
+    ordering: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    dependencies_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    goal_linkage: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    success_criteria_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    verification_criteria_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    progress_pct: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    blocked_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    current_situation: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    current_decision: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    current_action: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    verification_evidence_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now_utc, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now_utc, onupdate=_now_utc, nullable=False
+    )
+
+
+class MissionAssumptionModel(Base):
+    """Persistent explicit mission assumption records (Task 100)."""
+
+    __tablename__ = "mission_assumptions"
+
+    assumption_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    mission_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="VALID", nullable=False, index=True)
+    dependent_milestones_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    dependent_plan_versions_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now_utc, nullable=False)
+    last_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    invalidation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class MissionDependencyModel(Base):
+    """Persistent mission dependency records (Task 100)."""
+
+    __tablename__ = "mission_dependencies"
+
+    dependency_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    mission_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(256), nullable=False)
+    dependency_type: Mapped[str] = mapped_column(String(32), default="INTERNAL", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="AVAILABLE", nullable=False, index=True)
+    details_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    blocking_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    escalation_ref: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now_utc, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_now_utc, onupdate=_now_utc, nullable=False
+    )
+
+
+class MissionPlanVersionModel(Base):
+    """Persistent immutable plan version history (Task 100)."""
+
+    __tablename__ = "mission_plan_versions"
+
+    version_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    mission_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    plan_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    version_number: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    triggering_situation_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    changed_assumptions_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    changed_milestones_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    superseded_plan_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    decisions_linked_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    plan_spec_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="ACTIVE", nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now_utc, nullable=False)
+
+
+class MissionReviewModel(Base):
+    """Persistent structured mission review records (Task 100)."""
+
+    __tablename__ = "mission_reviews"
+
+    review_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    mission_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    reviewer: Mapped[str] = mapped_column(String(128), default="system", nullable=False)
+    review_type: Mapped[str] = mapped_column(String(32), default="SCHEDULED", nullable=False, index=True)
+    health_dimensions_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    findings_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    recommendations_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    actions_taken_json: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now_utc, nullable=False)
 
 
 class MissionCheckpointModel(Base):

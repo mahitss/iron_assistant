@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "0024_multi_agent_collaboration"
-down_revision: str | None = "0023_adaptive_learning"
+down_revision: str | None = "0023_adaptive_learning_and_strategy_optimization"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

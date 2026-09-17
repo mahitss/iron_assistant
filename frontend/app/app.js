@@ -26,6 +26,9 @@ import { EnvironmentView } from '../components/environment/environmentView.js';
 import { SystemStateView } from '../components/system_state/systemStateView.js';
 import { DecisionIntelligenceView } from '../components/decision/decisionIntelligenceView.js';
 import { ExecutionGovernanceView } from '../components/execution/executionGovernanceView.js';
+import { SwarmOrchestrationView } from '../components/swarm/swarmOrchestrationView.js';
+import { GraphReasoningView } from '../components/knowledge_graph/graphReasoningView.js';
+import { WorldStateReconciliationView } from '../components/world_state/worldStateReconciliationView.js';
 import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
@@ -203,6 +206,21 @@ export class KairoApp {
       case 'execution':
       case 'execution-governance':
         this.currentViewInstance = new ExecutionGovernanceView({ container: viewport });
+        break;
+      case 'swarm':
+      case 'swarm-orchestration':
+      case 'agents':
+        this.currentViewInstance = new SwarmOrchestrationView({ container: viewport });
+        break;
+      case 'graph-reasoning':
+      case 'knowledge-graph':
+      case 'graph':
+        this.currentViewInstance = new GraphReasoningView({ container: viewport });
+        break;
+      case 'world-state':
+      case 'state-reconciliation':
+      case 'drift':
+        this.currentViewInstance = new WorldStateReconciliationView({ container: viewport });
         break;
       default:
         this.currentViewInstance = new HomeView(viewport);

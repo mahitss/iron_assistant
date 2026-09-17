@@ -53,13 +53,37 @@ from app.swarm.schemas import (
 from app.swarm.selection import AgentSelector
 from app.swarm.service import SwarmService, swarm_service
 from app.swarm.synthesis import CollectiveSynthesizer
+from app.swarm.orchestration_domain import (
+    AgentIdentity,
+    AgentLifecycleState,
+    AgentRole,
+    AgentTask,
+    AgentMessage,
+    MessageType,
+    ValidationStatus,
+    StallState,
+)
+from app.swarm.blackboard import BoundedBlackboard
+from app.swarm.supervision import SwarmSupervisionEngine
+from app.swarm.orchestration_service import (
+    SwarmOrchestrationService,
+    get_swarm_orchestration_service,
+    swarm_orchestration_service,
+)
+from app.swarm.orchestration_router import agents_router, swarms_router
 
 __all__ = [
     "AgentAssertion",
     "AgentHealthState",
+    "AgentIdentity",
+    "AgentLifecycleState",
+    "AgentMessage",
+    "AgentRole",
+    "AgentTask",
     "AgentResult",
     "AgentSelector",
     "AuditRecord",
+    "BoundedBlackboard",
     "CollectiveObjective",
     "CollectiveResult",
     "CollectiveSynthesizer",
@@ -79,15 +103,18 @@ __all__ = [
     "EvidenceStrength",
     "FailureRecoveryManager",
     "IndependentAnalysisCoordinator",
+    "MessageType",
     "MinorityReport",
     "PeerReview",
     "PeerReviewEngine",
+    "StallState",
     "SwarmActionRequest",
     "SwarmAgentRegistry",
     "SwarmAgentSpec",
     "SwarmAuditor",
     "SwarmCreateRequest",
     "SwarmExecutionBoundaryError",
+    "SwarmOrchestrationService",
     "SwarmPrivacyManager",
     "SwarmReasoningEngine",
     "SwarmSafetyError",
@@ -95,12 +122,16 @@ __all__ = [
     "SwarmSession",
     "SwarmSpawnLimitExceededError",
     "SwarmStatus",
+    "SwarmSupervisionEngine",
     "SwarmTaskNode",
     "SwarmTopology",
     "TaskDAG",
     "TaskDecomposer",
     "TaskStatus",
+    "ValidationStatus",
+    "agents_router",
     "block_direct_swarm_action",
+    "get_swarm_orchestration_service",
     "router",
     "sanitize_agent_message",
     "sanitize_swarm_directive",
@@ -110,4 +141,5 @@ __all__ = [
     "swarm_engine",
     "swarm_privacy_manager",
     "swarm_service",
+    "swarms_router",
 ]

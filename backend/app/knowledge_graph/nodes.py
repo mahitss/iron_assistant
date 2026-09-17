@@ -118,3 +118,37 @@ class NodeManager:
                 self._name_index.pop(a.lower(), None)
             return True
         return False
+
+    def clear(self) -> None:
+        self._nodes.clear()
+        self._name_index.clear()
+
+    def pop(self, node_id: str, default: Any = None) -> Any:
+        node = self._nodes.get(node_id)
+        if self.delete_node(node_id):
+            return node
+        return default
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._nodes
+
+    def __getitem__(self, key: str) -> KnowledgeNodeSchema:
+        return self._nodes[key]
+
+    def __iter__(self):
+        return iter(self._nodes)
+
+    def __len__(self) -> int:
+        return len(self._nodes)
+
+    def values(self):
+        return self._nodes.values()
+
+    def keys(self):
+        return self._nodes.keys()
+
+    def items(self):
+        return self._nodes.items()
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._nodes.get(key, default)

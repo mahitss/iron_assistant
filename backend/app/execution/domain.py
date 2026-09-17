@@ -196,6 +196,10 @@ class TargetBinding(BaseModel):
     environment: str = "development"
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+    @property
+    def resource_id(self) -> str:
+        return self.target_id
+
 
 class PreflightCheckResult(BaseModel):
     """Individual gate check result within the 18-point pre-flight matrix (Phase 3)."""

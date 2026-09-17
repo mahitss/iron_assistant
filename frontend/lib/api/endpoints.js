@@ -2399,6 +2399,43 @@ export const Endpoints = {
     return api.get(`/api/v1/situations/audit/trail${q}`);
   },
 
+  // --- Task 99: Autonomous Situation Awareness, Signal Fusion & Proactive Orchestrator ---
+  async ingestSignal(payload) {
+    return api.post('/api/situations/signals', payload);
+  },
+
+  async getSituationSignals(situationId) {
+    return api.get(`/api/situations/${encodeURIComponent(situationId)}/signals`);
+  },
+
+  async getSituationEvidence(situationId) {
+    return api.get(`/api/situations/${encodeURIComponent(situationId)}/evidence`);
+  },
+
+  async getSituationInterventions(situationId) {
+    return api.get(`/api/situations/${encodeURIComponent(situationId)}/interventions`);
+  },
+
+  async suppressSituation(situationId, payload) {
+    return api.post(`/api/situations/${encodeURIComponent(situationId)}/suppress`, payload);
+  },
+
+  async reopenSituation(situationId, payload) {
+    return api.post(`/api/situations/${encodeURIComponent(situationId)}/reopen`, payload);
+  },
+
+  async refreshSituation(situationId) {
+    return api.post(`/api/situations/${encodeURIComponent(situationId)}/refresh`);
+  },
+
+  async investigateSituation(situationId, payload) {
+    return api.post(`/api/situations/${encodeURIComponent(situationId)}/investigate`, payload);
+  },
+
+  async getSituationStats() {
+    return api.get('/api/situations/stats');
+  },
+
   // --- Task 61: Incident Response & Recovery Autonomy Engine ---
   async createIncidentFromSituation(payload) {
     return api.post('/api/v1/incidents/from-situation', payload);
@@ -2871,6 +2908,47 @@ export const Endpoints = {
 
   async verifyMission(missionId, telemetry = {}, tenantId = 'default') {
     return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/verify?tenant_id=${encodeURIComponent(tenantId)}`, telemetry);
+  },
+
+  // --- Task 100: Autonomous Mission Control, Long-Horizon Execution & Continuous Objective Orchestration ---
+  async getMissionMilestones(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/milestones?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async createMissionMilestone(missionId, payload, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/milestones?tenant_id=${encodeURIComponent(tenantId)}`, payload);
+  },
+
+  async verifyMissionMilestone(missionId, milestoneId, payload, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/milestones/${encodeURIComponent(milestoneId)}/verify?tenant_id=${encodeURIComponent(tenantId)}`, payload);
+  },
+
+  async getMissionAssumptions(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/assumptions?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async createMissionAssumption(missionId, payload, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/assumptions?tenant_id=${encodeURIComponent(tenantId)}`, payload);
+  },
+
+  async getMissionHealthDetailed(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/health?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async getMissionCheckpoints(missionId, tenantId = 'default') {
+    return api.get(`/api/v1/missions/${encodeURIComponent(missionId)}/checkpoints?tenant_id=${encodeURIComponent(tenantId)}`);
+  },
+
+  async createMissionCheckpoint(missionId, payload = {}, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/checkpoints?tenant_id=${encodeURIComponent(tenantId)}`, payload);
+  },
+
+  async recordMissionReview(missionId, payload, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/reviews?tenant_id=${encodeURIComponent(tenantId)}`, payload);
+  },
+
+  async runMissionOrchestration(missionId, payload = {}, tenantId = 'default') {
+    return api.post(`/api/v1/missions/${encodeURIComponent(missionId)}/orchestrate?tenant_id=${encodeURIComponent(tenantId)}`, payload);
   },
 
   // --- Task 67: Metacognitive Control & Autonomous Self-Audit Engine ---
@@ -3632,6 +3710,16 @@ export const situationsApi = {
   getAttentionFeed: () => Endpoints.getAttentionFeed(),
   getBaselines: (env) => Endpoints.listSignalBaselines(env),
   getAudit: (id, limit) => Endpoints.getSituationAudit(id, limit),
+  // Task 99 extensions
+  getSignals: (id) => Endpoints.getSituationSignals(id),
+  getEvidence: (id) => Endpoints.getSituationEvidence(id),
+  getInterventions: (id) => Endpoints.getSituationInterventions(id),
+  suppress: (id, payload) => Endpoints.suppressSituation(id, payload),
+  reopen: (id, payload) => Endpoints.reopenSituation(id, payload),
+  refresh: (id) => Endpoints.refreshSituation(id),
+  investigate: (id, payload) => Endpoints.investigateSituation(id, payload),
+  getStats: () => Endpoints.getSituationStats(),
+  ingestSignal: (payload) => Endpoints.ingestSignal(payload),
 };
 
 export const incidentsApi = {
@@ -3767,6 +3855,17 @@ export const missionsApi = {
   getRisks: (id, tenantId) => Endpoints.getMissionRisks(id, tenantId),
   reassess: (id, tenantId) => Endpoints.reassessMission(id, tenantId),
   verify: (id, telemetry, tenantId) => Endpoints.verifyMission(id, telemetry, tenantId),
+  // Task 100 extensions
+  getMilestones: (id, tenantId) => Endpoints.getMissionMilestones(id, tenantId),
+  createMilestone: (id, payload, tenantId) => Endpoints.createMissionMilestone(id, payload, tenantId),
+  verifyMilestone: (id, milestoneId, payload, tenantId) => Endpoints.verifyMissionMilestone(id, milestoneId, payload, tenantId),
+  getAssumptions: (id, tenantId) => Endpoints.getMissionAssumptions(id, tenantId),
+  createAssumption: (id, payload, tenantId) => Endpoints.createMissionAssumption(id, payload, tenantId),
+  getHealthDetailed: (id, tenantId) => Endpoints.getMissionHealthDetailed(id, tenantId),
+  getCheckpoints: (id, tenantId) => Endpoints.getMissionCheckpoints(id, tenantId),
+  createCheckpoint: (id, payload, tenantId) => Endpoints.createMissionCheckpoint(id, payload, tenantId),
+  recordReview: (id, payload, tenantId) => Endpoints.recordMissionReview(id, payload, tenantId),
+  runOrchestration: (id, payload, tenantId) => Endpoints.runMissionOrchestration(id, payload, tenantId),
 };
 
 export const missionControlApi = missionsApi;
@@ -4176,4 +4275,26 @@ export const systemStateApi = {
   getTask: (taskId) => api.get(`/api/v1/system-state/tasks/${encodeURIComponent(taskId)}`),
 };
 
+// Task 98: Autonomous World-State Reconstruction, State Estimation, Reality Synchronization & Drift Reconciliation API
+export const worldStateApi = {
+  getCurrentState: (scope = 'SYSTEM') => api.get(`/api/v1/state/current?scope=${encodeURIComponent(scope)}`),
+  getScopeEntities: (scope = 'SYSTEM') => api.get(`/api/v1/state/${encodeURIComponent(scope)}`),
+  getEntity: (scope, entityId) => api.get(`/api/v1/state/${encodeURIComponent(scope)}/${encodeURIComponent(entityId)}`),
+  getEntityHistory: (scope, entityId, limit = 50) => api.get(`/api/v1/state/${encodeURIComponent(scope)}/${encodeURIComponent(entityId)}/history?limit=${limit}`),
+  getObservations: (scope = 'SYSTEM', limit = 100) => api.get(`/api/v1/state/${encodeURIComponent(scope)}/observations?limit=${limit}`),
+  ingestObservation: (data) => api.post('/api/v1/state/observations', data),
+  getDrifts: (scope = 'SYSTEM', status = null) => api.get(`/api/v1/state/${encodeURIComponent(scope)}/drift${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+  getDriftDetail: (driftId) => api.get(`/api/v1/drift/${encodeURIComponent(driftId)}`),
+  getDriftAnalysis: (driftId) => api.get(`/api/v1/drift/${encodeURIComponent(driftId)}/analysis`),
+  getConflicts: (scope = 'SYSTEM') => api.get(`/api/v1/state/${encodeURIComponent(scope)}/conflicts`),
+  auditFreshnessAndInvariants: () => api.post('/api/v1/state/audit'),
+  getSnapshots: (limit = 20) => api.get(`/api/v1/state/snapshots?limit=${limit}`),
+  createSnapshot: (data = {}) => api.post('/api/v1/state/snapshots', data),
+  getDiff: (fromSnapshotId, toSnapshotId) => api.get(`/api/v1/state/diff?from_snapshot=${encodeURIComponent(fromSnapshotId)}&to_snapshot=${encodeURIComponent(toSnapshotId)}`),
+  reconstructHistoricalState: (targetTimestamp, scope = null) => api.post('/api/v1/state/reconstruct', { target_timestamp: targetTimestamp, scope }),
+  reconcile: (scope = 'SYSTEM', trigger = 'manual') => api.post(`/api/v1/state/reconcile?scope=${encodeURIComponent(scope)}&trigger=${encodeURIComponent(trigger)}`),
+  getRevalidations: (status = null) => api.get(`/api/v1/state/revalidations${status ? `?status=${encodeURIComponent(status)}` : ''}`),
+};
+
 export const endpoints = Endpoints;
+

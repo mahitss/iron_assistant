@@ -32,6 +32,17 @@ describe('Autonomous Goal Management & Mission Engine Endpoints (Task 66)', () =
     assert.strictEqual(typeof endpoints.getMissionRisks, 'function');
     assert.strictEqual(typeof endpoints.reassessMission, 'function');
     assert.strictEqual(typeof endpoints.verifyMission, 'function');
+    // Task 100 endpoints
+    assert.strictEqual(typeof endpoints.getMissionMilestones, 'function');
+    assert.strictEqual(typeof endpoints.createMissionMilestone, 'function');
+    assert.strictEqual(typeof endpoints.verifyMissionMilestone, 'function');
+    assert.strictEqual(typeof endpoints.getMissionAssumptions, 'function');
+    assert.strictEqual(typeof endpoints.createMissionAssumption, 'function');
+    assert.strictEqual(typeof endpoints.getMissionHealthDetailed, 'function');
+    assert.strictEqual(typeof endpoints.getMissionCheckpoints, 'function');
+    assert.strictEqual(typeof endpoints.createMissionCheckpoint, 'function');
+    assert.strictEqual(typeof endpoints.recordMissionReview, 'function');
+    assert.strictEqual(typeof endpoints.runMissionOrchestration, 'function');
   });
 
   test('missionsApi and missionControlApi wrappers expose mapped methods', () => {
@@ -58,13 +69,24 @@ describe('Autonomous Goal Management & Mission Engine Endpoints (Task 66)', () =
     assert.strictEqual(typeof missionsApi.getRisks, 'function');
     assert.strictEqual(typeof missionsApi.reassess, 'function');
     assert.strictEqual(typeof missionsApi.verify, 'function');
+    // Task 100 wrappers
+    assert.strictEqual(typeof missionsApi.getMilestones, 'function');
+    assert.strictEqual(typeof missionsApi.createMilestone, 'function');
+    assert.strictEqual(typeof missionsApi.verifyMilestone, 'function');
+    assert.strictEqual(typeof missionsApi.getAssumptions, 'function');
+    assert.strictEqual(typeof missionsApi.createAssumption, 'function');
+    assert.strictEqual(typeof missionsApi.getHealthDetailed, 'function');
+    assert.strictEqual(typeof missionsApi.getCheckpoints, 'function');
+    assert.strictEqual(typeof missionsApi.createCheckpoint, 'function');
+    assert.strictEqual(typeof missionsApi.recordReview, 'function');
+    assert.strictEqual(typeof missionsApi.runOrchestration, 'function');
 
     // Alias equality
     assert.strictEqual(missionControlApi, missionsApi);
   });
 });
 
-describe('MissionControlView Component (Task 66)', () => {
+describe('MissionControlView Component (Task 66 & Task 100)', () => {
   test('initializes with active_missions tab and default state', () => {
     const view = new MissionControlView(null);
     assert.strictEqual(view.activeTab, 'active_missions');
@@ -90,6 +112,13 @@ describe('MissionControlView Component (Task 66)', () => {
     assert.strictEqual(view.activeTab, 'supervisory_loop');
     view.setTab('audit_provenance');
     assert.strictEqual(view.activeTab, 'audit_provenance');
+    // Task 100 tabs
+    view.setTab('health_dimensions');
+    assert.strictEqual(view.activeTab, 'health_dimensions');
+    view.setTab('assumptions_dependencies');
+    assert.strictEqual(view.activeTab, 'assumptions_dependencies');
+    view.setTab('checkpoints_handoff');
+    assert.strictEqual(view.activeTab, 'checkpoints_handoff');
   });
 
   test('selectMission assigns object directly when provided', async () => {

@@ -219,7 +219,7 @@ impl ReplayGuard {
         }
     }
 
-    /// Clear entries for clean session restart.
+    
     pub async fn clear(&self) {
         let mut entries = self.entries.write().await;
         let mut order = self.order.write().await;

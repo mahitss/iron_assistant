@@ -74,6 +74,24 @@ from app.knowledge_graph.schemas import (
     ScopeType,
     SkillConfidence,
     TemporalState,
+    CertaintyLevel,
+    ProvenanceClassification,
+    GraphProvenanceSchema,
+    GraphQueryType,
+    ConflictResolutionState,
+    GraphTraversalLimits,
+    GraphQueryRequest,
+    ImpactAnalysisResult,
+    LineageReconstructionResult,
+    GraphSnapshot,
+    GraphDiffResult,
+    InferenceRuleRecord,
+    ConflictRecord,
+)
+from app.knowledge_graph.reasoning_engine import (
+    GraphReasoningEngine,
+    get_graph_reasoning_engine,
+    graph_reasoning_engine,
 )
 from app.knowledge_graph.service import KnowledgeGraphService
 from app.knowledge_graph.summarization import GraphSummarizer
@@ -82,6 +100,22 @@ from app.knowledge_graph.temporal import TemporalMemoryEngine
 from app.knowledge_graph.versions import VersionManager
 
 __all__ = [
+    "GraphReasoningEngine",
+    "get_graph_reasoning_engine",
+    "graph_reasoning_engine",
+    "CertaintyLevel",
+    "ProvenanceClassification",
+    "GraphProvenanceSchema",
+    "GraphQueryType",
+    "ConflictResolutionState",
+    "GraphTraversalLimits",
+    "GraphQueryRequest",
+    "ImpactAnalysisResult",
+    "LineageReconstructionResult",
+    "GraphSnapshot",
+    "GraphDiffResult",
+    "InferenceRuleRecord",
+    "ConflictRecord",
     "KnowledgeGraphService",
     "knowledge_graph_router",
     "KnowledgeGraph",

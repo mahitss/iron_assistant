@@ -80,7 +80,10 @@ from app.research.router import router as research_router
 from app.resilience.router import recovery_router, router as resilience_router
 from app.self_audit.router import router as self_audit_router
 from app.simulation.router import router as simulation_router
-from app.situational_awareness.router import router as situations_router
+from app.situational_awareness.router import (
+    router as situations_router,
+    v1_router as situations_v1_router,
+)
 from app.state.router import router as state_router
 from app.swarm.router import router as swarm_router
 from app.verification.router import router as verification_router
@@ -90,6 +93,9 @@ from app.reliability_intelligence import reliability_intelligence_router
 from app.capability_lifecycle import capability_lifecycle_router
 from app.system_state.router import router as system_state_router
 from app.execution import execution_router
+from app.swarm.orchestration_router import agents_router, swarms_router
+from app.knowledge_graph.router import router as graph_router
+from app.world_state.router import router as world_state_router
 
 logger = logging.getLogger("kairo.main")
 
@@ -206,6 +212,7 @@ def create_app() -> FastAPI:
     app.include_router(planning_router)
     app.include_router(orchestration_router)
     app.include_router(situations_router)
+    app.include_router(situations_v1_router)
     app.include_router(incidents_router)
     app.include_router(optimization_router)
     app.include_router(research_router)
@@ -228,6 +235,14 @@ def create_app() -> FastAPI:
     app.include_router(system_state_router)
     app.include_router(execution_router, prefix=settings.API_V1_STR)
     app.include_router(execution_router)
+    app.include_router(swarms_router, prefix=settings.API_V1_STR)
+    app.include_router(swarms_router)
+    app.include_router(agents_router, prefix=settings.API_V1_STR)
+    app.include_router(agents_router)
+    app.include_router(graph_router, prefix=settings.API_V1_STR)
+    app.include_router(graph_router)
+    app.include_router(world_state_router, prefix=settings.API_V1_STR)
+    app.include_router(world_state_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

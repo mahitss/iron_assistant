@@ -149,3 +149,36 @@ class ContradictionModel(Base):
     resolution_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="DETECTED", nullable=False)
     user_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+
+
+class GraphSnapshotModel(Base):
+    """Immutable point-in-time reference snapshot of graph state (Task 97 Phase 32)."""
+
+    __tablename__ = "kg_snapshots"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=generate_uuid)
+    snapshot_type: Mapped[str] = mapped_column(String(32), default="CURRENT", nullable=False)
+    node_count: Mapped[int] = mapped_column(default=0, nullable=False)
+    edge_count: Mapped[int] = mapped_column(default=0, nullable=False)
+    node_ids_json: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    edge_ids_json: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), default="default_user", nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class ConflictRecordModel(Base):
+    """Explicit contradiction edge and dialectic resolution record (Task 97 Phase 22)."""
+
+    __tablename__ = "kg_conflict_records"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=generate_uuid)
+    source_node_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    target_node_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    conflict_type: Mapped[str] = mapped_column(String(64), default="DIRECT_CONTRADICTION", nullable=False)
+    resolution_state: Mapped[str] = mapped_column(String(32), default="UNRESOLVED", nullable=False)
+    evidence_refs_json: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    resolution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user_id: Mapped[str] = mapped_column(String(64), default="default_user", nullable=False, index=True)
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

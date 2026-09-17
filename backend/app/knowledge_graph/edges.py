@@ -14,7 +14,7 @@ from app.knowledge_graph.schemas import (
 )
 
 
-class EdgeIntegrityError(Exception):
+class EdgeIntegrityError(ValueError):
     """Raised when an edge violates referential, temporal, or scope integrity."""
     pass
 
@@ -107,3 +107,38 @@ class EdgeManager:
                 self._in_edges[edge.target_node_id].discard(edge_id)
             return True
         return False
+
+    def clear(self) -> None:
+        self._edges.clear()
+        self._out_edges.clear()
+        self._in_edges.clear()
+
+    def pop(self, edge_id: str, default: Any = None) -> Any:
+        edge = self._edges.get(edge_id)
+        if self.delete_edge(edge_id):
+            return edge
+        return default
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._edges
+
+    def __getitem__(self, key: str) -> KnowledgeEdgeSchema:
+        return self._edges[key]
+
+    def __iter__(self):
+        return iter(self._edges)
+
+    def __len__(self) -> int:
+        return len(self._edges)
+
+    def values(self):
+        return self._edges.values()
+
+    def keys(self):
+        return self._edges.keys()
+
+    def items(self):
+        return self._edges.items()
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._edges.get(key, default)

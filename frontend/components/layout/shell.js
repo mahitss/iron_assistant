@@ -165,6 +165,18 @@ export class AppShell {
                 <span class="nav-icon">⚡</span>
                 <span class="nav-text">Execution Governance</span>
               </button>
+              <button class="nav-item ${['swarm', 'swarm-orchestration'].includes(state.currentView) ? 'active' : ''}" onclick="window.kairoApp.navigateTo('swarm')">
+                <span class="nav-icon">🐝</span>
+                <span class="nav-text">Swarm Orchestration</span>
+              </button>
+              <button class="nav-item ${['graph-reasoning', 'knowledge-graph', 'graph'].includes(state.currentView) ? 'active' : ''}" onclick="window.kairoApp.navigateTo('graph-reasoning')">
+                <span class="nav-icon">🕸️</span>
+                <span class="nav-text">Graph Reasoning</span>
+              </button>
+              <button class="nav-item ${['world-state', 'state-reconciliation', 'drift'].includes(state.currentView) ? 'active' : ''}" onclick="window.kairoApp.navigateTo('world-state')">
+                <span class="nav-icon">🌐</span>
+                <span class="nav-text">World State & Drift</span>
+              </button>
               <button class="nav-item ${state.currentView === 'evaluation' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('evaluation')">
                 <span class="nav-icon">🧪</span>
                 <span class="nav-text">Evaluation</span>

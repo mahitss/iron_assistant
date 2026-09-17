@@ -102,3 +102,74 @@ def verify_replay_safety(is_replay: bool, environment: str) -> bool:
             "Replay Safety Violation: Historical event replay is strictly prohibited in production environment."
         )
     return True
+
+
+from dataclasses import dataclass
+import time
+
+
+@dataclass
+class AdmissionDecision:
+    admitted: bool
+    reason: str
+    backpressure_active: bool = False
+
+
+class SituationStormProtector:
+    """Bounded storm protection and backpressure manager for high-frequency signal bursts (Section 32)."""
+
+    def __init__(
+        self,
+        max_active_situations: int = 100,
+        max_signals_per_second: int = 500,
+        storm_burst_threshold: int = 1000,
+        cooldown_window_seconds: float = 60.0,
+    ) -> None:
+        self.max_active_situations = max_active_situations
+        self.max_signals_per_second = max_signals_per_second
+        self.storm_burst_threshold = storm_burst_threshold
+        self.cooldown_window_seconds = cooldown_window_seconds
+        self._signal_timestamps: list[float] = []
+        self._storm_mode_active = False
+
+    def is_storm_active(self) -> bool:
+        return self._storm_mode_active
+
+    def check_ingest_rate_limit(self, current_time: float) -> tuple[bool, str]:
+        """Sliding window rate limit check. Returns (allowed, reason)."""
+        # Trim timestamps older than 1 second
+        one_sec_ago = current_time - 1.0
+        self._signal_timestamps = [t for t in self._signal_timestamps if t >= one_sec_ago]
+
+        if len(self._signal_timestamps) >= self.storm_burst_threshold:
+            self._storm_mode_active = True
+            return False, f"Signal storm detected ({len(self._signal_timestamps)} sig/s). Ingestion backpressure triggered."
+
+        if len(self._signal_timestamps) >= self.max_signals_per_second:
+            return False, f"Ingestion rate limit exceeded ({self.max_signals_per_second} sig/s)."
+
+        self._signal_timestamps.append(current_time)
+        self._storm_mode_active = False
+        return True, "Rate limit nominal."
+
+    def check_situation_capacity(self, current_active_count: int) -> tuple[bool, str]:
+        """Guards against unbounded situation proliferation under noisy environments."""
+        if current_active_count >= self.max_active_situations:
+            return False, f"Maximum active situations capacity reached ({self.max_active_situations}). New situation formation queued/suppressed."
+        return True, "Capacity available."
+
+    def check_signal_admission(self, source_type: str, current_active_situations: int) -> AdmissionDecision:
+        """Evaluate storm rate limit and situation capacity before admitting signal."""
+        now_ts = time.time()
+        allowed, reason = self.check_ingest_rate_limit(now_ts)
+        if not allowed:
+            return AdmissionDecision(admitted=False, reason=reason, backpressure_active=self.is_storm_active())
+        cap_allowed, cap_reason = self.check_situation_capacity(current_active_situations)
+        if not cap_allowed:
+            return AdmissionDecision(admitted=False, reason=cap_reason, backpressure_active=True)
+        return AdmissionDecision(admitted=True, reason="Admitted", backpressure_active=False)
+
+
+# Global storm protector singleton
+storm_protector = SituationStormProtector()
+

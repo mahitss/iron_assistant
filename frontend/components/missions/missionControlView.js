@@ -92,6 +92,15 @@ export class MissionControlView {
         this.selectedMission = await missionsApi.executeSupervisoryCycle(missionId);
       } else if (action === 'complete') {
         this.selectedMission = await missionsApi.completeMission(missionId);
+      } else if (action === 'orchestrate') {
+        const res = await missionsApi.runOrchestration(missionId);
+        if (res.emergency_stopped) {
+          alert('Autonomous loop stopped: Emergency Stop is ACTIVE.');
+        }
+      } else if (action === 'checkpoint') {
+        await missionsApi.createCheckpoint(missionId, { label: 'Manual Checkpoint from Web UI', generate_handoff_manifest: true });
+      } else if (action === 'reassess') {
+        await missionsApi.reassess(missionId);
       } else if (action === 'verifyAudit') {
         this.auditVerification = await missionsApi.verifyAuditChain();
       }
@@ -190,10 +199,12 @@ export class MissionControlView {
           <!-- Mission Command Controls -->
           <div class="flex items-center gap-2">
             <button id="btn-start" class="px-3 py-1.5 rounded-lg bg-emerald-600/80 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg transition-all" ${!m || m.status === 'RUNNING' || m.status === 'COMPLETED' ? 'disabled opacity-40 cursor-not-allowed' : ''}>Start</button>
-            <button id="btn-cycle" class="px-3 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-500 text-white text-xs font-semibold shadow-lg transition-all" ${!m || m.status !== 'RUNNING' ? 'disabled opacity-40 cursor-not-allowed' : ''}>Supervisor Cycle</button>
+            <button id="btn-orchestrate" class="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg transition-all" ${!m ? 'disabled opacity-40 cursor-not-allowed' : ''}>Loop Cycle</button>
+            <button id="btn-cycle" class="px-3 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-500 text-white text-xs font-semibold shadow-lg transition-all" ${!m || m.status !== 'RUNNING' ? 'disabled opacity-40 cursor-not-allowed' : ''}>Supervisor</button>
             <button id="btn-pause" class="px-3 py-1.5 rounded-lg bg-amber-600/80 hover:bg-amber-500 text-white text-xs font-semibold shadow-lg transition-all" ${!m || m.status !== 'RUNNING' ? 'disabled opacity-40 cursor-not-allowed' : ''}>Pause</button>
             <button id="btn-resume" class="px-3 py-1.5 rounded-lg bg-blue-600/80 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg transition-all" ${!m || m.status !== 'PAUSED' ? 'disabled opacity-40 cursor-not-allowed' : ''}>Resume</button>
-            <button id="btn-replan" class="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg transition-all" ${!m ? 'disabled opacity-40 cursor-not-allowed' : ''}>Replan</button>
+            <button id="btn-checkpoint" class="px-3 py-1.5 rounded-lg bg-teal-600/80 hover:bg-teal-500 text-white text-xs font-semibold shadow-lg transition-all" ${!m ? 'disabled opacity-40 cursor-not-allowed' : ''}>Checkpoint</button>
+            <button id="btn-replan" class="px-3 py-1.5 rounded-lg bg-indigo-700/80 hover:bg-indigo-600 text-white text-xs font-semibold shadow-lg transition-all" ${!m ? 'disabled opacity-40 cursor-not-allowed' : ''}>Replan</button>
             <button id="btn-complete" class="px-3 py-1.5 rounded-lg bg-purple-600/80 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg transition-all" ${!m ? 'disabled opacity-40 cursor-not-allowed' : ''}>Complete</button>
             <button id="btn-cancel" class="px-3 py-1.5 rounded-lg bg-rose-700/80 hover:bg-rose-600 text-white text-xs font-semibold shadow-lg transition-all" ${!m || m.status === 'CANCELLED' || m.status === 'COMPLETED' ? 'disabled opacity-40 cursor-not-allowed' : ''}>Cancel</button>
           </div>
@@ -205,6 +216,9 @@ export class MissionControlView {
             { id: 'active_missions', label: 'Active Missions', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
             { id: 'goal_hierarchy', label: 'Goal DAG & Hierarchy', icon: 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4' },
             { id: 'milestone_verification', label: 'Milestone Verification', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
+            { id: 'health_dimensions', label: '10D Health Matrix', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+            { id: 'assumptions_dependencies', label: 'Assumptions & DAG', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+            { id: 'checkpoints_handoff', label: 'Checkpoints & Handoff', icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2' },
             { id: 'drift_goodhart', label: 'Drift & Goodhart Monitor', icon: 'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6' },
             { id: 'blockers_escalation', label: 'Blockers & Escalations', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z' },
             { id: 'supervisory_loop', label: 'Supervisory Cycle', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' },
@@ -246,6 +260,12 @@ export class MissionControlView {
         return this.renderGoalHierarchyTab();
       case 'milestone_verification':
         return this.renderMilestonesTab();
+      case 'health_dimensions':
+        return this.renderHealthDimensionsTab();
+      case 'assumptions_dependencies':
+        return this.renderAssumptionsTab();
+      case 'checkpoints_handoff':
+        return this.renderCheckpointsTab();
       case 'drift_goodhart':
         return this.renderDriftTab();
       case 'blockers_escalation':
@@ -403,6 +423,158 @@ export class MissionControlView {
               </div>
             </div>
           `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  renderHealthDimensionsTab() {
+    const m = this.selectedMission;
+    const dims = m.health_dimensions || {};
+    const dimKeys = [
+      'objective_drift', 'assumption_validity', 'milestone_progress_velocity',
+      'failure_rate', 'dependency_blockage', 'budget_burn_vs_progress',
+      'plan_staleness', 'risk_exposure', 'verification_lag', 'agent_cohesion'
+    ];
+    return `
+      <div class="space-y-6">
+        <div class="p-5 rounded-xl bg-slate-900/50 border border-white/10">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-cyan-400">10-Dimensional Health Matrix</h3>
+              <p class="text-xs text-slate-400">Deterministic continuous health evaluation across 10 empirical axes.</p>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-mono font-bold ${m.health === 'ON_TRACK' ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40' : 'bg-rose-950/80 text-rose-400 border border-rose-500/40'}">
+              ${m.health}
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${dimKeys.map(k => {
+              const val = typeof dims[k] === 'number' ? dims[k] : 1.0;
+              const pct = Math.round(val * 100);
+              const isHealthy = val >= 0.7;
+              const color = isHealthy ? 'from-emerald-500 to-teal-400' : val >= 0.4 ? 'from-amber-500 to-yellow-400' : 'from-rose-500 to-red-400';
+              return `
+                <div class="p-3.5 rounded-xl bg-slate-950/60 border border-white/5 space-y-2">
+                  <div class="flex justify-between text-xs font-mono">
+                    <span class="text-slate-300 font-semibold">${k.replace(/_/g, ' ').toUpperCase()}</span>
+                    <span class="${isHealthy ? 'text-emerald-400' : 'text-amber-400'}">${val.toFixed(2)} (${pct}%)</span>
+                  </div>
+                  <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div class="bg-gradient-to-r ${color} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderAssumptionsTab() {
+    const m = this.selectedMission;
+    const assumptions = m.assumptions || [];
+    const deps = m.dependencies || [];
+    return `
+      <div class="space-y-6">
+        <div class="p-5 rounded-xl bg-slate-900/50 border border-white/10 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-cyan-400">Tracked Operational Assumptions (${assumptions.length})</h3>
+            <button id="btn-reassess" class="px-3 py-1 rounded-lg bg-cyan-600/80 hover:bg-cyan-500 text-white text-xs font-semibold shadow">
+              Reassess Against World Model
+            </button>
+          </div>
+          <div class="space-y-2.5">
+            ${assumptions.length === 0 ? `
+              <div class="p-6 text-center text-slate-500 bg-slate-950/40 rounded-xl border border-white/5 text-xs">
+                No operational assumptions tracked.
+              </div>
+            ` : assumptions.map(a => `
+              <div class="p-3.5 rounded-xl bg-slate-950/60 border border-white/5 flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${a.status === 'VALID' ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-500/30' : 'bg-rose-950/60 text-rose-400 border border-rose-500/30'}">
+                      ${a.status}
+                    </span>
+                    <h4 class="text-xs font-bold text-white">${a.statement}</h4>
+                  </div>
+                  <p class="text-[11px] text-slate-400">Source: ${a.source || 'empirical'} | Checked: ${a.last_checked_at || 'Never'}</p>
+                </div>
+                <div class="text-right text-xs font-mono">
+                  <span class="text-cyan-300">Validity: ${((a.validity_score || 1.0) * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="p-5 rounded-xl bg-slate-900/50 border border-white/10 space-y-4">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-cyan-400">Mission Dependencies (${deps.length})</h3>
+          <div class="space-y-2.5">
+            ${deps.length === 0 ? `
+              <div class="p-6 text-center text-slate-500 bg-slate-950/40 rounded-xl border border-white/5 text-xs">
+                No external cross-mission dependencies registered.
+              </div>
+            ` : deps.map(d => `
+              <div class="p-3.5 rounded-xl bg-slate-950/60 border border-white/5 flex items-center justify-between">
+                <div>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">${d.dependency_type}</span>
+                  <h4 class="text-xs font-bold text-white mt-1">${d.target_description || d.target_id}</h4>
+                </div>
+                <span class="text-xs font-mono text-cyan-400">${d.status}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  renderCheckpointsTab() {
+    const m = this.selectedMission;
+    const cps = m.checkpoints || [];
+    return `
+      <div class="space-y-6">
+        <div class="p-5 rounded-xl bg-slate-900/50 border border-white/10 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-cyan-400">Durable Checkpoints & Zero-Hidden-State Handoff</h3>
+              <p class="text-xs text-slate-400">Resilient persistence manifests enabling non-disruptive agent restart and recovery.</p>
+            </div>
+            <button id="btn-create-checkpoint" class="px-3 py-1.5 rounded-lg bg-teal-600/80 hover:bg-teal-500 text-white text-xs font-semibold shadow">
+              Create Handoff Checkpoint
+            </button>
+          </div>
+          <div class="space-y-3">
+            ${cps.length === 0 ? `
+              <div class="p-6 text-center text-slate-500 bg-slate-950/40 rounded-xl border border-white/5 text-xs">
+                No checkpoints recorded for this mission yet.
+              </div>
+            ` : cps.map(c => `
+              <div class="p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-2">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                    <h4 class="text-xs font-bold text-white">${c.label || 'Autonomous Checkpoint'}</h4>
+                    <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">${c.status}</span>
+                  </div>
+                  <span class="text-[10px] font-mono text-slate-400">${c.created_at}</span>
+                </div>
+                <div class="text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                  <span>ID: ${c.checkpoint_id}</span>
+                  <span>Plan: ${c.active_plan_id || 'None'}</span>
+                  <span>Progress: ${Math.round((c.progress_pct || 0) * 100)}%</span>
+                </div>
+                ${c.handoff_manifest ? `
+                  <div class="mt-2 p-2 rounded bg-slate-900/90 border border-cyan-500/20 text-[10px] font-mono text-cyan-300">
+                    Handoff Manifest: Context snapshot verified with zero-hidden-state durability.
+                  </div>
+                ` : ''}
+              </div>
+            `).join('')}
+          </div>
         </div>
       </div>
     `;
@@ -568,6 +740,9 @@ export class MissionControlView {
     const btnStart = this.container.querySelector('#btn-start');
     if (btnStart) btnStart.addEventListener('click', () => this.triggerAction('start'));
 
+    const btnOrchestrate = this.container.querySelector('#btn-orchestrate');
+    if (btnOrchestrate) btnOrchestrate.addEventListener('click', () => this.triggerAction('orchestrate'));
+
     const btnCycle = this.container.querySelector('#btn-cycle');
     if (btnCycle) btnCycle.addEventListener('click', () => this.triggerAction('cycle'));
 
@@ -576,6 +751,15 @@ export class MissionControlView {
 
     const btnResume = this.container.querySelector('#btn-resume');
     if (btnResume) btnResume.addEventListener('click', () => this.triggerAction('resume'));
+
+    const btnCheckpoint = this.container.querySelector('#btn-checkpoint');
+    if (btnCheckpoint) btnCheckpoint.addEventListener('click', () => this.triggerAction('checkpoint'));
+
+    const btnCreateCheckpoint = this.container.querySelector('#btn-create-checkpoint');
+    if (btnCreateCheckpoint) btnCreateCheckpoint.addEventListener('click', () => this.triggerAction('checkpoint'));
+
+    const btnReassess = this.container.querySelector('#btn-reassess');
+    if (btnReassess) btnReassess.addEventListener('click', () => this.triggerAction('reassess'));
 
     const btnReplan = this.container.querySelector('#btn-replan');
     if (btnReplan) btnReplan.addEventListener('click', () => this.triggerAction('replan'));

@@ -399,6 +399,10 @@ class SwarmSession(BaseModel):
     created_at: datetime = Field(default_factory=_now_utc)
     updated_at: datetime = Field(default_factory=_now_utc)
 
+    @property
+    def session_id(self) -> str:
+        return self.swarm_id
+
 
 class SwarmCreateRequest(BaseModel):
     """Request payload to create and launch a collective swarm reasoning session."""

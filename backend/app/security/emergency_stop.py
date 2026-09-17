@@ -59,6 +59,16 @@ class EmergencyStopService:
 
         return True
 
+    def reset(self) -> None:
+        """Reset emergency stop state for testing and administrative resets."""
+        self._global_stopped = False
+        self._local_state.clear()
+        logger.info("EmergencyStopService state reset.")
+
+    def trigger(self, reason: str = "Emergency stop triggered", source: str = "system") -> dict[str, Any]:
+        """Convenience alias for trigger_emergency_stop."""
+        return self.trigger_emergency_stop(reason=f"{reason} (via {source})")
+
     @classmethod
     def engage(cls, reason: str = "Emergency stop engaged") -> None:
         """Convenience classmethod to engage global emergency stop."""

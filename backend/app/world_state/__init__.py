@@ -1,0 +1,62 @@
+"""KAIRO Autonomous World-State Reconstruction, State Estimation, Reality Synchronization & Drift Reconciliation Subsystem (Task 98)."""
+
+from app.world_state.domain import (
+    CertaintyTier,
+    CausalEvidenceStatus,
+    DriftClassification,
+    DriftSeverity,
+    DriftStatus,
+    DriftType,
+    EpistemicCertainty,
+    ExpectationMatchOutcome,
+    ExpectedState,
+    FreshnessState,
+    RevalidationCandidate,
+    StateAttributeRecord,
+    StateConflictRecord,
+    StateDiffType,
+    StateDriftRecord,
+    StateInvariantViolation,
+    StateObservation,
+    StateStatus,
+    WorldScope,
+    WorldStateDiff,
+    WorldStateEntity,
+    WorldStateSnapshot,
+)
+from app.world_state.drift_engine import DriftEngine
+from app.world_state.lifecycle import InvariantEngine, StateLifecycleValidator
+from app.world_state.reconciliation_engine import (
+    WorldStateReconciliationEngine,
+    get_world_state_reconciliation_engine,
+)
+
+__all__ = [
+    "WorldScope",
+    "StateStatus",
+    "EpistemicCertainty",
+    "CertaintyTier",
+    "FreshnessState",
+    "DriftType",
+    "DriftSeverity",
+    "DriftClassification",
+    "DriftStatus",
+    "ExpectationMatchOutcome",
+    "CausalEvidenceStatus",
+    "StateDiffType",
+    "StateObservation",
+    "ExpectedState",
+    "StateAttributeRecord",
+    "WorldStateEntity",
+    "StateDriftRecord",
+    "StateConflictRecord",
+    "StateInvariantViolation",
+    "RevalidationCandidate",
+    "WorldStateSnapshot",
+    "WorldStateDiff",
+    "DriftEngine",
+    "InvariantEngine",
+    "StateLifecycleValidator",
+    "WorldStateReconciliationEngine",
+    "get_world_state_reconciliation_engine",
+]

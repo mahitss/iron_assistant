@@ -3606,8 +3606,8 @@ export const Endpoints = {
 
 export const intentApi = {
   parseIntent: (payload) => Endpoints.parseIntent(payload),
-  listIntents: () => Endpoints.listIntents(),
-  getIntent: (id) => Endpoints.getIntent(id),
+  listIntents: (limit = 100) => api.get(`/api/v1/intents?limit=${limit}`),
+  getIntent: (id) => api.get(`/api/v1/intents/${encodeURIComponent(id)}`),
   createGoal: (payload) => Endpoints.createGoal(payload),
   listGoals: (params) => Endpoints.listGoals(params),
   answerClarification: (payload) => Endpoints.answerClarification(payload),
@@ -3616,6 +3616,25 @@ export const intentApi = {
   getIntentGraph: (id) => Endpoints.getIntentGraph(id),
   analyzeTradeoffs: (payload) => Endpoints.analyzeTradeoffs(payload),
   getIntentHealth: () => Endpoints.getIntentHealth(),
+
+  // Task 108 Autonomous Intent Understanding & Semantics
+  getDashboard: () => api.get('/api/v1/intent-dashboard'),
+  submitRequest: (payload) => api.post('/api/v1/requests', payload),
+  listRequests: (limit = 100) => api.get(`/api/v1/requests?limit=${limit}`),
+  getRequest: (id) => api.get(`/api/v1/requests/${encodeURIComponent(id)}`),
+  correctRequest: (id, payload) => api.post(`/api/v1/requests/${encodeURIComponent(id)}/correct`, payload),
+  cancelRequest: (id, payload = {}) => api.post(`/api/v1/requests/${encodeURIComponent(id)}/cancel`, payload),
+  getCurrentIntents: () => api.get('/api/v1/intents/current'),
+  getIntentsHistory: () => api.get('/api/v1/intents/history'),
+  getAmbiguousIntents: () => api.get('/api/v1/intents/ambiguous'),
+  searchIntents: (query) => api.get(`/api/v1/intents/search?query=${encodeURIComponent(query)}`),
+  getVersions: (id) => api.get(`/api/v1/intents/${encodeURIComponent(id)}/versions`),
+  getEvidence: (id) => api.get(`/api/v1/intents/${encodeURIComponent(id)}/evidence`),
+  getCorrections: (id) => api.get(`/api/v1/intents/${encodeURIComponent(id)}/corrections`),
+  getClarifications: (id) => api.get(`/api/v1/intents/${encodeURIComponent(id)}/clarifications`),
+  createSnapshot: (id) => api.post(`/api/v1/intents/${encodeURIComponent(id)}/snapshot`),
+  getSnapshot: (id) => api.get(`/api/v1/intents/${encodeURIComponent(id)}/snapshot`),
+  answerClarificationQuery: (id, payload) => api.post(`/api/v1/clarifications/${encodeURIComponent(id)}/answer`, payload),
 };
 
 export const communicationApi = {

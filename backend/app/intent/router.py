@@ -417,3 +417,277 @@ async def get_intent_engine_health(
     """Retrieve Intent & Motivation engine health metrics, active goals, and calibration ratios."""
     return intent_svc.get_health_metrics()
 
+
+# ============================================================================
+# Task 108: Autonomous Intent Understanding & Semantics REST Endpoints
+# ============================================================================
+
+task108_router = APIRouter(tags=["intent-autonomous"])
+
+
+class UserRequestSubmitDTO(BaseModel):
+    raw_text: str = Field(..., min_length=1, description="Raw user request or environmental trigger")
+    source: str = "DIRECT_USER"
+    conversation_id: str | None = None
+    message_id: str | None = None
+    scope: str = "DEFAULT"
+    context_reference: dict[str, Any] = Field(default_factory=dict)
+
+
+class ClarificationAnswerDTO(BaseModel):
+    answer: str = Field(..., min_length=1)
+
+
+class CorrectionSubmitDTO(BaseModel):
+    correction_text: str = Field(..., min_length=1)
+    scope_affected: str = "CURRENT_PROJECT"
+
+
+class CancelRequestDTO(BaseModel):
+    reason: str = "User requested cancellation"
+
+
+@task108_router.post("/requests", response_model=dict[str, Any], status_code=status.HTTP_201_CREATED)
+async def submit_user_request(
+    request: UserRequestSubmitDTO,
+    user_id: str = Depends(get_current_user_id),
+    intent_svc: Any = Depends(get_intent_service),
+) -> dict[str, Any]:
+    """Submit a raw user request for autonomous intent decomposition, goal inference, and constraint analysis (Spec 1-6)."""
+    try:
+        return intent_svc.submit_user_request(
+            raw_text=request.raw_text,
+            user_id=user_id,
+            source=request.source,
+            conversation_id=request.conversation_id,
+            message_id=request.message_id,
+            scope=request.scope,
+            context_reference=request.context_reference,
+        )
+    except PermissionError as p_err:
+        logger.warning("Intent safety or injection rejection: %s", p_err)
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(p_err))
+    except Exception as exc:
+        logger.error("Failed to process request: %s", exc, exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc))
+
+
+@task108_router.get("/requests", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def list_user_requests(
+    user_id: str = Depends(get_current_user_id),
+    limit: int = 100,
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """List tracked user requests (Spec 2)."""
+    reqs = intent_svc.list_user_requests(user_id=user_id, limit=limit)
+    return [r.model_dump(mode="json") for r in reqs]
+
+
+@task108_router.get("/requests/{request_id}", response_model=dict[str, Any], status_code=status.HTTP_200_OK)
+async def get_user_request_by_id(
+    request_id: str,
+    intent_svc: Any = Depends(get_intent_service),
+) -> dict[str, Any]:
+    """Retrieve details of a specific user request."""
+    req = intent_svc.get_user_request(request_id)
+    if not req:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Request '{request_id}' not found.")
+    return req.model_dump(mode="json")
+
+
+@task108_router.get("/intents", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def list_autonomous_intents(
+    user_id: str = Depends(get_current_user_id),
+    limit: int = 100,
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """List all autonomous structured intents (Spec 4, 5)."""
+    intents = intent_svc.list_autonomous_intents(limit=limit)
+    return [i.model_dump(mode="json") for i in intents]
+
+
+@task108_router.get("/intents/current", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def get_current_intents(
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """Retrieve currently active and understood intents."""
+    intents = [i for i in intent_svc.list_autonomous_intents() if not i.is_cancelled and not i.is_superseded]
+    return [i.model_dump(mode="json") for i in intents]
+
+
+@task108_router.get("/intents/history", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def get_intents_history(
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """Retrieve complete intent lineage and history."""
+    intents = intent_svc.list_autonomous_intents(limit=500)
+    return [i.model_dump(mode="json") for i in intents]
+
+
+@task108_router.get("/intents/ambiguous", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def get_ambiguous_intents(
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """List all intents with pending ambiguity or requiring clarification (Spec 12)."""
+    intents = intent_svc.list_ambiguous_intents()
+    return [i.model_dump(mode="json") for i in intents]
+
+
+@task108_router.get("/intents/search", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def search_intents(
+    query: str,
+    user_id: str = Depends(get_current_user_id),
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """Search understood intents across targets, summaries, and categories."""
+    results = intent_svc.search_autonomous_intents(query=query, user_id=user_id)
+    return [i.model_dump(mode="json") for i in results]
+
+
+@task108_router.get("/intents/{intent_id}", response_model=dict[str, Any], status_code=status.HTTP_200_OK)
+async def get_autonomous_intent_by_id(
+    intent_id: str,
+    intent_svc: Any = Depends(get_intent_service),
+) -> dict[str, Any]:
+    """Retrieve single intent details including component-wise confidence and non-goals."""
+    intent = intent_svc.get_autonomous_intent(intent_id)
+    if not intent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Intent '{intent_id}' not found.")
+    return intent.model_dump(mode="json")
+
+
+@task108_router.get("/intents/{intent_id}/versions", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def get_intent_versions(
+    intent_id: str,
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """Retrieve immutable revision history for an intent (Spec 21)."""
+    versions = intent_svc.get_intent_versions(intent_id)
+    return [v.model_dump(mode="json") for v in versions]
+
+
+@task108_router.get("/intents/{intent_id}/evidence", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def get_intent_evidence(
+    intent_id: str,
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """Retrieve provenance-backed evidence supporting the intent (Spec 16)."""
+    evs = intent_svc.get_intent_evidence(intent_id)
+    return [e.model_dump(mode="json") if hasattr(e, "model_dump") else e for e in evs]
+
+
+@task108_router.get("/intents/{intent_id}/corrections", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def get_intent_corrections(
+    intent_id: str,
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """Retrieve user corrections applied to an intent (Spec 20)."""
+    corrs = intent_svc.get_intent_corrections(intent_id)
+    return [c.model_dump(mode="json") for c in corrs]
+
+
+@task108_router.get("/intents/{intent_id}/clarifications", response_model=list[dict[str, Any]], status_code=status.HTTP_200_OK)
+async def get_intent_clarifications(
+    intent_id: str,
+    intent_svc: Any = Depends(get_intent_service),
+) -> list[dict[str, Any]]:
+    """Retrieve clarification requests associated with an intent (Spec 13, 14)."""
+    clrs = intent_svc.get_intent_clarifications(intent_id)
+    return [c.model_dump(mode="json") for c in clrs]
+
+
+@task108_router.post("/intents/{intent_id}/snapshot", response_model=dict[str, Any], status_code=status.HTTP_201_CREATED)
+async def create_intent_snapshot(
+    intent_id: str,
+    intent_svc: Any = Depends(get_intent_service),
+) -> dict[str, Any]:
+    """Create an immutable decision-time snapshot of the intent (Spec 22)."""
+    snap = intent_svc.get_intent_snapshot_record(intent_id)
+    if not snap:
+        intent = intent_svc.get_autonomous_intent(intent_id)
+        if not intent:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Intent '{intent_id}' not found.")
+        from app.intent.lifecycle_and_versioning_engine import LifecycleAndVersioningEngine
+        snap = LifecycleAndVersioningEngine.create_snapshot(intent, [], [], [])
+        intent_svc._snapshots_map[intent_id] = snap
+    return snap.model_dump(mode="json")
+
+
+@task108_router.get("/intents/{intent_id}/snapshot", response_model=dict[str, Any], status_code=status.HTTP_200_OK)
+async def get_intent_snapshot(
+    intent_id: str,
+    intent_svc: Any = Depends(get_intent_service),
+) -> dict[str, Any]:
+    """Retrieve the immutable snapshot for an intent (Spec 22)."""
+    snap = intent_svc.get_intent_snapshot_record(intent_id)
+    if not snap:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Snapshot for intent '{intent_id}' not found.")
+    return snap.model_dump(mode="json")
+
+
+@task108_router.post("/clarifications/{clarification_id}/answer", response_model=dict[str, Any], status_code=status.HTTP_200_OK)
+async def answer_task108_clarification(
+    clarification_id: str,
+    payload: ClarificationAnswerDTO,
+    intent_svc: Any = Depends(get_intent_service),
+) -> dict[str, Any]:
+    """Answer a targeted clarification query, transitioning intent to CONFIRMED (Spec 13, 14)."""
+    try:
+        return intent_svc.answer_task108_clarification(clarification_id, payload.answer)
+    except KeyError as k_err:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(k_err))
+
+
+@task108_router.post("/requests/{request_id}/correct", response_model=dict[str, Any], status_code=status.HTTP_200_OK)
+async def apply_correction_to_request(
+    request_id: str,
+    payload: CorrectionSubmitDTO,
+    intent_svc: Any = Depends(get_intent_service),
+) -> dict[str, Any]:
+    """Apply user correction to an intent within a request (Spec 20)."""
+    req = intent_svc.get_user_request(request_id)
+    if not req:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Request '{request_id}' not found.")
+
+    intents = [i for i in intent_svc.list_autonomous_intents() if i.request_id == request_id]
+    if not intents:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No intents found for request '{request_id}'.")
+
+    target_intent = intents[0]
+    return intent_svc.apply_task108_correction(
+        intent_id=target_intent.intent_id,
+        correction_text=payload.correction_text,
+        scope_affected=payload.scope_affected,
+    )
+
+
+@task108_router.post("/requests/{request_id}/cancel", response_model=dict[str, Any], status_code=status.HTTP_200_OK)
+async def cancel_request(
+    request_id: str,
+    payload: CancelRequestDTO,
+    intent_svc: Any = Depends(get_intent_service),
+) -> dict[str, Any]:
+    """Cancel all active intents under a user request (Spec 39)."""
+    req = intent_svc.get_user_request(request_id)
+    if not req:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Request '{request_id}' not found.")
+
+    intents = [i for i in intent_svc.list_autonomous_intents() if i.request_id == request_id]
+    results = []
+    for i in intents:
+        results.append(intent_svc.cancel_autonomous_intent(i.intent_id, reason=payload.reason))
+    return {
+        "request_id": request_id,
+        "status": "CANCELLED",
+        "cancelled_intents": results,
+    }
+
+
+@task108_router.get("/intent-dashboard", response_model=dict[str, Any], status_code=status.HTTP_200_OK)
+async def get_intent_dashboard_metrics(
+    intent_svc: Any = Depends(get_intent_service),
+) -> dict[str, Any]:
+    """Aggregates comprehensive Intent Dashboard metrics and queues (Spec 54)."""
+    return intent_svc.get_task108_dashboard_metrics()
+
+

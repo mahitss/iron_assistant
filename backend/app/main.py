@@ -57,7 +57,7 @@ from app.foresight.router import router as foresight_router
 from app.discovery import discovery_router, experiments_router
 from app.foresight.router import world_model_router
 from app.incident_response.router import router as incidents_router
-from app.intent import commands_router, intent_router
+from app.intent import commands_router, intent_router, task108_router
 from app.knowledge_graph import knowledge_graph_router
 from app.learning.router import router as learning_router
 from app.knowledge_consolidation import knowledge_consolidation_router
@@ -261,6 +261,8 @@ def create_app() -> FastAPI:
     app.include_router(strategy_router, prefix="/api")
     app.include_router(belief_router, prefix=settings.API_V1_STR)
     app.include_router(belief_router, prefix="/api")
+    app.include_router(task108_router, prefix=settings.API_V1_STR)
+    app.include_router(task108_router, prefix="/api")
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

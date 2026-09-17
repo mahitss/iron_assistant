@@ -54,7 +54,7 @@ from app.intent.priorities import IntentPrioritizer, IntentPriorityNode
 from app.intent.provenance import IntentProvenanceTracker, ProvenanceSource
 from app.intent.references import ReferenceResolver
 from app.intent.resolution import SafeResolver
-from app.intent.router import commands_router, intent_router
+from app.intent.router import commands_router, intent_router, task108_router
 from app.intent.safety import IntentSafetyGuard, IntentSecurityViolation
 from app.intent.schemas import (
     AmbiguityLevel,

@@ -52,6 +52,7 @@ import app.research.models  # noqa: F401
 import app.resilience.models  # noqa: F401
 import app.security.models  # noqa: F401
 import app.self_audit.models  # noqa: F401
+import app.self_model.models  # noqa: F401
 import app.simulation.models  # noqa: F401
 import app.situational_awareness.models  # noqa: F401
 import app.state.models  # noqa: F401

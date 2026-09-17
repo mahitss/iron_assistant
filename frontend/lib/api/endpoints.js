@@ -4296,5 +4296,20 @@ export const worldStateApi = {
   getRevalidations: (status = null) => api.get(`/api/v1/state/revalidations${status ? `?status=${encodeURIComponent(status)}` : ''}`),
 };
 
+// Task 101: Autonomous Self-Model, Capability Awareness & Internal State Intelligence API
+export const selfModelApi = {
+  getSnapshot: () => api.get('/api/v1/self-model/snapshot'),
+  reconcile: () => api.post('/api/v1/self-model/reconcile'),
+  getAnswers: () => api.get('/api/v1/self-model/answers'),
+  getCapabilities: () => api.get('/api/v1/self-model/capabilities'),
+  getCapabilityDetail: (id) => api.get(`/api/v1/self-model/capabilities/${encodeURIComponent(id)}`),
+  getLimitations: () => api.get('/api/v1/self-model/limitations'),
+  getUncertainties: () => api.get('/api/v1/self-model/uncertainties'),
+  getDeltas: () => api.get('/api/v1/self-model/deltas'),
+  getHistory: () => api.get('/api/v1/self-model/history'),
+  verifyGrounding: () => api.get('/api/v1/self-model/verify-grounding'),
+  getSummary: () => api.get('/api/v1/self-model/summary'),
+};
+
 export const endpoints = Endpoints;
 

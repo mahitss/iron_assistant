@@ -177,6 +177,10 @@ export class AppShell {
                 <span class="nav-icon">🌐</span>
                 <span class="nav-text">World State & Drift</span>
               </button>
+              <button class="nav-item ${['self-model', 'self', 'capability-awareness'].includes(state.currentView) ? 'active' : ''}" onclick="window.kairoApp.navigateTo('self-model')">
+                <span class="nav-icon">🪞</span>
+                <span class="nav-text">Self-Model Intelligence</span>
+              </button>
               <button class="nav-item ${state.currentView === 'evaluation' ? 'active' : ''}" onclick="window.kairoApp.navigateTo('evaluation')">
                 <span class="nav-icon">🧪</span>
                 <span class="nav-text">Evaluation</span>

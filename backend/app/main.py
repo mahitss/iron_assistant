@@ -103,6 +103,7 @@ from app.cognitive_memory import router as cognitive_memory_router
 from app.adaptation.router import router as adaptation_router
 from app.strategy.router import router as strategy_router
 from app.belief.router import router as belief_router
+from app.context.working_set_router import router as working_set_router
 
 logger = logging.getLogger("kairo.main")
 
@@ -229,6 +230,7 @@ def create_app() -> FastAPI:
     app.include_router(mission_router, prefix=settings.API_V1_STR)
     app.include_router(self_audit_router, prefix=settings.API_V1_STR)
     app.include_router(attention_router, prefix=settings.API_V1_STR)
+    app.include_router(attention_router)
     app.include_router(reasoning_router, prefix=settings.API_V1_STR)
     app.include_router(discovery_router, prefix=settings.API_V1_STR)
     app.include_router(experiments_router, prefix=settings.API_V1_STR)
@@ -263,6 +265,9 @@ def create_app() -> FastAPI:
     app.include_router(belief_router, prefix="/api")
     app.include_router(task108_router, prefix=settings.API_V1_STR)
     app.include_router(task108_router, prefix="/api")
+    app.include_router(working_set_router, prefix=settings.API_V1_STR)
+    app.include_router(working_set_router, prefix="/api")
+    app.include_router(working_set_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

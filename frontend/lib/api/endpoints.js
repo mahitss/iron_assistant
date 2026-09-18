@@ -4625,5 +4625,59 @@ export const beliefApi = {
   },
 };
 
+// Task 109: Autonomous Attention, Cognitive Resource Allocation, Focus Management & Interruption Governance Engine API
+export const attentionV2Api = {
+  ingestCandidate: (payload) => api.post('/attention/v2/candidates', payload),
+  listCandidates: (lifecycle = null, type = null, limit = 50) => {
+    let q = `?limit=${limit}`;
+    if (lifecycle) q += `&lifecycle=${encodeURIComponent(lifecycle)}`;
+    if (type) q += `&candidate_type=${encodeURIComponent(type)}`;
+    return api.get(`/attention/v2/candidates${q}`);
+  },
+  getCandidate: (id) => api.get(`/attention/v2/candidates/${encodeURIComponent(id)}`),
+  requestFocus: (payload) => api.post('/attention/v2/focus', payload),
+  completeFocus: (payload = {}) => api.post('/attention/v2/focus/complete', payload),
+  abortFocus: (payload = {}) => api.post('/attention/v2/focus/abort', payload),
+  evaluateInterruption: (payload) => api.post('/attention/v2/interruptions/evaluate', payload),
+  createWatch: (payload) => api.post('/attention/v2/watches', payload),
+  evaluateSignal: (payload) => api.post('/attention/v2/signals/evaluate', payload),
+  runFairnessSweep: () => api.post('/attention/v2/fairness/sweep', {}),
+  getHealth: () => api.get('/attention/v2/health'),
+  getSnapshot: () => api.get('/attention/v2/snapshot'),
+  submitFeedback: (payload) => api.post('/attention/v2/feedback', payload),
+};
+
+// Task 110: Autonomous Cognitive Working Set & Context Lifecycle Engine API
+export const workingSetApi = {
+  assembleContext: (payload) => api.post('/context/assemble', payload),
+  listWorkingSets: () => api.get('/context/working-sets'),
+  getWorkingSet: (id) => api.get(`/context/working-sets/${encodeURIComponent(id)}`),
+  getWorkingSetItems: (id) => api.get(`/context/working-sets/${encodeURIComponent(id)}/items`),
+  getWorkingSetProvenance: (id) => api.get(`/context/working-sets/${encodeURIComponent(id)}/provenance`),
+  getWorkingSetConflicts: (id) => api.get(`/context/working-sets/${encodeURIComponent(id)}/conflicts`),
+  getWorkingSetGaps: (id) => api.get(`/context/working-sets/${encodeURIComponent(id)}/gaps`),
+  getWorkingSetSnapshot: (id) => api.get(`/context/working-sets/${encodeURIComponent(id)}/snapshot`),
+  refreshWorkingSet: (id, sections = null) => {
+    const q = sections ? `?sections=${encodeURIComponent(sections.join(','))}` : '';
+    return api.post(`/context/working-sets/${encodeURIComponent(id)}/refresh${q}`, {});
+  },
+  invalidateWorkingSet: (id, reason = 'User requested') => {
+    return api.post(`/context/working-sets/${encodeURIComponent(id)}/invalidate?reason=${encodeURIComponent(reason)}`, {});
+  },
+  pinItem: (id, itemId, reason = 'User pin') => {
+    return api.post(`/context/working-sets/${encodeURIComponent(id)}/pin`, { item_id: itemId, reason });
+  },
+  unpinItem: (id, itemId) => {
+    return api.post(`/context/working-sets/${encodeURIComponent(id)}/unpin?item_id=${encodeURIComponent(itemId)}`, {});
+  },
+  submitFeedback: (id, payload) => api.post(`/context/working-sets/${encodeURIComponent(id)}/feedback`, payload),
+  getQuality: (id) => api.get(`/context/working-sets/${encodeURIComponent(id)}/quality`),
+  getTimeline: (id = null) => {
+    const q = id ? `/${encodeURIComponent(id)}/timeline` : '/timeline';
+    return api.get(`/context/working-sets${q}`);
+  },
+};
+
 export const endpoints = Endpoints;
+
 

@@ -39,6 +39,7 @@ import { VoiceModal } from '../components/voice/voiceModal.js';
 import { ContextInspector } from '../components/context/contextInspector.js';
 import { ComputerControlModal } from '../components/security/computerControlModal.js';
 import { BrowserStatusModal } from '../components/browser/browserStatusModal.js';
+import { CognitiveWorkingSetView } from '../components/context/cognitiveWorkingSetView.js';
 
 export class KairoApp {
   constructor(rootContainer) {
@@ -265,6 +266,13 @@ export class KairoApp {
       case 'evidence-arbitration':
       case 'world-model-revision':
         this.currentViewInstance = new BeliefView({ container: viewport });
+        await this.currentViewInstance.init();
+        return;
+      case 'context':
+      case 'working-set':
+      case 'cognitive-working-set':
+      case 'context-lifecycle':
+        this.currentViewInstance = new CognitiveWorkingSetView({ container: viewport });
         await this.currentViewInstance.init();
         return;
       default:

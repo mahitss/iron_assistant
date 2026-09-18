@@ -13,13 +13,43 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+from app.attention.context_engine import ContextualAttentionEngine
 from app.attention.delegation import AttentionDelegationEngine
+from app.attention.domain import (
+    AttentionAllocation,
+    AttentionBudget,
+    AttentionCandidate as AttentionCandidateT109,
+    AttentionCandidateType,
+    AttentionDecision,
+    AttentionEvidence,
+    AttentionEvent,
+    AttentionFeedback,
+    AttentionLifecycleState,
+    AttentionScore as AttentionScoreT109,
+    AttentionSnapshot as AttentionSnapshotT109,
+    AttentionWatch,
+    CognitiveHealthStatus,
+    FocusSession,
+    FocusSwitchReason,
+    FocusTarget,
+    FocusTransition,
+    InterruptionClassification,
+    InterruptionDecision,
+    InterruptionRequest,
+    WaitingConditionType,
+    gen_attn_id,
+)
+from app.attention.downstream_bridges import SubsystemBridges
+from app.attention.focus_manager import FocusManager
 from app.attention.importance import ImportanceEvaluator
 from app.attention.interrupt import InterruptionPolicyEngine
+from app.attention.interruption_governor import InterruptionGovernor
 from app.attention.lifecycle import AttentionLifecycleStateMachine
 from app.attention.novelty import NoveltyDetector
+from app.attention.priority_injection_firewall import PriorityInjectionFirewall
 from app.attention.resources import CognitiveResourceManager
 from app.attention.risk import RiskEvaluator
+from app.attention.salience_engine import SalienceEngine
 from app.attention.schemas import (
     AttentionCandidate,
     AttentionCandidateCreate,
@@ -32,7 +62,9 @@ from app.attention.schemas import (
 )
 from app.attention.scoring import AttentionScoringEngine
 from app.attention.stack import AttentionStack
+from app.attention.storm_and_fairness_engine import StormAndFairnessEngine
 from app.attention.urgency import UrgencyEvaluator
+from app.attention.watches_and_reminders_engine import WatchesAndRemindersEngine
 
 
 def utc_now() -> datetime:
@@ -59,6 +91,22 @@ class AttentionEngineService:
         self.attention_switches = 0
         self.escalations = 0
         self.de_escalations = 0
+
+        # Task 109 Subsystems & Repositories
+        self.salience_engine = SalienceEngine
+        self.firewall = PriorityInjectionFirewall
+        self.context_engine = ContextualAttentionEngine
+        self.focus_mgr = FocusManager()
+        self.governor = InterruptionGovernor
+        self.storm_fairness = StormAndFairnessEngine()
+        self.watches_reminders = WatchesAndRemindersEngine()
+        self.t109_candidates: dict[str, AttentionCandidateT109] = {}
+        self.t109_evidence: dict[str, AttentionEvidence] = {}
+        self.t109_events: list[AttentionEvent] = []
+        self.t109_feedbacks: list[AttentionFeedback] = []
+        self.t109_allocations: list[AttentionAllocation] = []
+        self.budget_t109 = AttentionBudget()
+
 
     @classmethod
     def get_instance(cls) -> "AttentionEngineService":
@@ -613,3 +661,437 @@ class AttentionEngineService:
                 "created_at": utc_now().isoformat(),
             }
         )
+
+    # ========================================================================
+    # Task 109 Methods
+    # ========================================================================
+
+    def ingest_candidate_t109(
+        self,
+        candidate: AttentionCandidateT109,
+        evidence_list: list[AttentionEvidence] | None = None,
+        tenant_id: str = "default",
+    ) -> AttentionCandidateT109:
+        """Ingests, sanitizes, and evaluates a stimulus into a first-class AttentionCandidate (Task 109)."""
+        now = utc_now()
+        self.total_evaluations += 1
+
+        # 1. Attention Storm Mitigation (Spec 32, 45)
+        is_storm, health_stat, storm_msg = self.storm_fairness.record_ingestion()
+        if is_storm:
+            self._emit_event_t109("attention.storm_detected", candidate.candidate_id, {"msg": storm_msg})
+
+        # 2. Duplicate Detection
+        is_dup, dup_msg = self.storm_fairness.check_duplicate_or_suppress(candidate)
+        if is_dup:
+            self._emit_event_t109("attention.candidate_suppressed", candidate.candidate_id, {"reason": dup_msg})
+            self.t109_candidates[candidate.candidate_id] = candidate
+            return candidate
+
+        # 3. Store Evidence
+        if evidence_list:
+            for ev in evidence_list:
+                self.t109_evidence[ev.evidence_id] = ev
+                if ev.evidence_id not in candidate.evidence_ids:
+                    candidate.evidence_ids.append(ev.evidence_id)
+
+        # 4. Priority Injection Firewall (Spec 50)
+        is_dampened, firewall_reason, sanitized_urgency, sanitized_importance = self.firewall.inspect(
+            title=candidate.title,
+            description=candidate.description,
+            source=candidate.source,
+            evidence_list=evidence_list or [],
+            declared_urgency=candidate.score.urgency,
+            declared_importance=candidate.score.importance,
+        )
+        candidate.is_adversarial_dampened = is_dampened
+        if is_dampened:
+            self._emit_event_t109(
+                "attention.adversarial_dampened",
+                candidate.candidate_id,
+                {"reason": firewall_reason},
+            )
+
+        # 5. Compute Structured 15-Dimensional Salience (Spec 5)
+        score = self.salience_engine.evaluate(
+            importance=sanitized_importance,
+            urgency=sanitized_urgency,
+            risk=candidate.score.risk,
+            deadline=candidate.deadline,
+            user_relevance=candidate.score.user_relevance,
+            mission_relevance=candidate.score.mission_relevance,
+            novelty=candidate.score.novelty,
+            change_magnitude=candidate.score.change_magnitude,
+            dependency_impact=candidate.score.dependency_impact,
+            uncertainty=candidate.uncertainty,
+            irreversibility=candidate.score.irreversibility,
+            external_impact=candidate.score.external_impact,
+            resource_cost=candidate.score.resource_cost,
+            interruption_cost=candidate.score.interruption_cost,
+            confidence=candidate.score.confidence,
+            is_adversarial_dampened=is_dampened,
+        )
+        candidate.score = score
+
+        # 6. Apply Contextual Modulation (Spec 6)
+        modulated_score = self.context_engine.modulate(
+            candidate,
+            is_emergency_stop_active=False,
+            operational_mode=self.mode.value if hasattr(self.mode, "value") else str(self.mode),
+        )
+        candidate.score = modulated_score
+        candidate.lifecycle = AttentionLifecycleState.QUEUED
+
+        # 7. Store candidate
+        self.t109_candidates[candidate.candidate_id] = candidate
+        self._emit_event_t109(
+            "attention.candidate_ingested",
+            candidate.candidate_id,
+            {"title": candidate.title, "composite_salience": candidate.score.composite_salience},
+        )
+        return candidate
+
+    def evaluate_salience_t109(
+        self,
+        candidate_id: str,
+        active_user_intents: list[str] | None = None,
+        active_missions: list[str] | None = None,
+        active_situations: list[str] | None = None,
+        is_emergency_stop: bool = False,
+        tenant_id: str = "default",
+    ) -> AttentionScoreT109:
+        """Evaluates or re-modulates multi-dimensional salience for an existing candidate."""
+        candidate = self.t109_candidates.get(candidate_id)
+        if not candidate:
+            raise KeyError(f"Candidate {candidate_id} not found.")
+
+        modulated = self.context_engine.modulate(
+            candidate,
+            active_user_intent_ids=active_user_intents,
+            active_mission_ids=active_missions,
+            active_situation_ids=active_situations,
+            is_emergency_stop_active=is_emergency_stop,
+            operational_mode=self.mode.value if hasattr(self.mode, "value") else str(self.mode),
+        )
+        candidate.score = modulated
+        return modulated
+
+    def request_focus_t109(
+        self,
+        candidate_id: str,
+        target: FocusTarget,
+        reason: FocusSwitchReason = FocusSwitchReason.USER_REQUEST,
+        expected_duration_sec: int = 300,
+        interruption_policy: str = "NORMAL",
+        tenant_id: str = "default",
+    ) -> tuple[FocusSession, FocusTransition | None]:
+        """Requests active focus allocation for a candidate, pushing existing focus to stack."""
+        candidate = self.t109_candidates.get(candidate_id)
+        if not candidate:
+            raise KeyError(f"Candidate {candidate_id} not found.")
+
+        session, transition = self.focus_mgr.enter_focus(
+            candidate=candidate,
+            target=target,
+            reason=reason,
+            switching_cost=candidate.score.interruption_cost,
+            expected_duration_sec=expected_duration_sec,
+            interruption_policy=interruption_policy,
+        )
+        self.attention_switches += 1
+
+        # Submit formal demand request to Resource Economy (Task 77 bridge)
+        alloc = SubsystemBridges.create_resource_economy_request(candidate)
+        self.t109_allocations.append(alloc)
+
+        self._emit_event_t109(
+            "attention.focus_entered",
+            candidate.candidate_id,
+            {"session_id": session.session_id, "target": target.target_id, "depth": session.depth},
+        )
+        return session, transition
+
+    def evaluate_interruption_t109(
+        self,
+        incoming_candidate_id: str,
+        source_is_emergency_stop: bool = False,
+        current_phase: str = "in_progress",
+        is_current_shielded: bool = False,
+        tenant_id: str = "default",
+    ) -> InterruptionDecision:
+        """Evaluates an inbound interruption against active focus and switching costs (Spec 10, 11)."""
+        incoming = self.t109_candidates.get(incoming_candidate_id)
+        if not incoming:
+            raise KeyError(f"Candidate {incoming_candidate_id} not found.")
+
+        current_session = self.focus_mgr.active_session
+        current_candidate = (
+            self.t109_candidates.get(current_session.candidate_id)
+            if current_session
+            else None
+        )
+
+        req = InterruptionRequest(
+            incoming_candidate_id=incoming_candidate_id,
+            current_session_id=current_session.session_id if current_session else None,
+            urgency=incoming.score.urgency,
+            risk=incoming.score.risk,
+            source_is_emergency_stop=source_is_emergency_stop,
+        )
+
+        decision = self.governor.evaluate(
+            request=req,
+            incoming=incoming,
+            current_session=current_session,
+            current_candidate=current_candidate,
+            current_phase=current_phase,
+            is_current_non_interruptible=is_current_shielded,
+        )
+
+        # Emit non-authoritative recommendation to Task 94 Decision Intelligence
+        rec = SubsystemBridges.emit_decision_recommendation(
+            candidate=incoming,
+            classification=decision.classification,
+            target=current_session.primary_target if current_session else None,
+        )
+
+        if decision.should_interrupt:
+            self.total_interruptions += 1
+            # Perform clean preemption transition
+            target = FocusTarget(
+                target_id=incoming.target,
+                name=incoming.title,
+            )
+            self.focus_mgr.enter_focus(
+                candidate=incoming,
+                target=target,
+                reason=FocusSwitchReason.EMERGENCY_STOP if source_is_emergency_stop else FocusSwitchReason.USER_REQUEST,
+            )
+            self._emit_event_t109(
+                "attention.interruption_executed",
+                incoming_candidate_id,
+                {"classification": decision.classification.value, "reason": decision.reason},
+            )
+        else:
+            if decision.classification == InterruptionClassification.DEFER:
+                incoming.lifecycle = AttentionLifecycleState.DEFERRED
+                incoming.deferral_count += 1
+            elif decision.classification == InterruptionClassification.BACKGROUND:
+                incoming.lifecycle = AttentionLifecycleState.BACKGROUND
+            self._emit_event_t109(
+                "attention.interruption_denied_or_deferred",
+                incoming_candidate_id,
+                {"classification": decision.classification.value, "reason": decision.reason},
+            )
+
+        return decision
+
+    def complete_focus_t109(
+        self,
+        reason: str = "Objective accomplished",
+        tenant_id: str = "default",
+    ) -> tuple[FocusSession | None, FocusSession | None]:
+        """Completes active focus and pops previous session from stack to resume work."""
+        completed, resumed = self.focus_mgr.complete_focus(reason=reason)
+        if completed:
+            cand = self.t109_candidates.get(completed.candidate_id)
+            if cand:
+                cand.lifecycle = AttentionLifecycleState.RESOLVED
+            self._emit_event_t109(
+                "attention.focus_completed",
+                completed.candidate_id,
+                {
+                    "session_id": completed.session_id,
+                    "resumed_session_id": resumed.session_id if resumed else None,
+                },
+            )
+        return completed, resumed
+
+    def abort_focus_t109(
+        self,
+        reason: str = "Cancelled",
+        tenant_id: str = "default",
+    ) -> tuple[FocusSession | None, FocusSession | None]:
+        """Aborts active focus session and pops next available session from stack."""
+        completed, resumed = self.focus_mgr.abort_focus(reason=reason)
+        if completed:
+            cand = self.t109_candidates.get(completed.candidate_id)
+            if cand:
+                cand.lifecycle = AttentionLifecycleState.CANCELLED
+            self._emit_event_t109(
+                "attention.focus_aborted",
+                completed.candidate_id,
+                {"session_id": completed.session_id, "reason": reason},
+            )
+        return completed, resumed
+
+    def create_watch_t109(
+        self,
+        candidate_id: str,
+        condition_type: WaitingConditionType,
+        condition_expr: str,
+        trigger: str,
+        tenant_id: str = "default",
+    ) -> AttentionWatch:
+        """Registers a bounded waiting condition watch consuming zero cognitive resources."""
+        candidate = self.t109_candidates.get(candidate_id)
+        if not candidate:
+            raise KeyError(f"Candidate {candidate_id} not found.")
+
+        watch = self.watches_reminders.create_watch(
+            candidate_id=candidate_id,
+            condition_type=condition_type,
+            condition_expr=condition_expr,
+            reconsideration_trigger=trigger,
+        )
+        candidate.lifecycle = AttentionLifecycleState.WATCHING
+        self._emit_event_t109(
+            "attention.watch_created",
+            candidate_id,
+            {"watch_id": watch.watch_id, "condition": condition_expr},
+        )
+        return watch
+
+    def evaluate_external_signal_t109(
+        self,
+        event_name: str,
+        payload: dict[str, Any],
+        tenant_id: str = "default",
+    ) -> list[str]:
+        """Evaluates external signal against condition watches, reactivating matching candidates."""
+        reactivated = self.watches_reminders.evaluate_external_signal(event_name, payload)
+        reactivated_ids: list[str] = []
+        for watch_id, cand_id in reactivated:
+            cand = self.t109_candidates.get(cand_id)
+            if cand and cand.lifecycle == AttentionLifecycleState.WATCHING:
+                cand.lifecycle = AttentionLifecycleState.QUEUED
+                reactivated_ids.append(cand_id)
+                self._emit_event_t109(
+                    "attention.watch_triggered",
+                    cand_id,
+                    {"watch_id": watch_id, "event": event_name},
+                )
+        return reactivated_ids
+
+    def run_fairness_sweep_t109(self, tenant_id: str = "default") -> list[AttentionCandidateT109]:
+        """Applies fairness aging boost to queued and deferred candidates to prevent starvation."""
+        queued = [
+            c for c in self.t109_candidates.values()
+            if c.lifecycle in (AttentionLifecycleState.QUEUED, AttentionLifecycleState.DEFERRED)
+        ]
+        aged = self.storm_fairness.apply_fairness_aging(queued)
+        return aged
+
+    def capture_snapshot_t109(
+        self,
+        tenant_id: str = "default",
+        active_missions: list[str] | None = None,
+        active_intents: list[str] | None = None,
+    ) -> AttentionSnapshotT109:
+        """Captures immutable point-in-time state for Task 94 Decision Intelligence."""
+        health = self.get_health_status_t109(tenant_id)
+        queue = sorted(
+            [c for c in self.t109_candidates.values() if c.lifecycle == AttentionLifecycleState.QUEUED],
+            key=lambda x: x.score.composite_salience,
+            reverse=True,
+        )
+        snap = SubsystemBridges.create_decision_snapshot(
+            active_session=self.focus_mgr.active_session,
+            nested_stack=self.focus_mgr.stack,
+            queue=queue,
+            health_status=health["health_status"],
+            active_missions=active_missions,
+            active_intents=active_intents,
+        )
+        return snap
+
+    def record_feedback_t109(
+        self,
+        candidate_id: str,
+        decision_type: str,
+        was_appropriate: bool,
+        missed_critical: bool = False,
+        unnecessary_interrupt: bool = False,
+        starvation_occurred: bool = False,
+        notes: str = "",
+    ) -> AttentionFeedback:
+        """Records post-hoc evaluation telemetry on attention decisions."""
+        if unnecessary_interrupt:
+            self.false_interruptions += 1
+        fb = SubsystemBridges.record_feedback(
+            candidate_id=candidate_id,
+            decision_type=decision_type,
+            was_appropriate=was_appropriate,
+            missed_critical=missed_critical,
+            unnecessary_interrupt=unnecessary_interrupt,
+            starvation_occurred=starvation_occurred,
+            notes=notes,
+        )
+        self.t109_feedbacks.append(fb)
+        return fb
+
+    def get_health_status_t109(self, tenant_id: str = "default") -> dict[str, Any]:
+        """Evaluates cognitive load, fragmentation, and attention health."""
+        is_churn, fragmentation, churn_msg = self.focus_mgr.detect_focus_churn()
+        depth = self.focus_mgr.current_depth()
+        active = self.focus_mgr.active_session
+
+        status = CognitiveHealthStatus.HEALTHY
+        if is_churn:
+            status = CognitiveHealthStatus.COGNITIVE_FRAGMENTATION
+        elif depth >= 4:
+            status = CognitiveHealthStatus.MODERATE_LOAD
+
+        return {
+            "health_status": status.value if hasattr(status, "value") else str(status),
+            "cognitive_fragmentation_score": fragmentation,
+            "stack_depth": depth,
+            "has_active_focus": active is not None,
+            "active_session_id": active.session_id if active else None,
+            "total_candidates": len(self.t109_candidates),
+            "queued_candidates": sum(1 for c in self.t109_candidates.values() if c.lifecycle == AttentionLifecycleState.QUEUED),
+            "deferred_candidates": sum(1 for c in self.t109_candidates.values() if c.lifecycle == AttentionLifecycleState.DEFERRED),
+            "watching_candidates": sum(1 for c in self.t109_candidates.values() if c.lifecycle == AttentionLifecycleState.WATCHING),
+            "suppressed_candidates": sum(1 for c in self.t109_candidates.values() if c.lifecycle == AttentionLifecycleState.SUPPRESSED),
+            "churn_details": churn_msg,
+        }
+
+    def list_candidates_t109(
+        self,
+        lifecycle: AttentionLifecycleState | None = None,
+        candidate_type: AttentionCandidateType | None = None,
+        limit: int = 50,
+    ) -> list[AttentionCandidateT109]:
+        """Lists Task 109 attention candidates with optional filtering."""
+        cands = list(self.t109_candidates.values())
+        if lifecycle:
+            cands = [c for c in cands if c.lifecycle == lifecycle]
+        if candidate_type:
+            cands = [c for c in cands if c.type == candidate_type]
+        cands.sort(key=lambda c: c.score.composite_salience, reverse=True)
+        return cands[:limit]
+
+    def get_candidate_t109(self, candidate_id: str) -> AttentionCandidateT109 | None:
+        """Retrieves a Task 109 candidate by ID."""
+        return self.t109_candidates.get(candidate_id)
+
+    def _emit_event_t109(self, event_type: str, candidate_id: str | None, payload: dict[str, Any]) -> None:
+        """Internal helper to emit structured audit telemetry event."""
+        event = AttentionEvent(
+            event_type=event_type,
+            candidate_id=candidate_id,
+            session_id=self.focus_mgr.active_session.session_id if self.focus_mgr.active_session else None,
+            payload=payload,
+            timestamp=utc_now(),
+        )
+        self.t109_events.append(event)
+
+
+# Alias and helper function for backwards compatibility & dependency injection
+AttentionService = AttentionEngineService
+
+
+def get_attention_service() -> AttentionEngineService:
+    """Returns the singleton instance of the AttentionEngineService."""
+    return AttentionEngineService.get_instance()
+

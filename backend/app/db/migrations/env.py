@@ -18,6 +18,7 @@ import app.attention.models  # noqa: F401
 import app.automation.models  # noqa: F401
 import app.autonomy.models  # noqa: F401
 import app.causal.models  # noqa: F401
+import app.claim_verification.models  # noqa: F401
 import app.cognition.models  # noqa: F401
 import app.cognitive_memory.models  # noqa: F401
 import app.communication.models  # noqa: F401

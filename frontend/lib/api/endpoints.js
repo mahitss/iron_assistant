@@ -4791,6 +4791,30 @@ export const hypothesesApi = {
 
 Endpoints.hypothesesApi = hypothesesApi;
 Endpoints.observationsApi = observationsApi;
+
+// Task 116: Autonomous Claim Verification, Source Integrity & Evidence Provenance API
+export const verificationsApi = {
+  create: (payload) => api.post('/verifications', payload),
+  list: (status = null, limit = 50, offset = 0) => api.get(`/verifications?${status ? `status=${encodeURIComponent(status)}&` : ''}limit=${limit}&offset=${offset}`),
+  get: (id) => api.get(`/verifications/${encodeURIComponent(id)}`),
+  cancel: (id) => api.post(`/verifications/${encodeURIComponent(id)}/cancel`),
+  revalidate: (id) => api.post(`/verifications/${encodeURIComponent(id)}/revalidate`),
+  getClaims: (id) => api.get(`/verifications/${encodeURIComponent(id)}/claims`),
+  getEvidence: (id) => api.get(`/verifications/${encodeURIComponent(id)}/evidence`),
+  getProvenance: (id) => api.get(`/verifications/${encodeURIComponent(id)}/provenance`),
+  getContradictions: (id) => api.get(`/verifications/${encodeURIComponent(id)}/contradictions`),
+  getGaps: (id) => api.get(`/verifications/${encodeURIComponent(id)}/gaps`),
+  getTimeline: (id) => api.get(`/verifications/${encodeURIComponent(id)}/timeline`),
+  getExplanation: (id) => api.get(`/verifications/${encodeURIComponent(id)}/explanation`),
+  getClaimStatus: (claimId) => api.get(`/claims/${encodeURIComponent(claimId)}/verification-status`),
+  getSource: (sourceId) => api.get(`/sources/${encodeURIComponent(sourceId)}`),
+  getSourceHistory: (sourceId) => api.get(`/sources/${encodeURIComponent(sourceId)}/history`),
+  getSourceRelationships: (sourceId) => api.get(`/sources/${encodeURIComponent(sourceId)}/relationships`),
+  getEvidenceLineage: (evidenceId) => api.get(`/evidence/${encodeURIComponent(evidenceId)}/lineage`),
+};
+
+Endpoints.verificationsApi = verificationsApi;
 export const endpoints = Endpoints;
+
 
 

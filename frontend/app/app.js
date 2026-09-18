@@ -45,6 +45,7 @@ import { WhyDidThisHappenView } from '../components/causal/whyDidThisHappenView.
 import { CounterfactualAnalysisView } from '../components/counterfactual/counterfactualAnalysisView.js';
 import { ActiveObservationView } from '../components/observation/activeObservationView.js';
 import { CompetingHypothesesView } from '../components/hypothesis/competingHypothesesView.js';
+import { VerificationCenterView } from '../components/verification/verificationCenterView.js';
 
 export class KairoApp {
   constructor(rootContainer) {
@@ -317,6 +318,14 @@ export class KairoApp {
       case 'hypothesis-management':
         this.currentViewInstance = new CompetingHypothesesView('viewport');
         break;
+      case 'verifications':
+      case 'verification':
+      case 'claim-verification':
+      case 'provenance':
+      case 'source-integrity':
+        this.currentViewInstance = new VerificationCenterView({ container: viewport });
+        await this.currentViewInstance.init();
+        return;
       default:
         this.currentViewInstance = new HomeView(viewport);
     }

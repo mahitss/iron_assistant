@@ -31,7 +31,7 @@ import app.evaluation.models  # noqa: F401
 import app.executive_memory.models  # noqa: F401
 import app.foresight.models  # noqa: F401
 
-# Import all models to register them on Base.metadata for migrations
+import app.hypothesis.models  # noqa: F401
 import app.identity.models  # noqa: F401
 import app.incident_response.models  # noqa: F401
 import app.intent.models  # noqa: F401  # noqa: F401

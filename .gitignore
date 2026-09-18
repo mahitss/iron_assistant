@@ -114,5 +114,7 @@ native/target/
 *.rs.bk
 Cargo.lock.bak
 scratch/
+data/
+backend/data/
 
 

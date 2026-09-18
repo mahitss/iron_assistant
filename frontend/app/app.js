@@ -44,6 +44,7 @@ import { TemporalIntelligenceView } from '../components/temporal/temporalIntelli
 import { WhyDidThisHappenView } from '../components/causal/whyDidThisHappenView.js';
 import { CounterfactualAnalysisView } from '../components/counterfactual/counterfactualAnalysisView.js';
 import { ActiveObservationView } from '../components/observation/activeObservationView.js';
+import { CompetingHypothesesView } from '../components/hypothesis/competingHypothesesView.js';
 
 export class KairoApp {
   constructor(rootContainer) {
@@ -308,6 +309,14 @@ export class KairoApp {
         this.currentViewInstance = new ActiveObservationView({ container: viewport });
         await this.currentViewInstance.init();
         return;
+      case 'hypotheses':
+      case 'hypothesis':
+      case 'competing-explanations':
+      case 'competing-hypotheses':
+      case 'falsification':
+      case 'hypothesis-management':
+        this.currentViewInstance = new CompetingHypothesesView('viewport');
+        break;
       default:
         this.currentViewInstance = new HomeView(viewport);
     }

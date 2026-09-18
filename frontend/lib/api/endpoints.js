@@ -4763,6 +4763,33 @@ export const observationsApi = {
   getHistory: (limit = 50) => api.get(`/observations/history?limit=${limit}`),
 };
 
+// Task 115: Autonomous Hypothesis Management, Competing Explanations & Uncertainty Resolution API
+export const hypothesesApi = {
+  createSet: (payload) => api.post('/hypothesis-sets', payload),
+  listSets: () => api.get('/hypothesis-sets'),
+  getSet: (id) => api.get(`/hypothesis-sets/${encodeURIComponent(id)}`),
+  compareSet: (id) => api.get(`/hypothesis-sets/${encodeURIComponent(id)}/compare`),
+  getDiscriminators: (id) => api.get(`/hypothesis-sets/${encodeURIComponent(id)}/discriminators`),
+  getUncertainty: (id) => api.get(`/hypothesis-sets/${encodeURIComponent(id)}/uncertainty`),
+  attachEvidence: (id, payload) => api.post(`/hypothesis-sets/${encodeURIComponent(id)}/evidence`, payload),
+  splitHypothesis: (id, payload) => api.post(`/hypothesis-sets/${encodeURIComponent(id)}/split`, payload),
+  mergeHypotheses: (id, payload) => api.post(`/hypothesis-sets/${encodeURIComponent(id)}/merge`, payload),
+  createHypothesis: (payload) => api.post('/hypotheses', payload),
+  listHypotheses: (setId = null) => api.get(`/hypotheses${setId ? `?set_id=${encodeURIComponent(setId)}` : ''}`),
+  getHypothesis: (id) => api.get(`/hypotheses/${encodeURIComponent(id)}`),
+  getEvidence: (id) => api.get(`/hypotheses/${encodeURIComponent(id)}/evidence`),
+  getPredictions: (id) => api.get(`/hypotheses/${encodeURIComponent(id)}/predictions`),
+  getFalsification: (id) => api.get(`/hypotheses/${encodeURIComponent(id)}/falsification`),
+  getAlternatives: (id) => api.get(`/hypotheses/${encodeURIComponent(id)}/alternatives`),
+  getConflicts: (id) => api.get(`/hypotheses/${encodeURIComponent(id)}/conflicts`),
+  getHistory: (id) => api.get(`/hypotheses/${encodeURIComponent(id)}/history`),
+  getSnapshot: (id) => api.get(`/hypotheses/${encodeURIComponent(id)}/snapshot`),
+  evaluate: (id) => api.post(`/hypotheses/${encodeURIComponent(id)}/evaluate`),
+  verify: (id) => api.post(`/hypotheses/${encodeURIComponent(id)}/verify`),
+  feedback: (id, payload) => api.post(`/hypotheses/${encodeURIComponent(id)}/feedback`, payload),
+};
+
+Endpoints.hypothesesApi = hypothesesApi;
 Endpoints.observationsApi = observationsApi;
 export const endpoints = Endpoints;
 

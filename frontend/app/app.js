@@ -43,6 +43,7 @@ import { CognitiveWorkingSetView } from '../components/context/cognitiveWorkingS
 import { TemporalIntelligenceView } from '../components/temporal/temporalIntelligenceView.js';
 import { WhyDidThisHappenView } from '../components/causal/whyDidThisHappenView.js';
 import { CounterfactualAnalysisView } from '../components/counterfactual/counterfactualAnalysisView.js';
+import { ActiveObservationView } from '../components/observation/activeObservationView.js';
 
 export class KairoApp {
   constructor(rootContainer) {
@@ -297,6 +298,14 @@ export class KairoApp {
       case 'counterfactuals':
       case 'simulation-analysis':
         this.currentViewInstance = new CounterfactualAnalysisView({ container: viewport });
+        await this.currentViewInstance.init();
+        return;
+      case 'observe':
+      case 'observation':
+      case 'active-observation':
+      case 'value-of-information':
+      case 'uncertainty':
+        this.currentViewInstance = new ActiveObservationView({ container: viewport });
         await this.currentViewInstance.init();
         return;
       default:

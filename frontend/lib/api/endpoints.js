@@ -4744,6 +4744,26 @@ export const counterfactualsApi = {
   feedback: (id, payload) => api.post(`/counterfactuals/${encodeURIComponent(id)}/feedback`, payload),
 };
 
+// Task 114: Autonomous Active Observation, Value-of-Information & Uncertainty Reduction API
+export const observationsApi = {
+  createPlan: (payload) => api.post('/observations/plans', payload),
+  listPlans: (limit = 50) => api.get(`/observations/plans?limit=${limit}`),
+  getPlan: (id) => api.get(`/observations/plans/${encodeURIComponent(id)}`),
+  getGaps: (id) => api.get(`/observations/plans/${encodeURIComponent(id)}/gaps`),
+  getCandidates: (id) => api.get(`/observations/plans/${encodeURIComponent(id)}/candidates`),
+  getValue: (id) => api.get(`/observations/plans/${encodeURIComponent(id)}/value`),
+  getCost: (id) => api.get(`/observations/plans/${encodeURIComponent(id)}/cost`),
+  getRisk: (id) => api.get(`/observations/plans/${encodeURIComponent(id)}/risk`),
+  getUncertainty: (id) => api.get(`/observations/plans/${encodeURIComponent(id)}/uncertainty`),
+  executePlan: (id, payload) => api.post(`/observations/plans/${encodeURIComponent(id)}/execute`, payload),
+  cancelPlan: (id, reason) => api.post(`/observations/plans/${encodeURIComponent(id)}/cancel?reason=${encodeURIComponent(reason || '')}`),
+  refreshPlan: (id) => api.post(`/observations/plans/${encodeURIComponent(id)}/refresh`),
+  listAllGaps: (planId = null) => api.get(`/observations/gaps${planId ? `?plan_id=${encodeURIComponent(planId)}` : ''}`),
+  getEntityUncertainty: (target = 'system_core') => api.get(`/observations/uncertainty?target=${encodeURIComponent(target)}`),
+  getHistory: (limit = 50) => api.get(`/observations/history?limit=${limit}`),
+};
+
+Endpoints.observationsApi = observationsApi;
 export const endpoints = Endpoints;
 
 

@@ -110,6 +110,7 @@ from app.counterfactual.router import router as counterfactual_router
 from app.observation.router import router as observation_router
 from app.hypothesis.router import router as hypothesis_router
 from app.claim_verification.router import router as claim_verification_router
+from app.evidence_graph.router import router as evidence_graph_router
 
 logger = logging.getLogger("kairo.main")
 
@@ -290,6 +291,7 @@ def create_app() -> FastAPI:
     app.include_router(hypothesis_router, prefix="/api")
     app.include_router(hypothesis_router)
     app.include_router(claim_verification_router)
+    app.include_router(evidence_graph_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"

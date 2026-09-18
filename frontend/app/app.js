@@ -46,6 +46,7 @@ import { CounterfactualAnalysisView } from '../components/counterfactual/counter
 import { ActiveObservationView } from '../components/observation/activeObservationView.js';
 import { CompetingHypothesesView } from '../components/hypothesis/competingHypothesesView.js';
 import { VerificationCenterView } from '../components/verification/verificationCenterView.js';
+import { EvidenceGraphWorkspace } from '../components/evidence_graph/evidenceGraphWorkspace.js';
 
 export class KairoApp {
   constructor(rootContainer) {
@@ -324,6 +325,14 @@ export class KairoApp {
       case 'provenance':
       case 'source-integrity':
         this.currentViewInstance = new VerificationCenterView({ container: viewport });
+        await this.currentViewInstance.init();
+        return;
+      case 'evidence-graph':
+      case 'evidence':
+      case 'provenance-graph':
+      case 'dependency-graph':
+      case 'evidence-fragility':
+        this.currentViewInstance = new EvidenceGraphWorkspace({ container: viewport });
         await this.currentViewInstance.init();
         return;
       default:

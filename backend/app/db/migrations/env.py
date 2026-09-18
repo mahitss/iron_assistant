@@ -29,6 +29,7 @@ import app.decision.models  # noqa: F401
 import app.discovery.models  # noqa: F401
 import app.environment.models  # noqa: F401
 import app.evaluation.models  # noqa: F401
+import app.evidence_graph.models  # noqa: F401
 import app.executive_memory.models  # noqa: F401
 import app.foresight.models  # noqa: F401
 

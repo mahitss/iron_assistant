@@ -4814,7 +4814,50 @@ export const verificationsApi = {
 };
 
 Endpoints.verificationsApi = verificationsApi;
+
+// Task 117: Autonomous Evidence Graph, Provenance Intelligence & Verification Dependency Engine API
+export const evidenceGraphApi = {
+  listNodes: (type = null, sourceSystem = null, freshnessState = null, limit = 50, offset = 0) => {
+    let q = `?limit=${limit}&offset=${offset}`;
+    if (type) q += `&node_type=${encodeURIComponent(type)}`;
+    if (sourceSystem) q += `&source_system=${encodeURIComponent(sourceSystem)}`;
+    if (freshnessState) q += `&freshness_state=${encodeURIComponent(freshnessState)}`;
+    return api.get(`/api/evidence-graph/nodes${q}`);
+  },
+  getNode: (id) => api.get(`/api/evidence-graph/nodes/${encodeURIComponent(id)}`),
+  createNode: (payload) => api.post('/api/evidence-graph/nodes', payload),
+  listEdges: (limit = 50, offset = 0) => api.get(`/api/evidence-graph/edges?limit=${limit}&offset=${offset}`),
+  createEdge: (payload) => api.post('/api/evidence-graph/edges', payload),
+  getUpstream: (id, maxDepth = 8, maxNodes = 150, asOf = null) => {
+    let q = `?max_depth=${maxDepth}&max_nodes=${maxNodes}`;
+    if (asOf) q += `&as_of=${encodeURIComponent(asOf)}`;
+    return api.get(`/api/evidence-graph/nodes/${encodeURIComponent(id)}/upstream${q}`);
+  },
+  getDownstream: (id, maxDepth = 8, maxNodes = 150, asOf = null) => {
+    let q = `?max_depth=${maxDepth}&max_nodes=${maxNodes}`;
+    if (asOf) q += `&as_of=${encodeURIComponent(asOf)}`;
+    return api.get(`/api/evidence-graph/nodes/${encodeURIComponent(id)}/downstream${q}`);
+  },
+  getLineage: (id, maxDepth = 10) => api.get(`/api/evidence-graph/nodes/${encodeURIComponent(id)}/lineage?max_depth=${maxDepth}`),
+  getSources: (id) => api.get(`/api/evidence-graph/nodes/${encodeURIComponent(id)}/sources`),
+  getDependents: (id) => api.get(`/api/evidence-graph/nodes/${encodeURIComponent(id)}/dependents`),
+  assessImpact: (id, reason = 'Blast radius query') => api.get(`/api/evidence-graph/nodes/${encodeURIComponent(id)}/impact?reason=${encodeURIComponent(reason)}`),
+  invalidateNode: (id, reason) => api.post(`/api/evidence-graph/nodes/${encodeURIComponent(id)}/invalidate?reason=${encodeURIComponent(reason)}`),
+  assessFragility: (id) => api.get(`/api/evidence-graph/nodes/${encodeURIComponent(id)}/fragility`),
+  getConcentrations: () => api.get('/api/evidence-graph/concentrations'),
+  getCycles: () => api.get('/api/evidence-graph/cycles'),
+  getProvenanceGaps: (nodeId = null) => api.get(`/api/evidence-graph/provenance-gaps${nodeId ? `?node_id=${encodeURIComponent(nodeId)}` : ''}`),
+  getRevalidationQueue: (limit = 50) => api.get(`/api/evidence-graph/revalidation?limit=${limit}`),
+  createSnapshot: (reason = 'Workspace snapshot') => api.post(`/api/evidence-graph/snapshots?reason=${encodeURIComponent(reason)}`),
+  getSnapshot: (id) => api.get(`/api/evidence-graph/snapshots/${encodeURIComponent(id)}`),
+  diffSnapshots: (baseId, targetId) => api.get(`/api/evidence-graph/snapshots/${encodeURIComponent(baseId)}/diff?target_id=${encodeURIComponent(targetId)}`),
+  ingestLineage: (payload) => api.post('/api/evidence-graph/lineage', payload),
+  getHealth: () => api.get('/api/evidence-graph/health'),
+};
+
+Endpoints.evidenceGraphApi = evidenceGraphApi;
 export const endpoints = Endpoints;
+
 
 
 

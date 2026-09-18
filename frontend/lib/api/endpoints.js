@@ -4723,6 +4723,27 @@ export const explanationsApi = {
   refresh: (id) => api.post(`/explanations/${encodeURIComponent(id)}/refresh`),
 };
 
+// Task 113: Autonomous Counterfactual, Intervention Analysis, What-If Simulation & Causal Experiment Planning API
+export const counterfactualsApi = {
+  create: (payload) => api.post('/counterfactuals', payload),
+  list: (limit = 50) => api.get(`/counterfactuals?limit=${limit}`),
+  get: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}`),
+  getBaseline: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/baseline`),
+  getScenarios: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/scenarios`),
+  getInterventions: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/interventions`),
+  getPredictions: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/predictions`),
+  getComparisons: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/comparisons`),
+  getAssumptions: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/assumptions`),
+  getEvidence: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/evidence`),
+  getRisks: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/risks`),
+  getSensitivity: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/sensitivity`),
+  getRobustness: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/robustness`),
+  getSnapshot: (id) => api.get(`/counterfactuals/${encodeURIComponent(id)}/snapshot`),
+  simulate: (id, payload) => api.post(`/counterfactuals/${encodeURIComponent(id)}/simulate`, payload),
+  verify: (id, payload) => api.post(`/counterfactuals/${encodeURIComponent(id)}/verify`, payload),
+  feedback: (id, payload) => api.post(`/counterfactuals/${encodeURIComponent(id)}/feedback`, payload),
+};
+
 export const endpoints = Endpoints;
 
 

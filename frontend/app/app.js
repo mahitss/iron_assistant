@@ -42,6 +42,7 @@ import { BrowserStatusModal } from '../components/browser/browserStatusModal.js'
 import { CognitiveWorkingSetView } from '../components/context/cognitiveWorkingSetView.js';
 import { TemporalIntelligenceView } from '../components/temporal/temporalIntelligenceView.js';
 import { WhyDidThisHappenView } from '../components/causal/whyDidThisHappenView.js';
+import { CounterfactualAnalysisView } from '../components/counterfactual/counterfactualAnalysisView.js';
 
 export class KairoApp {
   constructor(rootContainer) {
@@ -289,6 +290,13 @@ export class KairoApp {
       case 'why-did-this-happen':
       case 'causal-explanation':
         this.currentViewInstance = new WhyDidThisHappenView({ container: viewport, api: Endpoints.explanationsApi || null });
+        await this.currentViewInstance.init();
+        return;
+      case 'what-if':
+      case 'counterfactual':
+      case 'counterfactuals':
+      case 'simulation-analysis':
+        this.currentViewInstance = new CounterfactualAnalysisView({ container: viewport });
         await this.currentViewInstance.init();
         return;
       default:

@@ -4678,6 +4678,51 @@ export const workingSetApi = {
   },
 };
 
+// Task 111: Autonomous Temporal Intelligence, Event History & "What Changed?" API
+export const temporalApi = {
+  query: (payload) => api.post('/temporal/query', payload),
+  getTimeline: (entityId, fromTime = null, toTime = null) => {
+    const params = new URLSearchParams();
+    if (fromTime) params.set('from_time', fromTime);
+    if (toTime) params.set('to_time', toTime);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return api.get(`/temporal/timeline/${encodeURIComponent(entityId)}${qs}`);
+  },
+  getCurrentState: (entityId) => api.get(`/temporal/state/${encodeURIComponent(entityId)}`),
+  getStateAsOf: (entityId, timestamp) => {
+    return api.get(`/temporal/state/${encodeURIComponent(entityId)}/as-of?timestamp=${encodeURIComponent(timestamp)}`);
+  },
+  computeDiff: (payload) => api.post('/temporal/diff', payload),
+  listChanges: (limit = 20) => api.get(`/temporal/changes?limit=${limit}`),
+  listGaps: () => api.get('/temporal/gaps'),
+  listAnomalies: () => api.get('/temporal/anomalies'),
+  listWatermarks: () => api.get('/temporal/watermarks'),
+  listCheckpoints: () => api.get('/temporal/checkpoints'),
+  createCheckpoint: (payload) => api.post('/temporal/checkpoints', payload),
+  reconstructOffline: (payload) => api.post('/temporal/reconstruct', payload),
+  getEvent: (eventId) => api.get(`/temporal/events/${encodeURIComponent(eventId)}`),
+  getHealth: () => api.get('/temporal/health'),
+};
+
+// Task 112: Autonomous Causal Explanation, Event Chain Reconstruction & "Why Did This Happen?" API
+export const explanationsApi = {
+  create: (payload) => api.post('/explanations', payload),
+  list: (limit = 20) => api.get(`/explanations?limit=${limit}`),
+  get: (id) => api.get(`/explanations/${encodeURIComponent(id)}`),
+  getTimeline: (id) => api.get(`/explanations/${encodeURIComponent(id)}/timeline`),
+  getChain: (id) => api.get(`/explanations/${encodeURIComponent(id)}/chain`),
+  getHypotheses: (id) => api.get(`/explanations/${encodeURIComponent(id)}/hypotheses`),
+  getEvidence: (id) => api.get(`/explanations/${encodeURIComponent(id)}/evidence`),
+  getAlternatives: (id) => api.get(`/explanations/${encodeURIComponent(id)}/alternatives`),
+  getCounterfactuals: (id) => api.get(`/explanations/${encodeURIComponent(id)}/counterfactuals`),
+  getGaps: (id) => api.get(`/explanations/${encodeURIComponent(id)}/gaps`),
+  getSnapshot: (id) => api.get(`/explanations/${encodeURIComponent(id)}/snapshot`),
+  getVerification: (id) => api.get(`/explanations/${encodeURIComponent(id)}/verification`),
+  verify: (id, payload) => api.post(`/explanations/${encodeURIComponent(id)}/verify`, payload),
+  feedback: (id, payload) => api.post(`/explanations/${encodeURIComponent(id)}/feedback`, payload),
+  refresh: (id) => api.post(`/explanations/${encodeURIComponent(id)}/refresh`),
+};
+
 export const endpoints = Endpoints;
 
 

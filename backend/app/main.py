@@ -104,6 +104,8 @@ from app.adaptation.router import router as adaptation_router
 from app.strategy.router import router as strategy_router
 from app.belief.router import router as belief_router
 from app.context.working_set_router import router as working_set_router
+from app.temporal.router import router as temporal_router
+from app.causal.explanation.router import router as explanation_router
 
 logger = logging.getLogger("kairo.main")
 
@@ -268,6 +270,12 @@ def create_app() -> FastAPI:
     app.include_router(working_set_router, prefix=settings.API_V1_STR)
     app.include_router(working_set_router, prefix="/api")
     app.include_router(working_set_router)
+    app.include_router(temporal_router, prefix=settings.API_V1_STR)
+    app.include_router(temporal_router, prefix="/api")
+    app.include_router(temporal_router)
+    app.include_router(explanation_router, prefix=settings.API_V1_STR)
+    app.include_router(explanation_router, prefix="/api")
+    app.include_router(explanation_router)
 
     # 6. Web Console UI & Static Assets
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "frontend"
